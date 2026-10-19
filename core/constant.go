@@ -13,8 +13,9 @@ import (
 )
 
 type ValidateConfigParams struct {
-	Data         string `json:"data"`
-	AgeSecretKey string `json:"age-secret-key"`
+	Data         string       `json:"data"`
+	AgeSecretKey string       `json:"age-secret-key"`
+	Setup        *SetupParams `json:"setup"`
 }
 
 type DecryptAgeConfigParams struct {
@@ -23,8 +24,15 @@ type DecryptAgeConfigParams struct {
 }
 
 type GetConfigParams struct {
+	Path           string   `json:"path"`
+	AgeSecretKey   string   `json:"age-secret-key"`
+	DisabledGroups []string `json:"disabled-groups"`
+}
+
+type ExportConfigParams struct {
 	Path         string `json:"path"`
 	AgeSecretKey string `json:"age-secret-key"`
+	Output       string `json:"output"`
 }
 
 type InitParams struct {
@@ -36,6 +44,15 @@ type SetupParams struct {
 	SelectedMap     map[string]string `json:"selected-map"`
 	TestURL         string            `json:"test-url"`
 	OverrideTestUrl bool              `json:"override-test-url"`
+	ProfilePath     string            `json:"profile-path"`
+	AgeSecretKey    string            `json:"age-secret-key"`
+	ScriptedConfig  string            `json:"scripted-config"`
+	Patch           *PatchParams      `json:"patch"`
+}
+
+type SetupResult struct {
+	Message string `json:"message"`
+	Global  string `json:"global"`
 }
 
 type UpdateParams struct {
@@ -127,6 +144,8 @@ const (
 	crashMethod                    Method = "crash"
 	setupConfigMethod              Method = "setupConfig"
 	getConfigMethod                Method = "getConfig"
+	getRuntimeConfigMethod         Method = "getRuntimeConfig"
+	exportConfigMethod             Method = "exportConfig"
 	flushFakeIPMethod              Method = "flushFakeIP"
 	flushDnsCacheMethod            Method = "flushDnsCache"
 	generateAgeKeyPairMethod              Method = "generateAgeKeyPair"

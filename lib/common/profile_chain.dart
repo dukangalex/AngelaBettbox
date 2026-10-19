@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:bett_box/common/explicit_policy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileChain {
@@ -74,9 +73,9 @@ class ProfileChainStore {
     );
   }
 
-  void apply(Map<String, dynamic> raw, String profileId) {
-    final chain = byProfile[profileId];
-    if (chain == null || !chain.enabled) return;
-    applyChainPolicy(raw, entry: chain.entry, landing: chain.landing);
-  }
+  /// Note: the config mutation that used to live here is now applied
+  /// Go-side in core/patch.go (see patchChainPolicy), because the Dart
+  /// full-config hook no longer exists in the typed-patch pipeline.
+  /// The original Dart spec is kept in common/explicit_policy.dart
+  /// for reference.
 }

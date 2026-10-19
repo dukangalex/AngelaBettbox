@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:bett_box/common/explicit_policy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Runtime policy applied after the profile, the script, and the built-in
@@ -63,23 +62,11 @@ class SystemExplicitStore {
     await prefs.setString(_key, jsonEncode(value.toJson()));
   }
 
-  void apply(Map<String, dynamic> raw) {
-    if (value.adapt) dropAutomaticDirect(raw);
-    if (!value.anyEnabled) return;
-    final rules = <dynamic>[];
-    if (value.privacy) {
-      rules.add('AND,((NETWORK,UDP),(DST-PORT,5353)),REJECT');
-      rules.add('AND,((NETWORK,UDP),(DST-PORT,5355)),REJECT');
-      rules.add('AND,((NETWORK,UDP),(DST-PORT,1900)),REJECT');
-    }
-    if (value.chinaDirect) {
-      rules.add('GEOSITE,geolocation-cn,DIRECT');
-      rules.add('GEOIP,CN,DIRECT,no-resolve');
-    }
-    final existing = raw['rules'];
-    if (existing is List) rules.addAll(existing);
-    raw['rules'] = rules;
-  }
+  /// Note: the config mutations that used to live here are now applied
+  /// Go-side in core/patch.go (see patchDropAutomaticDirect and the
+  /// prepend-rules path), because the Dart full-config hook no longer
+  /// exists in the typed-patch pipeline. The original Dart spec is kept in
+  /// common/explicit_policy.dart for reference.
 
   String notificationLabel(String profileLabel) {
     if (value.privacy) return 'Bettbox';

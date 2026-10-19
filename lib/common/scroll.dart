@@ -3,7 +3,7 @@ import 'dart:ui';
 
 import 'package:bett_box/common/common.dart';
 import 'package:bett_box/widgets/scroll.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class BaseScrollBehavior extends MaterialScrollBehavior {
   @override
@@ -35,7 +35,11 @@ class ShowBarScrollBehavior extends BaseScrollBehavior {
     Widget child,
     ScrollableDetails details,
   ) {
-    return CommonScrollBar(controller: details.controller, child: child);
+    return CommonScrollBar(
+      controller: details.controller,
+      axis: axisDirectionToAxis(details.direction),
+      child: child,
+    );
   }
 }
 
@@ -89,7 +93,7 @@ class NextClampingScrollPhysics extends ClampingScrollPhysics {
 
 class ReverseScrollController extends ScrollController {
   ReverseScrollController({
-    super.initialScrollOffset,
+    super.initialScrollOffset = double.maxFinite,
     super.keepScrollOffset,
     super.debugLabel,
   });
@@ -115,7 +119,7 @@ class ReverseScrollPosition extends ScrollPositionWithSingleContext {
   ReverseScrollPosition({
     required super.physics,
     required super.context,
-    super.initialPixels = 0.0,
+    super.initialPixels = double.maxFinite,
     super.keepScrollOffset,
     super.oldPosition,
     super.debugLabel,
@@ -125,9 +129,17 @@ class ReverseScrollPosition extends ScrollPositionWithSingleContext {
 
   @override
   bool applyContentDimensions(double minScrollExtent, double maxScrollExtent) {
-    if (!_isInit) {
+    if (!_isInit && maxScrollExtent > 0) {
       correctPixels(maxScrollExtent);
       _isInit = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!hasPixels) return;
+        if (pixels != maxScrollExtent) {
+          jumpTo(maxScrollExtent);
+        } else {
+          notifyListeners();
+        }
+      });
     }
     return super.applyContentDimensions(minScrollExtent, maxScrollExtent);
   }
