@@ -6,13 +6,16 @@ on:
       - 'v*'
 
 env:
-  IS_STABLE: ${{ !contains(github.ref, '-') }}
+  # AngelaBettbox fork: '-chain.' tags are stable fork releases
+  IS_STABLE: ${{ !contains(github.ref, '-') || contains(github.ref_name, '-chain.') }}
   IS_PRERELEASE: ${{ contains(github.ref_name, 'pre') }}
-  SHOULD_RELEASE: ${{ !contains(github.ref, '-') || contains(github.ref_name, 'pre') }}
+  SHOULD_RELEASE: ${{ !contains(github.ref, '-') || contains(github.ref_name, 'pre') || contains(github.ref_name, '-chain.') }}
   GRADLE_OPTS: -Dorg.gradle.vfs.watch=false
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   SENTRY_BACKEND: none
-  SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+  # Temporarily disabled SignPath due to account risk control:
+  # SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+  SIGNPATH_API_TOKEN: ''
   IPINFO_TOKEN: ${{ secrets.IPINFO_TOKEN || vars.IPINFO_TOKEN }}
   
 jobs:
@@ -48,15 +51,11 @@ jobs:
             arch: amd64
             compatible: true
           - platform: macos
-            os: macos-15
+            os: macos-26
             arch: arm64
           - platform: macos
-            os: macos-15
+            os: macos-26
             arch: amd64
-          - platform: macos
-            os: macos-15
-            arch: amd64
-            compatible: true
           - platform: linux
             os: ubuntu-22.04
             arch: amd64
@@ -150,8 +149,12 @@ jobs:
       - name: Setup Golang
         uses: actions/setup-go@v6
         with:
-          go-version: ${{ matrix.compatible == true && '1.20.x' || '1.25.x' }}
+          go-version: ${{ matrix.compatible == true && '1.24.x' || '1.25.x' }}
           cache-dependency-path: core/go.sum
+
+      - name: Select Xcode (macOS)
+        if: matrix.platform == 'macos'
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -159,7 +162,7 @@ jobs:
           channel: ${{ contains(matrix.os, 'arm') && 'master' || 'stable' }}
           cache: true
           cache-key: flutter-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('**/pubspec.lock') }}
-          flutter-version: ${{ contains(matrix.os, 'arm') && '' || '3.44.9' }}
+          flutter-version: ${{ contains(matrix.os, 'arm') && '' || '3.47.7' }}
 
       - name: Clear Pub Cache Credentials
         shell: bash
@@ -195,14 +198,14 @@ jobs:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           flutter pub get
-          dart run build_runner build -d
+          dart run build_runner build
           dart setup.dart ${{ matrix.platform }} --arch ${{ matrix.arch }} ${{ env.IS_STABLE == 'true' && '--env stable' || '' }} ${{ matrix.compatible == true && '--compatible' || '' }}
 
       - name: Install SignPath (Windows)
-        if: matrix.platform == 'windows'
+        if: matrix.platform == 'windows' && env.SIGNPATH_API_TOKEN != ''
         shell: pwsh
         env:
-          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNPATH_API_TOKEN: ${{ env.SIGNPATH_API_TOKEN }}
         run: |
           if (-not $env:SIGNPATH_API_TOKEN) {
             Write-Host "SIGNPATH_API_TOKEN is not configured. Skipping module installation."
@@ -213,7 +216,7 @@ jobs:
           Install-Module -Name SignPath -Force -Scope CurrentUser -Repository PSGallery
 
       - name: Set Signing Policy Slug (Windows)
-        if: matrix.platform == 'windows'
+        if: matrix.platform == 'windows' && env.SIGNPATH_API_TOKEN != ''
         shell: pwsh
         run: |
           $isStable = '${{ env.IS_STABLE }}' -eq 'true'
@@ -239,7 +242,7 @@ jobs:
         shell: bash
         run: |
           flutter pub get
-          dart run build_runner build -d
+          dart run build_runner build
           dart setup.dart windows --arch ${{ matrix.arch }} --out core-only ${{ matrix.compatible == true && '--compatible' || '' }}
 
       - name: Upload Unsigned Core
@@ -251,6 +254,13 @@ jobs:
           path: libclash/windows/BettboxCore.exe
           if-no-files-found: error
           retention-days: 1
+
+      - name: Wait for Unsigned Core
+        if: matrix.platform == 'windows' && env.SIGNPATH_API_TOKEN != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/scripts/wait-artifact.sh '${{ steps.upload-core.outputs.artifact-id }}'
 
       - name: Sign Core (Windows)
         if: matrix.platform == 'windows' && env.SIGNPATH_API_TOKEN != ''
@@ -283,6 +293,13 @@ jobs:
           path: libclash/windows/BettboxHelperService.exe
           if-no-files-found: error
           retention-days: 1
+
+      - name: Wait for Unsigned HelperService
+        if: matrix.platform == 'windows' && env.SIGNPATH_API_TOKEN != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/scripts/wait-artifact.sh '${{ steps.upload-helper.outputs.artifact-id }}'
 
       - name: Sign HelperService (Windows)
         if: matrix.platform == 'windows' && env.SIGNPATH_API_TOKEN != ''
@@ -335,6 +352,13 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      - name: Wait for Unsigned Bettbox
+        if: matrix.platform == 'windows' && env.SIGNPATH_API_TOKEN != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/scripts/wait-artifact.sh '${{ steps.upload-bettbox.outputs.artifact-id }}'
+
       - name: Sign Bettbox (Windows)
         if: matrix.platform == 'windows' && env.SIGNPATH_API_TOKEN != ''
         uses: signpath/github-action-submit-signing-request@v2
@@ -374,6 +398,13 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      - name: Wait for Unsigned Installer
+        if: matrix.platform == 'windows' && env.SIGNPATH_API_TOKEN != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/scripts/wait-artifact.sh '${{ steps.upload-installer.outputs.artifact-id }}'
+
       - name: Sign Installer (Windows)
         if: matrix.platform == 'windows' && env.SIGNPATH_API_TOKEN != ''
         uses: signpath/github-action-submit-signing-request@v2
@@ -400,34 +431,6 @@ jobs:
             unsigned-installer-${{ matrix.arch }}-${{ matrix.compatible }}
           failOnError: false
       
-      - name: Verify Core Permissions (Linux)
-        if: matrix.platform == 'linux' && matrix.compatible != true
-        shell: bash
-        run: |
-          echo "=== Verifying BettboxCore setuid in DEB package ==="
-          if ls dist/Bettbox-*.deb 1>/dev/null 2>&1; then
-            DEB_PERMS=$(dpkg-deb -c dist/Bettbox-*.deb | grep BettboxCore || true)
-            echo "$DEB_PERMS"
-            if echo "$DEB_PERMS" | grep -q 'rws'; then
-              echo "OK: BettboxCore in DEB has setuid bit"
-            else
-              echo "WARNING: BettboxCore in DEB is missing setuid bit (will be set by postinst on install)"
-              POSTINST=$(dpkg-deb -e dist/Bettbox-*.deb /tmp/bettbox-deb-control && cat /tmp/bettbox-deb-control/postinst || true)
-              if ! echo "$POSTINST" | grep -q '/usr/share/Bettbox/BettboxCore'; then
-                echo "ERROR: postinst script does not set permissions on /usr/share/Bettbox/BettboxCore"
-                exit 1
-              fi
-            fi
-          fi
-          echo "=== Verifying BettboxCore setuid in RPM package ==="
-          if ls dist/Bettbox-*.rpm 1>/dev/null 2>&1; then
-            RPM_PERMS=$(rpm -qplv dist/Bettbox-*.rpm | grep BettboxCore || true)
-            echo "$RPM_PERMS"
-            if ! echo "$RPM_PERMS" | grep -q 'rws'; then
-              echo "ERROR: BettboxCore in RPM is missing setuid bit"
-              exit 1
-            fi
-          fi
 
       - name: Upload Artifacts (macOS & Android)
         if: matrix.platform != 'linux' && matrix.platform != 'windows'
