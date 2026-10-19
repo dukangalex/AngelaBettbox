@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:bett_box/common/common.dart';
 import 'package:bett_box/state.dart';
 import 'package:bett_box/utils/platform_check.dart';
-import 'package:restart_app/restart_app.dart';
 
 class ExternalControl {
   static ServerSocket? _server;
@@ -21,7 +20,7 @@ class ExternalControl {
         await _startUnixSocket();
         return;
       } catch (e) {
-        commonPrint.log(
+        commonPrint.warn(
           'ExternalControl UDS bind failed, falling back to TCP: $e',
         );
       }
@@ -58,7 +57,7 @@ class ExternalControl {
           .transform(utf8.decoder)
           .transform(const LineSplitter())
           .listen(_handleCommand),
-      onError: (e) => commonPrint.log('ExternalControl server error: $e'),
+      onError: (e) => commonPrint.warn('ExternalControl server error: $e'),
     );
   }
 
@@ -168,11 +167,11 @@ class ExternalControl {
       case 'exit':
         globalState.appController.handleExit();
       case 'restart':
-        Restart.restartApp();
+        system.restartApp();
       case 'show':
         window?.show();
       default:
-        commonPrint.log('ExternalControl unknown command: $command');
+        commonPrint.warn('ExternalControl unknown command: $command');
     }
   }
 }

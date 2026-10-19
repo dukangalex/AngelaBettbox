@@ -24,32 +24,36 @@ class HelperAuthManager {
     }
 
     if (Platform.isWindows) {
-      commonPrint.log('[HelperAuth] Trying to sync auth key from registry for service: $appHelperService');
+      commonPrint.log(
+        '[HelperAuth] Trying to sync auth key from registry for service: $appHelperService',
+      );
       RegistryKey? key;
       try {
-        final keyPath = 'SYSTEM\\CurrentControlSet\\Services\\$appHelperService';
-        key = Registry.openPath(
-          RegistryHive.localMachine,
-          path: keyPath,
-          desiredAccessRights: AccessRights.readOnly,
+        final keyPath =
+            'SYSTEM\\CurrentControlSet\\Services\\$appHelperService';
+        key = LOCAL_MACHINE.open(
+          keyPath,
+          config: const RegistryOpenConfig(access: RegistryAccess.read),
         );
-        final list = key.getStringArrayValue('Environment');
-        if (list != null) {
-          for (final item in list) {
+        final list = key.getValue('Environment');
+        if (list case MultiStringValue(:final value)) {
+          for (final item in value) {
             if (item.startsWith('HELPER_AUTH_KEY=')) {
               final val = item.substring('HELPER_AUTH_KEY='.length);
               if (_isValidHexKey(val)) {
                 _authKey = val;
                 final file = File(await appPath.helperAuthKeyPath);
                 await _persistAuthKey(file, _authKey!);
-                commonPrint.log('[HelperAuth] Successfully synced auth key from registry.');
+                commonPrint.log(
+                  '[HelperAuth] Successfully synced auth key from registry.',
+                );
                 return false;
               }
             }
           }
         }
       } catch (e) {
-        commonPrint.log('[HelperAuth] Failed to read registry: $e');
+        commonPrint.warn('[HelperAuth] Failed to read registry: $e');
       } finally {
         key?.close();
       }
@@ -70,14 +74,21 @@ class HelperAuthManager {
   }
 
   static Map<String, String> generateAuthHeaders(String body) {
-    if (_authKey == null) {
+    final authKey = _authKey;
+    if (authKey == null) {
       return {};
     }
+    return generateAuthHeadersWithKey(body, authKey);
+  }
 
+  static Map<String, String> generateAuthHeadersWithKey(
+    String body,
+    String authKey,
+  ) {
     final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final message = '$timestamp:$body';
 
-    final keyBytes = _hexToBytes(_authKey!);
+    final keyBytes = _hexToBytes(authKey);
     final messageBytes = utf8.encode(message);
     final hmacSha256 = Hmac(sha256, keyBytes);
     final digest = hmacSha256.convert(messageBytes);
@@ -155,15 +166,14 @@ class HelperAuthManager {
 
       final result = CryptProtectData(
         dataIn,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
+        null,
+        null,
+        null,
         _cryptProtectUiForbidden,
         dataOut,
       );
-      if (result == 0) {
-        throw WindowsException(HRESULT_FROM_WIN32(GetLastError()));
+      if (!result.value) {
+        throw WindowsException(result.error.toHRESULT());
       }
 
       return Uint8List.fromList(
@@ -171,7 +181,7 @@ class HelperAuthManager {
       );
     } finally {
       if (dataOut.ref.pbData != nullptr) {
-        LocalFree(dataOut.ref.pbData);
+        LocalFree(HLOCAL(dataOut.ref.pbData));
       }
       calloc.free(inputBuffer);
       calloc.free(dataIn);
@@ -191,15 +201,14 @@ class HelperAuthManager {
 
       final result = CryptUnprotectData(
         dataIn,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
+        null,
+        null,
+        null,
         _cryptProtectUiForbidden,
         dataOut,
       );
-      if (result == 0) {
-        throw WindowsException(HRESULT_FROM_WIN32(GetLastError()));
+      if (!result.value) {
+        throw WindowsException(result.error.toHRESULT());
       }
 
       return Uint8List.fromList(
@@ -207,7 +216,7 @@ class HelperAuthManager {
       );
     } finally {
       if (dataOut.ref.pbData != nullptr) {
-        LocalFree(dataOut.ref.pbData);
+        LocalFree(HLOCAL(dataOut.ref.pbData));
       }
       calloc.free(inputBuffer);
       calloc.free(dataIn);
