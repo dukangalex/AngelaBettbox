@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:bett_box/state.dart';
-import 'package:flutter/material.dart';
+import 'package:bett_box/widgets/keep_scope.dart';
+import 'package:material_ui/material_ui.dart';
 
 bool dismissTvInputFocus() {
   if (!globalState.isAndroidTV) return false;
@@ -28,7 +29,8 @@ class CommonPopScope extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTv = globalState.isAndroidTV;
-    final intercept = onPop != null || isTv;
+    final intercept =
+        (onPop != null || isTv) && PageActivityScope.isActiveOf(context);
     return PopScope(
       canPop: !intercept,
       onPopInvokedWithResult: !intercept
@@ -61,20 +63,36 @@ class SystemBackBlock extends StatefulWidget {
 }
 
 class _SystemBackBlockState extends State<SystemBackBlock> {
-  @override
-  void initState() {
-    super.initState();
+  static int _count = 0;
+  bool _counted = false;
+
+  static void _sync() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      globalState.appController.backBlock();
+      if (_count > 0) {
+        globalState.appController.backBlock();
+        return;
+      }
+      globalState.appController.unBackBlock();
     });
+  }
+
+  void _setCounted(bool counted) {
+    if (_counted == counted) return;
+    _counted = counted;
+    _count += counted ? 1 : -1;
+    _sync();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _setCounted(PageActivityScope.isActiveOf(context));
   }
 
   @override
   void dispose() {
     super.dispose();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      globalState.appController.unBackBlock();
-    });
+    _setCounted(false);
   }
 
   @override

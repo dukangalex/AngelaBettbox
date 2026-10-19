@@ -2,7 +2,7 @@ import 'package:bett_box/common/common.dart';
 import 'package:bett_box/enum/enum.dart';
 import 'package:bett_box/models/models.dart';
 import 'package:bett_box/state.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'scaffold.dart';
 import 'side_sheet.dart';
@@ -113,30 +113,37 @@ class AdaptiveSheetScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = context.colorScheme.surface;
     final bottomSheet = type == SheetType.bottomSheet;
     final sideSheet = type == SheetType.sideSheet;
+    final backgroundColor = (bottomSheet || sideSheet)
+        ? context.colorScheme.surfaceContainerLow
+        : null;
     final appBar = AppBar(
-      forceMaterialTransparency: bottomSheet ? true : false,
+      forceMaterialTransparency: bottomSheet,
       automaticallyImplyLeading: bottomSheet
           ? false
           : actions.isEmpty && sideSheet
           ? false
           : true,
       centerTitle: bottomSheet,
-      backgroundColor: backgroundColor,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
       title: EmojiText(title),
       actions: genActions([
-        if (actions.isEmpty && sideSheet) CloseButton(),
+        if (actions.isEmpty && sideSheet) const CloseButton(),
         ...actions,
       ]),
     );
     final content = bottomSheet
         ? Container(
             clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
+            decoration: ShapeDecoration(
               color: backgroundColor,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28.0)),
+              shape: const RoundedSuperellipseBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28.0)),
+              ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
