@@ -15,7 +15,7 @@ import 'package:bett_box/state.dart';
 import 'package:bett_box/widgets/dialog.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart';
@@ -39,6 +39,7 @@ class AppController {
   WidgetRef get ref => _ref;
 
   Timer? _wakelockSyncTimer;
+  final List<Log> _pendingLogs = [];
   Completer<void>? _exitLock;
   final Lock _coreLifecycleLock = Lock(reentrant: true);
   int _backgroundLoadVersion = 0;
@@ -49,6 +50,7 @@ class AppController {
   int _coreGeneration = 0;
   int _setupGeneration = 0;
   final Set<String> _updatingProfileIds = {};
+  int _localNetworkId = 0;
   Timer? _idleGcTimer;
 
   AppController(this.context, WidgetRef ref) : _ref = ref;
@@ -98,7 +100,10 @@ class AppController {
   }
 
   void savePreferencesDebounce() {
-    debouncer.call(FunctionTag.savePreferences, savePreferences);
+    debouncer.call(FunctionTag.savePreferences, () async {
+      await routeIdleObserver.whenIdle();
+      await savePreferences();
+    });
   }
 
   void changeProxyDebounce(String groupName, String proxyName) {
@@ -118,6 +123,11 @@ class AppController {
     _updateGroupsRetryTimer?.cancel();
     _updateGroupsRetryTimer = null;
     _updateGroupsRetryCount = 0;
+  }
+
+  Future<void> flushDns() async {
+    await clashCore.flushFakeIP();
+    await clashCore.flushDnsCache();
   }
 
   Future<void> restartCore() {
@@ -212,7 +222,7 @@ class AppController {
   Future<void> _fastStart() async {
     final currentProfile = _ref.read(currentProfileProvider);
     if (currentProfile == null) {
-      commonPrint.log('Fast start aborted: No active profile configured.');
+      commonPrint.warn('Fast start aborted: No active profile configured.');
       return;
     }
 
@@ -222,7 +232,7 @@ class AppController {
     if (isDesktop && patchConfig.tun.enable) {
       await _quickSetupConfig(enableTun: false);
 
-      if (system.isMacOS) {
+      if (system.isMacOS || system.isLinux) {
         try {
           final res = await _requestAdmin(true);
           if (res.needRestart) {
@@ -235,7 +245,7 @@ class AppController {
               try {
                 await _updateClashConfig();
               } catch (e) {
-                commonPrint.log('FastStart macOS TUN update failed: $e');
+                commonPrint.warn('FastStart desktop TUN update failed: $e');
               }
               _backgroundLoad();
             });
@@ -243,7 +253,7 @@ class AppController {
             _backgroundLoad();
           }
         } catch (e) {
-          commonPrint.log('FastStart macOS auth error: $e');
+          commonPrint.warn('FastStart desktop auth error: $e');
           await globalState.handleStart([updateRunTime, updateTraffic]);
           _backgroundLoad();
         }
@@ -264,7 +274,7 @@ class AppController {
             await _updateClashConfig();
           }
         } catch (e) {
-          commonPrint.log('FastStart update config failed: $e');
+          commonPrint.error('FastStart update config failed: $e');
         }
         _backgroundLoad();
       });
@@ -277,7 +287,7 @@ class AppController {
     if (needReapply) {
       final setupResult = await _quickSetupConfig();
       if (setupResult != true) {
-        commonPrint.log('Fast start aborted: setupConfig failed');
+        commonPrint.error('Fast start aborted: setupConfig failed');
         return;
       }
     }
@@ -326,7 +336,7 @@ class AppController {
         if (version != _backgroundLoadVersion) return;
         await clashCore.requestGc(forceFreeOSMemory: true);
       } catch (e) {
-        commonPrint.log('Background load error: $e');
+        commonPrint.warn('Background load error: $e');
       }
     });
   }
@@ -370,11 +380,13 @@ class AppController {
     final params = await globalState.getSetupParams(
       pathConfig: realPatchConfig,
     );
-    final message = await clashCore.setupConfig(params);
+    final result = await clashCore.setupConfig(params);
+    final message = result.message;
     if (message.isNotEmpty) {
-      commonPrint.log('[Core] Setup config failed: $message');
+      commonPrint.error('[Core] Setup config failed: $message');
       throw message;
     }
+    _applyGlobalSelection(result.global);
     if (system.isDesktop) {
       final prefs = await preferences.sharedPreferencesCompleter.future;
       await prefs?.setBool('is_tun_running', realTunEnable);
@@ -384,6 +396,18 @@ class AppController {
     );
     _setupGeneration = _coreGeneration;
     return true;
+  }
+
+  void _applyGlobalSelection(String global) {
+    final profile = _ref.read(currentProfileProvider);
+    if (global.isEmpty ||
+        profile == null ||
+        profile.selectedMap['GLOBAL'] != null) {
+      return;
+    }
+    setProfile(
+      profile.copyWith(selectedMap: {...profile.selectedMap, 'GLOBAL': global}),
+    );
   }
 
   Future<bool?> _quickSetupConfig({bool? enableTun}) async {
@@ -415,20 +439,7 @@ class AppController {
   }
 
   Future<bool> _shouldUpdateDashboardTick() async {
-    if (system.isDesktop) {
-      final isPinned = _ref.read(
-        windowSettingProvider.select((s) => s.isPinned),
-      );
-      if (isPinned) return true;
-      if (await window?.isVisible == false) return false;
-      if (await window?.isMinimized == true) return false;
-      return true;
-    }
-
-    final lifecycleState = WidgetsBinding.instance.lifecycleState;
-    if (lifecycleState != AppLifecycleState.resumed) return false;
-
-    return true;
+    return dashboardRefreshManager.isActive();
   }
 
   Future<void> updateTraffic() async {
@@ -447,8 +458,8 @@ class AppController {
       return;
     }
 
-    _ref.read(totalTrafficProvider.notifier).value = await clashCore
-        .getTotalTraffic();
+    final totalTraffic = await clashCore.getTotalTraffic();
+    _ref.read(totalTrafficProvider.notifier).value = totalTraffic;
 
     final traffic = await clashCore.getTraffic();
 
@@ -501,17 +512,28 @@ class AppController {
   }
 
   Future<void> updateProviders() async {
-    _ref.read(providersProvider.notifier).value = await clashCore
-        .getExternalProviders();
+    final providers = await clashCore.getExternalProviders();
+    if (listEquals(_ref.read(providersProvider), providers)) return;
+    _ref.read(providersProvider.notifier).value = providers;
   }
 
-  Future<void> updateLocalIp() async {
-    _ref.read(localIpProvider.notifier).value = null;
-    await Future.delayed(commonDuration);
-    _ref.read(localIpProvider.notifier).value = await utils.getLocalIpAddress();
+  Future<void> updateLocalNetwork({bool silent = false}) async {
+    final id = ++_localNetworkId;
+    if (!silent) {
+      _ref.read(localNetworkProvider.notifier).value = null;
+      await Future.delayed(commonDuration);
+      if (id != _localNetworkId) return;
+    }
+    final info = await utils.getNetworkInfo();
+    if (id != _localNetworkId) return;
+    _ref.read(localNetworkProvider.notifier).value = info;
   }
 
-  Future<void> updateProfile(Profile profile, {bool validate = true}) async {
+  Future<void> updateProfile(
+    Profile profile, {
+    bool validate = true,
+    bool applyUnchanged = true,
+  }) async {
     if (_updatingProfileIds.contains(profile.id)) {
       _ref
           .read(profilesProvider.notifier)
@@ -520,13 +542,18 @@ class AppController {
     }
     _updatingProfileIds.add(profile.id);
     try {
+      final modified = applyUnchanged
+          ? null
+          : await profile.profileLastModified;
       final newProfile = await profile.update(validate: validate);
       _ref
           .read(profilesProvider.notifier)
           .setProfile(newProfile.copyWith(isUpdating: false));
-      if (profile.id == _ref.read(currentProfileIdProvider)) {
-        applyProfileDebounce(silence: true);
+      if (profile.id != _ref.read(currentProfileIdProvider)) return;
+      if (modified != null && modified == await profile.profileLastModified) {
+        return;
       }
+      applyProfileDebounce(silence: true);
     } finally {
       _updatingProfileIds.remove(profile.id);
     }
@@ -548,7 +575,19 @@ class AppController {
   }
 
   void addLog(Log log) {
-    _ref.read(logsProvider.notifier).addLog(log);
+    _pendingLogs.add(log);
+    throttler.call(
+      FunctionTag.logs,
+      _flushLogs,
+      duration: const Duration(milliseconds: 300),
+    );
+  }
+
+  void _flushLogs() {
+    if (_pendingLogs.isEmpty) return;
+    final logs = List.of(_pendingLogs);
+    _pendingLogs.clear();
+    _ref.read(logsProvider.notifier).addLogs(logs);
   }
 
   void updateOrAddHotKeyAction(HotKeyAction hotKeyAction) {
@@ -580,6 +619,7 @@ class AppController {
   }
 
   dynamic addSortNum() {
+    _ref.read(delayDataSourceProvider.notifier).flush();
     return _ref.read(sortNumProvider.notifier).add();
   }
 
@@ -591,7 +631,11 @@ class AppController {
   }
 
   ProxyCardState getProxyCardState(String proxyName) {
-    return _ref.read(getProxyCardStateProvider(proxyName));
+    return resolveProxyCardState(
+      _ref.read(groupsProvider),
+      _ref.read(selectedMapProvider),
+      ProxyCardState(proxyName: proxyName),
+    );
   }
 
   String? getSelectedProxyName(String groupName) {
@@ -651,7 +695,8 @@ class AppController {
 
   Future<Result<bool>> _requestAdmin(bool enableTun) async {
     final realTunEnable = _ref.read(realTunEnableProvider);
-    if (enableTun != realTunEnable && realTunEnable == false) {
+    final hasAdmin = await system.checkIsAdmin();
+    if (enableTun && (!realTunEnable || !hasAdmin)) {
       final code = await system.authorizeCore();
       switch (code) {
         case AuthorizeCode.success:
@@ -660,9 +705,7 @@ class AppController {
         case AuthorizeCode.none:
           break;
         case AuthorizeCode.error:
-          globalState.showNotifier(
-            'TUN mode requires administrator privileges.',
-          );
+          globalState.showNotifier(appLocalizations.tunEnableRequireAdmin);
           enableTun = false;
           break;
       }
@@ -685,7 +728,12 @@ class AppController {
   Future<void> _applyProfile() async {
     _invalidateCoreReads();
     _ref.read(delayDataSourceProvider.notifier).value = {};
-    unawaited(clashCore.requestGc());
+    unawaited(
+      clashCore.requestGc().then<void>(
+        (_) {},
+        onError: (Object e) => commonPrint.debug('requestGc ignored: $e'),
+      ),
+    );
     final configured = await _setupCoreConfig();
     if (!configured) return;
     final providers = await clashCore.getExternalProviders();
@@ -749,7 +797,7 @@ class AppController {
 
   void _reportCoreRestartFailure(Object error) {
     final message = error.formatError;
-    commonPrint.log('[Core] Restart failed: ${error.formatErrorLog}');
+    commonPrint.error('[Core] Restart failed: ${error.formatErrorLog}');
     globalState.showNotifier('${appLocalizations.restartCoreTitle}: $message');
   }
 
@@ -773,9 +821,9 @@ class AppController {
     for (final profile in _ref.read(profilesProvider)) {
       if (!_isProfileUpdateNeeded(profile)) continue;
       try {
-        await updateProfile(profile, validate: false);
+        await updateProfile(profile, validate: false, applyUnchanged: false);
       } catch (e) {
-        commonPrint.log(
+        commonPrint.error(
           '[AutoUpdate] Failed to update ${profile.label ?? profile.id}: ${e.formatErrorLog}',
         );
       }
@@ -792,10 +840,10 @@ class AppController {
       var updated = false;
       for (final profile in profilesToUpdate) {
         try {
-          await updateProfile(profile, validate: false);
+          await updateProfile(profile, validate: false, applyUnchanged: false);
           updated = true;
         } catch (e) {
-          commonPrint.log(
+          commonPrint.error(
             '[MissedUpdate] Failed to update ${profile.label ?? profile.id}: ${e.formatErrorLog}',
           );
         }
@@ -817,7 +865,7 @@ class AppController {
       if (providers.isEmpty) return;
       _ref.read(providersProvider.notifier).value = providers;
     } catch (e) {
-      commonPrint.log('[Sync] Failed to sync external providers: $e');
+      commonPrint.warn('[Sync] Failed to sync external providers: $e');
     }
   }
 
@@ -860,7 +908,7 @@ class AppController {
         ? const Duration(seconds: 2)
         : const Duration(seconds: 3);
     if (currentGroups.isNotEmpty) {
-      commonPrint.log('updateGroups error: $e');
+      commonPrint.warn('updateGroups error: $e');
       return;
     }
 
@@ -882,7 +930,7 @@ class AppController {
     List<ExternalProvider>? preloadedProviders,
   }) async {
     if (_isUpdatingGroups) {
-      commonPrint.log('updateGroups already in progress, skipping');
+      commonPrint.debug('updateGroups already in progress, skipping');
       return;
     }
     _isUpdatingGroups = true;
@@ -917,7 +965,7 @@ class AppController {
           }
         }
       } catch (e) {
-        commonPrint.log('Failed to sync active mode: $e');
+        commonPrint.warn('Failed to sync active mode: $e');
       }
 
       final currentProfile = _ref.read(currentProfileProvider);
@@ -979,7 +1027,9 @@ class AppController {
         }
       }
 
-      _ref.read(groupsProvider.notifier).value = newGroups;
+      if (!listEquals(currentGroups, newGroups)) {
+        _ref.read(groupsProvider.notifier).value = newGroups;
+      }
       _updateGroupsRetryCount = 0;
       _updateGroupsRetryTimer?.cancel();
       _updateGroupsRetryTimer = null;
@@ -999,7 +1049,7 @@ class AppController {
       try {
         await updateProfile(profile);
       } catch (e) {
-        commonPrint.log(
+        commonPrint.error(
           '[UpdateProfiles] Failed to update ${profile.label ?? profile.id}: ${e.formatErrorLog}',
         );
       }
@@ -1049,12 +1099,13 @@ class AppController {
         '${AppIdentity.mainExecutableName}.exe',
         enable,
       );
+      if (kDebugMode) return;
       await helperClient.setProcessPriority(
         '${AppIdentity.coreExecutableName}.exe',
         enable,
       );
     } catch (e) {
-      commonPrint.log('Set process priority error: $e');
+      commonPrint.warn('Set process priority error: $e');
       rethrow;
     }
   }
@@ -1073,7 +1124,7 @@ class AppController {
         try {
           await trayManager.destroy();
         } catch (e) {
-          commonPrint.log('Failed to destroy tray icon on exit: $e');
+          commonPrint.warn('Failed to destroy tray icon on exit: $e');
         }
       }
       stopWakelockAutoRecovery();
@@ -1091,13 +1142,13 @@ class AppController {
         await clashService!.destroy();
       }
     } catch (e) {
-      commonPrint.log('handleExit error: $e');
+      commonPrint.warn('handleExit error: $e');
     } finally {
       if (macOS != null) {
         try {
           await macOS!.updateDns(true);
         } catch (e) {
-          commonPrint.log('Failed to restore macOS system DNS on exit: $e');
+          commonPrint.warn('Failed to restore macOS system DNS on exit: $e');
         }
       }
       if (!exitLock.isCompleted) {
@@ -1214,6 +1265,10 @@ class AppController {
   Future<void> _initCore() {
     return _initCoreFuture ??= () async {
       try {
+        if (!await _waitForCoreConnection()) {
+          commonPrint.debug('core not connected yet, skipping init');
+          return;
+        }
         final isInit = await clashCore.isInit;
         if (!isInit) {
           await clashCore.init();
@@ -1223,6 +1278,17 @@ class AppController {
         _initCoreFuture = null;
       }
     }();
+  }
+
+  Future<bool> _waitForCoreConnection() async {
+    final completer = clashService?.socketCompleter;
+    if (completer == null || completer.isCompleted) return true;
+    try {
+      await completer.future.timeout(const Duration(seconds: 15));
+      return true;
+    } on TimeoutException {
+      return false;
+    }
   }
 
   void startWakelockAutoRecovery() {
@@ -1261,28 +1327,6 @@ class AppController {
     await WakelockPlus.enable();
   }
 
-  Future<void> _initHighRefreshRateDefault() async {
-    try {
-      final androidVersion = await system.version;
-      final currentSetting = _ref.read(appSettingProvider);
-
-      final bool shouldEnableHighRefreshRate =
-          androidVersion >= 31; // Android 12+
-
-      if (currentSetting.enableHighRefreshRate != shouldEnableHighRefreshRate) {
-        _ref
-            .read(appSettingProvider.notifier)
-            .updateState(
-              (state) => state.copyWith(
-                enableHighRefreshRate: shouldEnableHighRefreshRate,
-              ),
-            );
-      }
-    } catch (e) {
-      commonPrint.log('Failed to initialize high refresh rate default: $e');
-    }
-  }
-
   Future<void> init() async {
     FlutterError.onError = (details) {
       if (kDebugMode) {
@@ -1302,10 +1346,6 @@ class AppController {
       }
     });
 
-    if (system.isAndroid) {
-      await _initHighRefreshRateDefault();
-    }
-
     try {
       final wakelockEnabled = await WakelockPlus.enabled;
       _ref.read(wakelockStateProvider.notifier).state = wakelockEnabled;
@@ -1314,7 +1354,7 @@ class AppController {
         startWakelockAutoRecovery();
       }
     } catch (e) {
-      commonPrint.log('Failed to check wake lock status: $e');
+      commonPrint.warn('Failed to check wake lock status: $e');
     }
 
     await updateTray(true);
@@ -1323,11 +1363,11 @@ class AppController {
     try {
       await _initStatus();
     } catch (e) {
-      commonPrint.log('_initStatus failed, falling back to basic startup: $e');
+      commonPrint.warn('_initStatus failed, falling back to basic startup: $e');
       try {
         await applyProfile(silence: true);
       } catch (e2) {
-        commonPrint.log('Fallback applyProfile also failed: $e2');
+        commonPrint.error('Fallback applyProfile also failed: $e2');
       }
     }
 
@@ -1359,7 +1399,7 @@ class AppController {
         setProcessPriority(
           _ref.read(appSettingProvider).enableHighPriority,
         ).catchError((e) {
-          commonPrint.log('Failed to set initial process priority: $e');
+          commonPrint.warn('Failed to set initial process priority: $e');
         }),
       );
     }
@@ -1379,12 +1419,12 @@ class AppController {
     final needRecovery = await _detectAbnormalExit();
 
     if (needRecovery) {
-      commonPrint.log('Abnormal exit detected');
+      commonPrint.warn('Abnormal exit detected');
       if (system.isAndroid) {
         try {
           await applyProfile(silence: true);
         } catch (e) {
-          commonPrint.log('Recovery failed: $e');
+          commonPrint.error('Recovery failed: $e');
         }
       }
     }
@@ -1400,7 +1440,7 @@ class AppController {
       try {
         await updateStatus(true);
       } catch (e) {
-        commonPrint.log('Auto start failed: $e');
+        commonPrint.error('Auto start failed: $e');
         await applyProfile();
         addCheckIpNumDebounce();
       }
@@ -1592,10 +1632,9 @@ class AppController {
     int successCount = 0;
     try {
       for (final platformFile in validFiles) {
-        final bytes = platformFile.bytes;
-        if (bytes == null || bytes.isEmpty) continue;
-
         try {
+          final bytes = await platformFile.readAsBytes();
+          if (bytes.isEmpty) continue;
           final profile = await Profile.normal(
             label: platformFile.name,
           ).saveFile(bytes);
@@ -1638,48 +1677,43 @@ class AppController {
     _ref.read(providersProvider.notifier).setProvider(provider);
   }
 
-  List<Proxy> _sortOfName(List<Proxy> proxies) {
-    return List.of(proxies)..sort(
-      (a, b) =>
-          utils.sortByChar(utils.getPinyin(a.name), utils.getPinyin(b.name)),
-    );
-  }
-
-  int _delayValue(int? delay) =>
-      (delay == null || delay == -1) ? 1 << 30 : delay;
-
-  List<Proxy> _sortOfDelay({required List<Proxy> proxies, String? testUrl}) {
-    return List.of(proxies)..sort((a, b) {
-      final aDelay = _ref.read(
-        getDelayProvider(proxyName: a.name, testUrl: testUrl),
-      );
-      final bDelay = _ref.read(
-        getDelayProvider(proxyName: b.name, testUrl: testUrl),
-      );
-      return _delayValue(aDelay).compareTo(_delayValue(bDelay));
-    });
-  }
-
   List<Proxy> getSortProxies({
     required List<Proxy> proxies,
     required ProxiesSortType sortType,
     String? testUrl,
   }) {
-    return switch (sortType) {
-      ProxiesSortType.none => proxies,
-      ProxiesSortType.delay => _sortOfDelay(proxies: proxies, testUrl: testUrl),
-      ProxiesSortType.name => _sortOfName(proxies),
-    };
+    if (sortType != ProxiesSortType.delay) {
+      return sortProxies(proxies, sortType);
+    }
+    final delayOf = createDelayLookup(
+      groups: _ref.read(groupsProvider),
+      selectedMap: _ref.read(selectedMapProvider),
+      delayMap: _ref.read(delayDataSourceProvider),
+      overrideTestUrl: _ref.read(overrideTestUrlProvider),
+      defaultTestUrl: _ref.read(appSettingProvider).testUrl,
+    );
+    return sortProxies(
+      proxies,
+      sortType,
+      delayOf: (proxyName) => delayOf(proxyName, testUrl),
+    );
   }
 
   Future<void> clearEffect(String profileId) async {
     final profilePath = await appPath.getProfilePath(profileId);
     final providersDirPath = await appPath.getProvidersDirPath(profileId);
+    final relayPath = await appPath.relayPath;
     await Isolate.run(() async {
       final profileFile = File(profilePath);
       final isExists = await profileFile.exists();
       if (isExists) {
         await profileFile.delete(recursive: true);
+      }
+      for (final extension in const ['json', 'key']) {
+        final cacheFile = File(join(relayPath, 'cache-$profileId.$extension'));
+        if (await cacheFile.exists()) {
+          await cacheFile.delete();
+        }
       }
       final providersFileDir = Directory(providersDirPath);
       final providersFileIsExists = await providersFileDir.exists();
@@ -1814,7 +1848,11 @@ class AppController {
   }
 
   Future<bool> exportLogs() async {
-    final logsRaw = _ref.read(logsProvider).list.map((item) => item.toString());
+    final logsRaw = _ref
+        .read(filteredLogsProvider)
+        .logs
+        .map((item) => item.line)
+        .toList();
     final data = await Isolate.run<List<int>>(() async {
       final logsRawString = logsRaw.join('\n');
       return utf8.encode(logsRawString);
@@ -1826,7 +1864,14 @@ class AppController {
   Future<List<int>> backupData() async {
     final homeDirPath = await appPath.homeDirPath;
     final profilesPath = await appPath.profilesPath;
-    final configJson = globalState.config.toJson();
+    final scripts = await Future.wait(
+      globalState.config.scriptProps.scripts.map(
+        (script) async => script.copyWith(content: await script.readContent()),
+      ),
+    );
+    final configJson = globalState.config.copyWith
+        .scriptProps(scripts: scripts)
+        .toJson();
     if (configJson['dav'] is Map) {
       final davMap = Map<String, dynamic>.from(configJson['dav'] as Map);
       if (davMap['user'] is String) {
@@ -1951,7 +1996,16 @@ class AppController {
     bool silent = false,
     bool force = false,
   ]) async {
-    final trayState = _ref.read(trayStateProvider);
+    var trayState = _ref.read(trayStateProvider);
+    if (tray.showHiddenGroups) {
+      trayState = trayState.copyWith(
+        groups: getVisibleGroups(
+          mode: trayState.mode,
+          groups: _ref.read(groupsProvider),
+          showHiddenItems: true,
+        ),
+      );
+    }
     await tray.update(
       trayState: trayState,
       focus: focus,
@@ -1969,7 +2023,7 @@ class AppController {
       commonPrint.log('Archive decoded: ${archive.files.length} files');
       await _recoveryFromArchive(archive, recoveryOption);
     } catch (e) {
-      commonPrint.log('Recovery failed: $e');
+      commonPrint.error('Recovery failed: $e');
       throw 'Backup file is corrupted or invalid: $e';
     }
   }
@@ -2006,7 +2060,7 @@ class AppController {
             return result;
           }
         } catch (e) {
-          commonPrint.log('Stream decoding failed: $e');
+          commonPrint.warn('Stream decoding failed: $e');
         }
 
         final bytes = File(path).readAsBytesSync();
@@ -2092,6 +2146,12 @@ class AppController {
 
     await restoreBackupFiles(profiles, homeDirPath);
 
+    if (recoveryOption != RecoveryOption.onlyProfiles) {
+      tempConfig = tempConfig.copyWith(
+        scriptProps: await tempConfig.scriptProps.externalize(),
+      );
+    }
+
     _recovery(tempConfig, recoveryOption);
     await savePreferences();
     if (globalState.isStart) {
@@ -2108,12 +2168,12 @@ class AppController {
           try {
             await entity.delete(recursive: true);
           } catch (e) {
-            commonPrint.log('Delete profile entity failed: $e');
+            commonPrint.warn('Delete profile entity failed: $e');
           }
         }
       }
     } catch (e) {
-      commonPrint.log('Clean profiles dir for override failed: $e');
+      commonPrint.warn('Clean profiles dir for override failed: $e');
     }
   }
 
@@ -2253,7 +2313,7 @@ class AppController {
         }
       }
     } catch (e) {
-      commonPrint.log('Failed to extract label from YAML: $e');
+      commonPrint.warn('Failed to extract label from YAML: $e');
     }
     return null;
   }
@@ -2410,6 +2470,12 @@ class AppController {
       }
 
       // 11. Restore script settings
+      final scriptIds = config.scriptProps.scripts.map((e) => e.id).toSet();
+      for (final script in _ref.read(scriptStateProvider).scripts) {
+        if (!scriptIds.contains(script.id)) {
+          unawaited(script.deleteContent());
+        }
+      }
       _ref.read(scriptStateProvider.notifier).value = config.scriptProps;
     }
 
@@ -2430,7 +2496,7 @@ class AppController {
       final res = await futureFunction();
       return res;
     } on Object catch (e) {
-      commonPrint.log(e.formatErrorLog);
+      commonPrint.error(e.formatErrorLog);
       final errorMessage = e.formatError;
       if (needLoading) {
         _ref.read(loadingProvider.notifier).value = false;
