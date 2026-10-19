@@ -85,7 +85,6 @@ postinstall_scripts:
 postuninstall_scripts:
   - echo `Surprised Pickachu face`
 
-
 # application icon path relative to project url
 icon: assets/logo.png
 
@@ -117,6 +116,7 @@ categories:
 # the application will deny to the OS if it was added as a start_up 
 # application
 startup_notify: true  
+
 */
 
 class MakeDebConfig extends MakeLinuxPackageConfig {
@@ -126,6 +126,7 @@ class MakeDebConfig extends MakeLinuxPackageConfig {
     required this.installedSize,
     required this.maintainer,
     this.startupNotify = true,
+    this.startupWMClass,
     this.essential = false,
     List<String>? postinstallScripts,
     List<String>? postuninstallScripts,
@@ -149,8 +150,10 @@ class MakeDebConfig extends MakeLinuxPackageConfig {
     this.replaces,
     this.conflicts,
     this.supportedMimeType,
+    Map<String, String>? extraFiles,
   })  : _postinstallScripts = postinstallScripts ?? [],
-        _postuninstallScripts = postuninstallScripts ?? [];
+        _postuninstallScripts = postuninstallScripts ?? [],
+        extraFiles = extraFiles ?? {};
 
   factory MakeDebConfig.fromJson(Map<String, dynamic> map) {
     return MakeDebConfig(
@@ -217,8 +220,11 @@ class MakeDebConfig extends MakeLinuxPackageConfig {
       essential: map['essential'],
       genericName: map['generic_name'],
       startupNotify: map['startup_notify'],
+      startupWMClass: map['startup_wm_class'],
       installedSize: map['installed_size'],
       icon: map['icon'],
+      extraFiles: (map['extra_files'] as Map?)
+          ?.map((key, value) => MapEntry('$key', '$value')),
     );
   }
 
@@ -232,6 +238,7 @@ class MakeDebConfig extends MakeLinuxPackageConfig {
   String? icon;
   String? genericName;
   bool? startupNotify;
+  String? startupWMClass;
   List<String>? coAuthors;
   List<String>? dependencies;
   List<String>? buildDependenciesIndep;
@@ -250,6 +257,8 @@ class MakeDebConfig extends MakeLinuxPackageConfig {
   List<String>? supportedMimeType;
   List<String>? actions;
   List<String>? categories;
+
+  final Map<String, String> extraFiles;
 
   List<String> get postinstallScripts => [
         'ln -s /usr/share/$appBinaryName/$appBinaryName /usr/bin/$appBinaryName',
@@ -310,6 +319,7 @@ class MakeDebConfig extends MakeLinuxPackageConfig {
             ? '${keywords!.join(';')};'
             : null,
         'StartupNotify': startupNotify,
+        'StartupWMClass': startupWMClass,
       }..removeWhere((key, value) => value == null),
     };
   }
