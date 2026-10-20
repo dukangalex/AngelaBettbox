@@ -26,6 +26,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:yaml/yaml.dart';
 
 import 'common/archive.dart' show readBackupFile, restoreBackupFiles;
+import 'common/backup_recovery.dart';
 import 'common/common.dart';
 import 'common/path_guard.dart';
 import 'common/release_updates.dart';
@@ -2013,13 +2014,32 @@ class AppController {
     Future<Archive> Function() getArchive,
     RecoveryOption recoveryOption,
   ) async {
+    List<Profile>? legacyProfiles;
     try {
       final archive = await getArchive();
       commonPrint.log('Archive decoded: ${archive.files.length} files');
-      await _recoveryFromArchive(archive, recoveryOption);
+      final sharedPreferences =
+          await preferences.sharedPreferencesCompleter.future;
+      if (sharedPreferences == null) {
+        throw StateError('Preferences unavailable for backup recovery');
+      }
+      await withBackupRecovery(
+        homePath: await appPath.homeDirPath,
+        configMirror: sharedPreferences.getString(configKey),
+        importBackup: () async {
+          legacyProfiles = await _recoveryFromArchive(archive, recoveryOption);
+        },
+      );
     } catch (e) {
       commonPrint.error('Recovery failed: $e');
-      throw 'Backup file is corrupted or invalid: $e';
+      throw 'Backup restore failed: $e';
+    }
+    // Runtime activation and success messages follow the durable commit.
+    if (globalState.isStart) {
+      await applyProfile(silence: true);
+    }
+    if (legacyProfiles != null) {
+      _showRecoveryResultMessage(legacyProfiles!);
     }
   }
 
@@ -2067,7 +2087,7 @@ class AppController {
   }
 
   /// Unified recovery entry: check marker and dispatch to recovery logic
-  Future<void> _recoveryFromArchive(
+  Future<List<Profile>?> _recoveryFromArchive(
     Archive archive,
     RecoveryOption recoveryOption,
   ) async {
@@ -2085,9 +2105,10 @@ class AppController {
     if (hasBettboxMarker) {
       // Bettbox backup
       await _recoveryBettboxBackup(archive, recoveryOption, homeDirPath);
+      return null;
     } else {
       // Legacy backup
-      await _recoveryLegacyBackup(archive, recoveryOption, homeDirPath);
+      return _recoveryLegacyBackup(archive, recoveryOption, homeDirPath);
     }
   }
 
@@ -2144,15 +2165,16 @@ class AppController {
       replaceExisting: recoveryStrategy == RecoveryStrategy.override,
     );
 
-    _recovery(tempConfig, recoveryOption);
-    await savePreferences();
-    if (globalState.isStart) {
-      await applyProfile(silence: true);
+    await _recovery(tempConfig, recoveryOption);
+    if (!await preferences.saveConfig(globalState.config)) {
+      throw StateError(
+        'Config save failed; restart to recover the previous backup state',
+      );
     }
   }
 
   /// Restore legacy
-  Future<void> _recoveryLegacyBackup(
+  Future<List<Profile>> _recoveryLegacyBackup(
     Archive archive,
     RecoveryOption recoveryOption,
     String homeDirPath,
@@ -2248,12 +2270,13 @@ class AppController {
     }
 
     _recoveryLimited(limitedConfig, recoveryOption);
-    await savePreferences();
-    if (globalState.isStart) {
-      await applyProfile(silence: true);
+    if (!await preferences.saveConfig(globalState.config)) {
+      throw StateError(
+        'Config save failed; restart to recover the previous backup state',
+      );
     }
 
-    _showRecoveryResultMessage(profiles);
+    return profiles;
   }
 
   /// Extract label
@@ -2358,7 +2381,7 @@ class AppController {
   }
 
   /// Full restore
-  void _recovery(Config config, RecoveryOption recoveryOption) {
+  Future<void> _recovery(Config config, RecoveryOption recoveryOption) async {
     final profiles = config.profiles;
 
     // Restore subscriptions
@@ -2447,7 +2470,7 @@ class AppController {
       final scriptIds = config.scriptProps.scripts.map((e) => e.id).toSet();
       for (final script in _ref.read(scriptStateProvider).scripts) {
         if (!scriptIds.contains(script.id)) {
-          unawaited(script.deleteContent());
+          await script.deleteContent();
         }
       }
       _ref.read(scriptStateProvider.notifier).value = config.scriptProps;
