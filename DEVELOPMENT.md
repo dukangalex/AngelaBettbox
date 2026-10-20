@@ -60,3 +60,5 @@ flutter build linux --release --no-pub
 - 系统没有可用 Downloads 目录时，文件选择器改用应用数据目录，不再留下未完成的目录 Future。
 - 矮行内放大字体的 chip 保留自然文字高度，避免错误淡出；沿用现有明暗主题与密度的像素比较测试。
 - 桌面进程图标测试等待真实文件 / isolate 任务完成，不再靠虚拟时钟帧数猜测完成时间。
+
+首次正式 Android 签名的安全配置见 [中文操作说明](docs/android-first-release.zh-CN.md)。正式版本禁止缺少密钥时退回 debug 签名；密钥由项目所有者在自己电脑生成、备份和配置。

@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'rpm_version.dart';
+
 import 'package:flutter_app_packager/src/api/app_package_maker.dart';
 import 'package:path/path.dart' as path;
 
@@ -122,7 +124,7 @@ class MakeRPMConfig extends MakeConfig {
       'SPEC': {
         'preamble': {
           'Name': appName,
-          'Version': appVersion.toString(),
+          'Version': rpmVersion(appVersion),
           'Release':
               "${appVersion.build.isNotEmpty ? appVersion.build.first : "1"}%{?dist}",
           'Summary': summary ?? pubspec.description,
