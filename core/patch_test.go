@@ -706,11 +706,9 @@ rules:
 	}
 }
 
-func TestApplyPatchChainDisabledOrInvalid(t *testing.T) {
+func TestApplyPatchChainDisabled(t *testing.T) {
 	for _, policy := range []string{
 		`{"enabled": false, "entry": "Entry", "landing": "Landing"}`,
-		`{"enabled": true, "entry": "", "landing": "Landing"}`,
-		`{"enabled": true, "entry": "Entry", "landing": "Entry"}`,
 	} {
 		rawCfg := parsePatchProfile(t, chainTestProfile())
 		params := patchParams(t, `{"chain-policy": `+policy+`}`)
@@ -813,5 +811,31 @@ func TestApplyPatchChainProviderConnect(t *testing.T) {
 	}
 	if string(body) != "chained response" || entryHops.Load() != 1 || exitHops.Load() != 1 {
 		t.Fatalf("body=%q entry hops=%d exit hops=%d", body, entryHops.Load(), exitHops.Load())
+	}
+}
+
+func TestApplyPatchChainRejectsInvalidEnabledSelection(t *testing.T) {
+	for _, policy := range []string{
+		`{"enabled":true,"entry":"","landing":"Landing"}`,
+		`{"enabled":true,"entry":"Entry","landing":"   "}`,
+		`{"enabled":true,"entry":"Entry","landing":"Entry"}`,
+	} {
+		raw := parsePatchProfile(t, chainTestProfile())
+		if _, err := applyPatch(raw, patchParams(t, `{"chain-policy":`+policy+`}`)); err == nil {
+			t.Errorf("enabled invalid chain must not silently run without a chain: %s", policy)
+		}
+	}
+}
+
+func TestApplyPatchChainCircularDialerIsRejectedByMihomo(t *testing.T) {
+	raw := parsePatchProfile(t, chainTestProfile())
+	findProxy(t, raw.Proxy, "Entry")["dialer-proxy"] = "Landing"
+	_, err := applyPatch(raw, patchParams(t, `{"chain-policy":{"enabled":true,"entry":"Entry","landing":"Landing"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = config.ParseRawConfig(raw)
+	if err == nil || !strings.Contains(err.Error(), "circular dialer-proxy") {
+		t.Fatalf("cycle must be reported by actual kernel validation: %v", err)
 	}
 }

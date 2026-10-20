@@ -2,16 +2,33 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum ProfileChainIssue { incomplete, sameNode, unavailable }
+
 class ProfileChain {
   bool enabled;
   String entry;
   String landing;
 
-  ProfileChain({
-    this.enabled = false,
-    this.entry = '',
-    this.landing = '',
-  });
+  ProfileChain({this.enabled = false, this.entry = '', this.landing = ''});
+
+  ProfileChain copyWith({bool? enabled, String? entry, String? landing}) =>
+      ProfileChain(
+        enabled: enabled ?? this.enabled,
+        entry: entry ?? this.entry,
+        landing: landing ?? this.landing,
+      );
+
+  ProfileChainIssue? selectionIssue(Iterable<String> names) {
+    if (!enabled) return null;
+    if (entry.trim().isEmpty || landing.trim().isEmpty) {
+      return ProfileChainIssue.incomplete;
+    }
+    if (entry == landing) return ProfileChainIssue.sameNode;
+    if (!names.contains(entry) || !names.contains(landing)) {
+      return ProfileChainIssue.unavailable;
+    }
+    return null;
+  }
 
   Map<String, dynamic> toJson() => {
     'enabled': enabled,
@@ -65,12 +82,13 @@ class ProfileChainStore {
 
   Future<void> save() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
+    final saved = await prefs.setString(
       _key,
       jsonEncode({
         for (final entry in byProfile.entries) entry.key: entry.value.toJson(),
       }),
     );
+    if (!saved) throw StateError('Could not save chain settings');
   }
 
   /// Note: the config mutation that used to live here is now applied
