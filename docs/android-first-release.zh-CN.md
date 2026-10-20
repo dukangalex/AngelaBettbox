@@ -6,7 +6,7 @@
 
 要求：JDK 17（提供 keytool）、Python 3、GitHub CLI（gh），并以仓库管理员身份 `gh auth login`。以下操作在你的电脑执行，不在聊天中输入密钥或密码，不把 keystore 提交到仓库。
 
-1. 在仓库目录之外建立私人目录。在此目录运行下列命令；keytool 会交互询问密码和证书信息，密码不会出现在命令历史中：
+1. 在仓库目录之外建立仅自己可访问的私人目录（macOS/Linux 可先执行 `umask 077`，Windows 请限制目录访问权限）。在此目录运行下列命令；keytool 会交互询问密码和证书信息，密码不会出现在命令历史中：
 
    ```sh
    keytool -genkeypair -v -storetype PKCS12 -keystore bettbox-release.p12 -alias bettbox-release -keyalg RSA -keysize 3072 -validity 10000
