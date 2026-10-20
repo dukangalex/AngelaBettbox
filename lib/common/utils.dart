@@ -13,6 +13,7 @@ import 'package:bett_box/l10n/l10n.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:lpinyin/lpinyin.dart';
+import 'package:pub_semver/pub_semver.dart';
 
 enum IpCategory { tun, lan, public }
 
@@ -804,26 +805,21 @@ class Utils {
   }
 
   int compareVersions(String version1, String version2) {
-    List<String> v1 = version1.split('+')[0].split('.');
-    List<String> v2 = version2.split('+')[0].split('.');
-    int major1 = int.parse(v1[0]);
-    int major2 = int.parse(v2[0]);
-    if (major1 != major2) {
-      return major1.compareTo(major2);
+    Version parse(String value) {
+      final normalized = value.trim().replaceFirst(RegExp(r'^v'), '');
+      final core = normalized.split(RegExp(r'[-+]')).first;
+      final paddedCore = [...core.split('.'), '0', '0'].take(3).join('.');
+      return Version.parse(paddedCore + normalized.substring(core.length));
     }
-    int minor1 = v1.length > 1 ? int.parse(v1[1]) : 0;
-    int minor2 = v2.length > 1 ? int.parse(v2[1]) : 0;
-    if (minor1 != minor2) {
-      return minor1.compareTo(minor2);
-    }
-    int patch1 = v1.length > 2 ? int.parse(v1[2]) : 0;
-    int patch2 = v2.length > 2 ? int.parse(v2[2]) : 0;
-    if (patch1 != patch2) {
-      return patch1.compareTo(patch2);
-    }
-    int build1 = version1.contains('+') ? int.parse(version1.split('+')[1]) : 0;
-    int build2 = version2.contains('+') ? int.parse(version2.split('+')[1]) : 0;
-    return build1.compareTo(build2);
+
+    final first = parse(version1);
+    final second = parse(version2);
+    final precedence = first.compareTo(second);
+    if (precedence != 0) return precedence;
+    // Preserve the application's numeric build-number ordering.
+    final firstBuild = int.tryParse(first.build.join('.')) ?? 0;
+    final secondBuild = int.tryParse(second.build.join('.')) ?? 0;
+    return firstBuild.compareTo(secondBuild);
   }
 
   final Map<String, String> _pinyinCache = {};
@@ -1029,7 +1025,9 @@ class Utils {
           .where((interface) => interface.name == route?.interfaceName)
           .firstOrNull;
       final Iterable<InternetAddress> addresses =
-          matchedInterface?.addresses.where((address) => !address.isLinkLocal) ??
+          matchedInterface?.addresses.where(
+            (address) => !address.isLinkLocal,
+          ) ??
           const <InternetAddress>[];
       final address =
           addresses.where((address) => address.isIPv4).firstOrNull ??
