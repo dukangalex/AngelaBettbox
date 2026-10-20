@@ -27,7 +27,6 @@ jobs:
         run: |
           set -euo pipefail
           NDK_VERSION="28.2.13676358"
-          set -euo pipefail
           if [ -z "${ANDROID_SDK_ROOT:-}" ]; then
             echo "ANDROID_SDK_ROOT is not set"
             exit 1
@@ -64,6 +63,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           ALLOW_DEBUG_PREVIEW: ${{ inputs.debug_preview }}
         run: |
+          set -euo pipefail
           if [ -z "${KEYSTORE}" ] || [ -z "${KEY_ALIAS}" ] || [ -z "${STORE_PASSWORD}" ] || [ -z "${KEY_PASSWORD}" ]; then
             if [ "${ALLOW_DEBUG_PREVIEW}" != "true" ]; then
               echo "::error::Release signing is not configured. Refusing debug-signature fallback."
@@ -74,11 +74,7 @@ jobs:
           fi
           echo "${KEYSTORE}" | base64 --decode > android/app/keystore.jks
           keytool -list -keystore android/app/keystore.jks -alias "${KEY_ALIAS}" -storepass:env STORE_PASSWORD >/dev/null
-          {
-            echo "keyAlias=${KEY_ALIAS}"
-            echo "storePassword=${STORE_PASSWORD}"
-            echo "keyPassword=${KEY_PASSWORD}"
-          } >> android/local.properties
+          python3 tools/write-signing-properties.py
 
       - name: Build universal APK
         shell: bash

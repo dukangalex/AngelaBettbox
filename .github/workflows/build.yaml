@@ -121,11 +121,7 @@ jobs:
           fi
           echo "${KEYSTORE}" | base64 --decode > android/app/keystore.jks
           keytool -list -keystore android/app/keystore.jks -alias "${KEY_ALIAS}" -storepass:env STORE_PASSWORD >/dev/null
-          {
-            echo "keyAlias=${KEY_ALIAS}"
-            echo "storePassword=${STORE_PASSWORD}"
-            echo "keyPassword=${KEY_PASSWORD}"
-          } >> android/local.properties
+          python3 tools/write-signing-properties.py
           
       - name: Setup Java (Android)
         if: matrix.platform == 'android'
