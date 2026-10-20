@@ -223,6 +223,14 @@ extension ProfileExtension on Profile {
     }
   }
 
+  void _requireProfileContent(String content) {
+    if (content.replaceFirst('\uFEFF', '').trim().isEmpty) {
+      throw const FormatException(
+        'Configuration is empty. The existing profile was kept.',
+      );
+    }
+  }
+
   Future<bool> _hasContent(String path, String content) async {
     final file = File(path);
     if (!await file.exists()) return false;
@@ -250,6 +258,7 @@ extension ProfileExtension on Profile {
 
   Future<Profile> saveFile(Uint8List bytes, {bool validate = true}) async {
     String content = utf8.decode(bytes);
+    _requireProfileContent(content);
     final key = ageSecretKey;
     if (key != null && key.isNotEmpty) {
       try {
@@ -261,6 +270,7 @@ extension ProfileExtension on Profile {
     }
     content = ImportNormalize.toMihomo(content);
     content = utils.patchYamlConfig(content);
+    _requireProfileContent(content);
     final setup = validate ? await globalState.buildValidateParams(this) : null;
     if (setup != null) {
       await _writeFile(content, setup: setup);
@@ -294,6 +304,7 @@ extension ProfileExtension on Profile {
 
   Future<Profile> saveFileWithString(String value) async {
     String content = value;
+    _requireProfileContent(content);
     final key = ageSecretKey;
     if (key != null && key.isNotEmpty) {
       try {
@@ -305,6 +316,7 @@ extension ProfileExtension on Profile {
     }
     content = ImportNormalize.toMihomo(content);
     content = utils.patchYamlConfig(content);
+    _requireProfileContent(content);
     final setup = await globalState.buildValidateParams(this);
     if (setup != null) {
       await _writeFile(content, setup: setup);

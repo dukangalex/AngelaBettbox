@@ -117,6 +117,15 @@ class ClashCore {
     }
   }
 
+  ClashCore._withHandler(this.clashInterface);
+
+  /// Inject a validation transport without starting a desktop core in tests.
+  @visibleForTesting
+  static void setHandlerForTesting(ClashHandlerInterface handler) {
+    _instance ??= ClashCore._withHandler(handler);
+    _instance!.clashInterface = handler;
+  }
+
   factory ClashCore() {
     _instance ??= ClashCore._internal();
     return _instance!;

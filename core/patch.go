@@ -754,8 +754,11 @@ func patchChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) error {
 		return nil
 	}
 	entry, landing := policy.Entry, policy.Landing
-	if strings.TrimSpace(entry) == "" || strings.TrimSpace(landing) == "" || entry == landing {
-		return nil
+	if strings.TrimSpace(entry) == "" || strings.TrimSpace(landing) == "" {
+		return fmt.Errorf("choose both an entry and an exit before enabling the chain")
+	}
+	if entry == landing {
+		return fmt.Errorf("chain entry and exit must be different nodes")
 	}
 	names := make(map[string]bool)
 	for _, name := range protectedProxyNames {

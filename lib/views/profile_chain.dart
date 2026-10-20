@@ -1,5 +1,6 @@
 import 'package:bett_box/clash/core.dart';
 import 'package:bett_box/common/path_score.dart';
+import 'package:bett_box/common/common.dart';
 import 'package:bett_box/common/profile_chain.dart';
 import 'package:bett_box/models/models.dart';
 import 'package:bett_box/state.dart';
@@ -19,6 +20,8 @@ class ProfileChainPage extends ConsumerStatefulWidget {
 
 class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
   var _ready = false;
+  var _saving = false;
+  String? _error;
   List<String> _names = const [];
 
   @override
@@ -51,7 +54,9 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
           for (final item in doc['proxies'] as YamlList) {
             if (item is! YamlMap) continue;
             final name = item['name']?.toString() ?? '';
-            if (name.isNotEmpty) names.add(name);
+            if (name.isNotEmpty && !reservedPathNames.contains(name)) {
+              names.add(name);
+            }
           }
         }
       }
@@ -70,14 +75,72 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
       } catch (_) {}
     }
     final seen = <String>{};
-    return [for (final name in names) if (seen.add(name)) name];
+    return [
+      for (final name in names)
+        if (seen.add(name)) name,
+    ];
   }
 
-  Future<void> _commit() async {
-    await ProfileChainStore.instance.save();
-    if (mounted) setState(() {});
-    if (globalState.config.currentProfile?.id == widget.profile.id) {
-      globalState.appController.updateClashConfigDebounce();
+  String _issueMessage(ProfileChainIssue issue) => switch (issue) {
+    ProfileChainIssue.incomplete => _t(
+      '请先选择入口和出口，再启用链式代理。',
+      'Choose both an entry and an exit before enabling the chain.',
+    ),
+    ProfileChainIssue.sameNode => _t(
+      '入口和出口不能是同一个节点。',
+      'Entry and exit must be different nodes.',
+    ),
+    ProfileChainIssue.unavailable => _t(
+      '所选节点已不可用，请重新选择；订阅节点需要先启动这份配置。',
+      'A selected node is unavailable. Choose again; start this profile to load subscription nodes.',
+    ),
+  };
+
+  Future<void> _commit(ProfileChain candidate) async {
+    if (_saving) return;
+    final issue = candidate.selectionIssue(_names);
+    if (issue != null) {
+      setState(() => _error = _issueMessage(issue));
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final store = ProfileChainStore.instance;
+    final previous = store.of(widget.profile.id);
+    try {
+      if (candidate.enabled) {
+        final setup = await globalState.buildSetupParams(
+          patchConfig: globalState.config.patchClashConfig,
+          profile: widget.profile,
+        );
+        final message = await clashCore.validateConfig(
+          '',
+          setup: setup.copyWith(
+            patch: {...?setup.patch, 'chain-policy': candidate.toJson()},
+          ),
+        );
+        if (message.isNotEmpty) throw message;
+      }
+      // Do not replace the last saved choice on validation or storage failure.
+      store.byProfile[widget.profile.id] = candidate;
+      try {
+        await store.save();
+      } catch (_) {
+        store.byProfile[widget.profile.id] = previous;
+        rethrow;
+      }
+      if (globalState.config.currentProfile?.id == widget.profile.id) {
+        // Chain policy lives in SetupParams.patch, not UpdateParams.
+        globalState.appController.applyProfileDebounce();
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        setState(() => _error = error.formatError);
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -103,12 +166,23 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
                     ),
                     delegate: SwitchDelegate(
                       value: chain.enabled,
-                      onChanged: (on) {
-                        chain.enabled = on;
-                        _commit();
-                      },
+                      onChanged: _saving
+                          ? null
+                          : (on) => _commit(chain.copyWith(enabled: on)),
                     ),
                   ),
+                  if (_error != null || chain.selectionIssue(_names) != null)
+                    ListItem(
+                      title: Text(
+                        _t('链式设置未就绪', 'Chain settings need attention'),
+                      ),
+                      subtitle: Text(
+                        _error ?? _issueMessage(chain.selectionIssue(_names)!),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
                   if (_names.isEmpty)
                     ListItem(
                       title: Text(_t('没有可选节点', 'No nodes')),
@@ -135,9 +209,16 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
                             : _names.first,
                         textBuilder: (value) => value,
                         onChanged: (value) {
-                          if (value == null || value == chain.landing) return;
-                          chain.entry = value;
-                          _commit();
+                          if (_saving || value == null) return;
+                          if (value == chain.landing) {
+                            setState(
+                              () => _error = _issueMessage(
+                                ProfileChainIssue.sameNode,
+                              ),
+                            );
+                            return;
+                          }
+                          _commit(chain.copyWith(entry: value));
                         },
                       ),
                     ),
@@ -156,9 +237,16 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
                             : _names.first,
                         textBuilder: (value) => value,
                         onChanged: (value) {
-                          if (value == null || value == chain.entry) return;
-                          chain.landing = value;
-                          _commit();
+                          if (_saving || value == null) return;
+                          if (value == chain.entry) {
+                            setState(
+                              () => _error = _issueMessage(
+                                ProfileChainIssue.sameNode,
+                              ),
+                            );
+                            return;
+                          }
+                          _commit(chain.copyWith(landing: value));
                         },
                       ),
                     ),
