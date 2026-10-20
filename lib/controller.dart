@@ -25,7 +25,7 @@ import 'package:tray_manager/tray_manager.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:yaml/yaml.dart';
 
-import 'common/archive.dart' show restoreBackupFiles;
+import 'common/archive.dart' show readBackupFile, restoreBackupFiles;
 import 'common/common.dart';
 import 'common/path_guard.dart';
 import 'common/release_updates.dart';
@@ -2097,15 +2097,12 @@ class AppController {
     RecoveryOption recoveryOption,
     String homeDirPath,
   ) async {
-    // Separate config and profile files
+    // Provider caches can be JSON too; only the root config is metadata.
     final configs = archive.files
-        .where(
-          (item) =>
-              item.name.endsWith('.json') && item.name != '.bettbox_marker',
-        )
+        .where((item) => item.name == 'config.json')
         .toList();
     final profiles = archive.files.where(
-      (item) => !item.name.endsWith('.json') && item.name != '.bettbox_marker',
+      (item) => item.name != 'config.json' && item.name != '.bettbox_marker',
     );
 
     // Find config.json
@@ -2116,7 +2113,7 @@ class AppController {
 
     // Parse config
     final configFile = configs[configIndex];
-    final configContent = configFile.content;
+    final configContent = readBackupFile(configFile);
     if (configContent.isEmpty) {
       throw 'Config file is empty or corrupted';
     }
@@ -2135,40 +2132,22 @@ class AppController {
     final recoveryStrategy = _ref.read(
       appSettingProvider.select((state) => state.recoveryStrategy),
     );
-    if (recoveryStrategy == RecoveryStrategy.override) {
-      await _cleanProfilesDirForOverride();
-    }
-
-    await restoreBackupFiles(profiles, homeDirPath);
-
     if (recoveryOption != RecoveryOption.onlyProfiles) {
       tempConfig = tempConfig.copyWith(
         scriptProps: await tempConfig.scriptProps.externalize(),
       );
     }
 
+    await restoreBackupFiles(
+      profiles,
+      homeDirPath,
+      replaceExisting: recoveryStrategy == RecoveryStrategy.override,
+    );
+
     _recovery(tempConfig, recoveryOption);
     await savePreferences();
     if (globalState.isStart) {
       await applyProfile(silence: true);
-    }
-  }
-
-  Future<void> _cleanProfilesDirForOverride() async {
-    try {
-      final profilesDirPath = await appPath.profilesPath;
-      final dir = Directory(profilesDirPath);
-      if (await dir.exists()) {
-        await for (final entity in dir.list(followLinks: false)) {
-          try {
-            await entity.delete(recursive: true);
-          } catch (e) {
-            commonPrint.warn('Delete profile entity failed: $e');
-          }
-        }
-      }
-    } catch (e) {
-      commonPrint.warn('Clean profiles dir for override failed: $e');
     }
   }
 
@@ -2180,12 +2159,12 @@ class AppController {
   ) async {
     // Separate config and profile files
     final configs = archive.files
-        .where((item) => item.name.endsWith('.json'))
+        .where((item) => item.name == 'config.json')
         .toList();
     final profileFiles = archive.files
         .where(
           (item) =>
-              !item.name.endsWith('.json') && !item.name.endsWith('.sqlite'),
+              item.name != 'config.json' && !item.name.endsWith('.sqlite'),
         )
         .toList();
 
@@ -2197,7 +2176,7 @@ class AppController {
 
     // Parse backup config
     final configFile = configs[configIndex];
-    final configContent = configFile.content;
+    final configContent = readBackupFile(configFile);
     if (configContent.isEmpty) {
       throw 'Config file is empty or corrupted';
     }
@@ -2208,11 +2187,11 @@ class AppController {
     final recoveryStrategy = _ref.read(
       appSettingProvider.select((state) => state.recoveryStrategy),
     );
-    if (recoveryStrategy == RecoveryStrategy.override) {
-      await _cleanProfilesDirForOverride();
-    }
-
-    await restoreBackupFiles(profileFiles, homeDirPath);
+    await restoreBackupFiles(
+      profileFiles,
+      homeDirPath,
+      replaceExisting: recoveryStrategy == RecoveryStrategy.override,
+    );
 
     List<Profile> profiles = [];
 
