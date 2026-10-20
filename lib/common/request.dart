@@ -11,6 +11,8 @@ import 'package:bett_box/models/models.dart';
 import 'package:bett_box/state.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 
+import 'release_updates.dart';
+
 class Request {
   late final Dio _dio;
   late final Dio _clashDio;
@@ -256,34 +258,12 @@ class Request {
 
   Future<Map<String, dynamic>?> checkForUpdate() async {
     try {
-      final t = DateTime.now().millisecondsSinceEpoch;
-      final response = await _dio.get(
-        'https://github.com/$repository/releases/latest?t=$t',
-        options: Options(
-          followRedirects: false,
-          validateStatus: (status) =>
-              status != null && status >= 300 && status < 400,
-        ),
-      );
-      final location = response.headers['location']?.firstOrNull;
-      if (location != null && location.contains('/releases/tag/')) {
-        final remoteVersion = location.split('/').last.trim();
-        if (remoteVersion.isNotEmpty) {
-          final version = globalState.packageInfo.version;
-          final hasUpdate =
-              utils.compareVersions(
-                remoteVersion.replaceAll('v', ''),
-                version,
-              ) >
-              0;
-          if (!hasUpdate) return null;
-          return {
-            'tag_name': remoteVersion,
-            'html_url': 'https://github.com/$repository/releases/latest',
-            'body': 'New version available. Please visit GitHub to download.',
-          };
-        }
-      }
+      final release = await ReleaseUpdates(repository: repository).latest();
+      if (release == null) return null;
+      final tag = release['tag_name'] as String;
+      final version = globalState.packageInfo.version;
+      if (utils.compareVersions(tag, version) <= 0) return null;
+      return release;
     } catch (e) {
       commonPrint.warn('Check update failed: ${e.formatErrorLog}');
     }

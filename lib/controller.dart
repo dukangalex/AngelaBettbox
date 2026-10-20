@@ -28,6 +28,7 @@ import 'package:yaml/yaml.dart';
 import 'common/archive.dart' show restoreBackupFiles;
 import 'common/common.dart';
 import 'common/path_guard.dart';
+import 'common/release_updates.dart';
 import 'models/models.dart';
 import 'views/profiles/override_profile.dart';
 
@@ -1215,19 +1216,13 @@ class AppController {
         return;
       }
       const String assetSuffix = String.fromEnvironment('APP_ASSET_SUFFIX');
-      String downloadUrl = 'https://github.com/$repository/releases/latest';
-
-      if (assetSuffix.isNotEmpty) {
-        final versionWithoutV = tagName.startsWith('v')
-            ? tagName.substring(1)
-            : tagName;
-        var finalSuffix = assetSuffix;
-        if (appPath.isPortable && system.isWindows) {
-          finalSuffix = 'windows-amd64-compatible-portable.zip';
-        }
-        downloadUrl =
-            'https://github.com/$repository/releases/download/$tagName/Bettbox-$versionWithoutV-$finalSuffix';
+      var finalSuffix = assetSuffix;
+      if (assetSuffix.isNotEmpty && appPath.isPortable && system.isWindows) {
+        finalSuffix = 'windows-amd64-compatible-portable.zip';
       }
+      final downloadUrl = ReleaseUpdates(
+        repository: repository,
+      ).downloadUrl(data, assetSuffix: finalSuffix);
 
       globalState.openUrl(downloadUrl);
     } else if (handleError) {
