@@ -2,6 +2,11 @@ name: android-apk
 
 on:
   workflow_dispatch:
+    inputs:
+      debug_preview:
+        description: 'Allow a debug-signed preview if release signing is not configured (never a stable release)'
+        type: boolean
+        default: false
 
 jobs:
   apk:
@@ -22,6 +27,7 @@ jobs:
         run: |
           set -euo pipefail
           NDK_VERSION="28.2.13676358"
+          set -euo pipefail
           if [ -z "${ANDROID_SDK_ROOT:-}" ]; then
             echo "ANDROID_SDK_ROOT is not set"
             exit 1
@@ -56,12 +62,18 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          ALLOW_DEBUG_PREVIEW: ${{ inputs.debug_preview }}
         run: |
           if [ -z "${KEYSTORE}" ] || [ -z "${KEY_ALIAS}" ] || [ -z "${STORE_PASSWORD}" ] || [ -z "${KEY_PASSWORD}" ]; then
-            echo "No release keystore. The APK will use the debug signature."
+            if [ "${ALLOW_DEBUG_PREVIEW}" != "true" ]; then
+              echo "::error::Release signing is not configured. Refusing debug-signature fallback."
+              exit 1
+            fi
+            echo "::warning::Explicit debug preview: this APK is not signed with a production key."
             exit 0
           fi
           echo "${KEYSTORE}" | base64 --decode > android/app/keystore.jks
+          keytool -list -keystore android/app/keystore.jks -alias "${KEY_ALIAS}" -storepass:env STORE_PASSWORD >/dev/null
           {
             echo "keyAlias=${KEY_ALIAS}"
             echo "storePassword=${STORE_PASSWORD}"
