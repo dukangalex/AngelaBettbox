@@ -812,6 +812,22 @@ class Utils {
       return Version.parse(paddedCore + normalized.substring(core.length));
     }
 
+    // Fork revision numbers are release versions, not SemVer prerelease
+    // identifiers. Compare their optional prerelease separately so chain.2 is
+    // newer than chain.2-pre.1 (SemVer alone sees "2-pre" as a string > 2).
+    final forkPattern = RegExp(r'^v?(\d+\.\d+\.\d+)-chain\.(\d+)(.*)$');
+    final firstFork = forkPattern.firstMatch(version1.trim());
+    final secondFork = forkPattern.firstMatch(version2.trim());
+    if (firstFork != null && secondFork != null) {
+      final base = parse(firstFork[1]!).compareTo(parse(secondFork[1]!));
+      if (base != 0) return base;
+      final revision = int.parse(
+        firstFork[2]!,
+      ).compareTo(int.parse(secondFork[2]!));
+      if (revision != 0) return revision;
+      return compareVersions('0.0.0${firstFork[3]}', '0.0.0${secondFork[3]}');
+    }
+
     final first = parse(version1);
     final second = parse(version2);
     final precedence = first.compareTo(second);

@@ -62,3 +62,15 @@ flutter build linux --release --no-pub
 - 桌面进程图标测试等待真实文件 / isolate 任务完成，不再靠虚拟时钟帧数猜测完成时间。
 
 首次正式 Android 签名的安全配置见 [中文操作说明](docs/android-first-release.zh-CN.md)。正式版本禁止缺少密钥时退回 debug 签名；密钥由项目所有者在自己电脑生成、备份和配置。
+
+## Fork 更新检查回归
+
+```sh
+flutter test test/common/version_test.dart test/common/release_updates_test.dart
+```
+
+- 更新来源固定为本 fork `dukangalex/AngelaBettbox`，不向上游安装包跳转。
+- 先读取 GitHub 最新正式 Release 的元信息与实际资产；API 受限时回退到同仓库的正式版本跳转地址。请求有连接、发送和接收超时，不把预发布当成正式版。
+- 下载按钮只选择对应版本、对应平台后缀的唯一实际资产（兼容现有 `Bettbox-` 及 `AngelaBettbox-` 名称）。没有匹配、匹配不唯一、API 回退或只有 debug-preview 时打开该版本页面，不猜测下载地址或换架构。
+- 同一 fork 修订号的正式版本高于其预览版本：`chain.2 > chain.2-pre.1`；修订号和预览序号继续按数字比较。
+- 测试使用注入的 HTTP adapter，不访问真实订阅、不启动 TUN，也不创建 Release。公开正式 Release 不存在时，不应误报上游有更新。
