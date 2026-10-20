@@ -7,6 +7,7 @@ import 'package:bett_box/models/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'constant.dart';
+import 'backup_recovery.dart';
 import 'path.dart';
 import 'print.dart';
 
@@ -45,6 +46,20 @@ class Preferences {
 
   Future<Config?> getConfig() async {
     final preferences = await sharedPreferencesCompleter.future;
+
+    // Recover before either source is parsed, including an empty/missing file's
+    // shared-preferences fallback. Do not catch recovery errors as parse errors.
+    await recoverInterruptedBackup(await appPath.homeDirPath, (value) async {
+      if (preferences == null) {
+        throw StateError('Preferences unavailable during backup recovery');
+      }
+      final saved = value == null
+          ? await preferences.remove(configKey)
+          : await preferences.setString(configKey, value);
+      if (!saved) {
+        throw StateError('Failed to restore config preference mirror');
+      }
+    });
 
     Config? fileConfig;
     try {

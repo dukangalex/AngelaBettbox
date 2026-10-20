@@ -85,4 +85,18 @@ flutter test --no-pub test/common/archive_test.dart --reporter expanded
 - 配置元信息只认根目录 `config.json`；订阅 provider 的 JSON 缓存与 YAML 一样参与恢复。
 - 合并恢复先复制当前 profiles，再写入备份内容；覆盖恢复先写入完整替代目录。全部文件准备成功后，才用同一文件系统上的目录重命名安装，安装失败时尝试还原旧目录。不再提前清空现有订阅。
 - 暂存需要额外磁盘空间。测试覆盖中途文件/目录冲突、损坏 CRC、合并/覆盖、中文 UTF-8 及已有符号链接，不启用真实订阅或系统代理。
-- 该保护仅是进程内的文件恢复事务，不是 profiles 与应用配置的跨文件断电事务，也未验证 Android/Windows/macOS 真机恢复。若进程在重命名之间被强行终止，旧目录可能保留在应用数据目录 `.profile-restore-*/previous`；不要把它当作垃圾直接清除，先在应用停止时保留副本并核对内容。
+- 文件暂存本身仅负责进程内安装失败回滚；完整备份导入现在另用下述重启恢复日志保护。旧版本遗留的 `.profile-restore-*/previous` 不会自动清除，手工处理前应先保留副本并核对内容。
+
+## 备份导入被强杀后的重启恢复
+
+```sh
+flutter test --no-pub test/common/backup_recovery_test.dart test/common/preferences_backup_recovery_test.dart --reporter expanded
+```
+
+- 在写入脚本、profiles 或配置前，将当前 `profiles/`、`scripts/`、`config.json` 和配置的 shared-preferences 镜像保存在同一数据目录的私有恢复日志 `.backup-recovery`。拒绝符号链接，快照未完成不会执行导入；需要额外磁盘空间。
+- 只有脚本处理、订阅安装和配置保存成功后才以原子重命名公布提交标记；核心运行时配置重载在持久化提交后进行，重载报错不撤销已保存的导入。
+- 启动读取配置前检查日志。未提交则恢复旧文件及旧配置镜像，再继续启动；已提交只清理日志，不回退新数据。恢复过程再次被强杀可在下次启动重试，因为原快照不被移动或覆盖。
+- 导入失败会保留日志并拒绝继续导入，需要重启恢复。日志损坏、权限/空间不足或恢复镜像失败会停止配置加载，避免悄悄以混合状态启动；不要直接删除日志。此路径不承诺失败后的当前进程内状态完整回滚。
+- Linux 隔离子进程在脚本写入、profiles 重命名空窗、安装后、偏好镜像写入、半写配置、配置保存完成及恢复重放期间被 SIGKILL，覆盖真实缺陷及恢复结果。提交标记到清理之间的状态另用故障夹具验证；启动测试调用实际 `Preferences.getConfig`，验证文件和偏好回退顺序。
+- `flush: true` 用于快照、配置回滚和提交标记，但 Dart 目录重命名未做目录 fsync。SIGKILL 不是断电测试，不保证突然断电、文件系统损坏或硬件故障的一致性；Android/Windows/macOS 真机未验收。它也不是一般存储系统的多进程事务或所有后台写入的隔离方案。
+- 中断可能留下 `.backup-snapshot-*`、`.backup-recovery.retired-*` 或旧的 profile 临时目录。为避免误删唯一旧副本，不在启动时自动扫除；确认没有待恢复日志、完成恢复并备份之后再人工检查。
