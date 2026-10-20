@@ -74,3 +74,15 @@ flutter test test/common/version_test.dart test/common/release_updates_test.dart
 - 下载按钮只选择对应版本、对应平台后缀的唯一实际资产（兼容现有 `Bettbox-` 及 `AngelaBettbox-` 名称）。没有匹配、匹配不唯一、API 回退或只有 debug-preview 时打开该版本页面，不猜测下载地址或换架构。
 - 同一 fork 修订号的正式版本高于其预览版本：`chain.2 > chain.2-pre.1`；修订号和预览序号继续按数字比较。
 - 测试使用注入的 HTTP adapter，不访问真实订阅、不启动 TUN，也不创建 Release。公开正式 Release 不存在时，不应误报上游有更新。
+
+## 备份恢复的数据保留回归
+
+```sh
+flutter test --no-pub test/common/archive_test.dart --reporter expanded
+```
+
+- 恢复前检查配置与文件的实际长度和 ZIP CRC（存在时），并拒绝越界路径、重复路径和符号链接。
+- 配置元信息只认根目录 `config.json`；订阅 provider 的 JSON 缓存与 YAML 一样参与恢复。
+- 合并恢复先复制当前 profiles，再写入备份内容；覆盖恢复先写入完整替代目录。全部文件准备成功后，才用同一文件系统上的目录重命名安装，安装失败时尝试还原旧目录。不再提前清空现有订阅。
+- 暂存需要额外磁盘空间。测试覆盖中途文件/目录冲突、损坏 CRC、合并/覆盖、中文 UTF-8 及已有符号链接，不启用真实订阅或系统代理。
+- 该保护仅是进程内的文件恢复事务，不是 profiles 与应用配置的跨文件断电事务，也未验证 Android/Windows/macOS 真机恢复。若进程在重命名之间被强行终止，旧目录可能保留在应用数据目录 `.profile-restore-*/previous`；不要把它当作垃圾直接清除，先在应用停止时保留副本并核对内容。
