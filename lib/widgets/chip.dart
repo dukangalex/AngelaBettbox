@@ -2,6 +2,7 @@ import 'package:bett_box/common/common.dart';
 import 'package:bett_box/enum/enum.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/rendering.dart';
 
 import 'text.dart';
 
@@ -160,13 +161,15 @@ class _ActionChipState extends State<_ActionChip> {
       child: Center(
         widthFactor: 1,
         heightFactor: 1,
-        child: DefaultTextStyle(
-          overflow: TextOverflow.fade,
-          textAlign: TextAlign.start,
-          maxLines: 1,
-          softWrap: false,
-          style: labelStyle,
-          child: EmojiText(widget.label),
+        child: _ChipLabel(
+          child: DefaultTextStyle(
+            overflow: TextOverflow.fade,
+            textAlign: TextAlign.start,
+            maxLines: 1,
+            softWrap: false,
+            style: labelStyle,
+            child: EmojiText(widget.label),
+          ),
         ),
       ),
     );
@@ -256,4 +259,32 @@ class _ActionChipState extends State<_ActionChip> {
       ),
     );
   }
+}
+
+// RawChip measures labels at their natural height even when the chip is in a
+// short row. Keep that behavior so text scaling does not trigger an erroneous
+// horizontal fade solely because the available height is smaller than the text.
+class _ChipLabel extends SingleChildRenderObjectWidget {
+  const _ChipLabel({required super.child});
+
+  @override
+  RenderObject createRenderObject(BuildContext context) => _RenderChipLabel();
+}
+
+class _RenderChipLabel extends RenderProxyBox {
+  @override
+  void performLayout() {
+    child!.layout(
+      constraints.copyWith(minHeight: 0, maxHeight: double.infinity),
+      parentUsesSize: true,
+    );
+    size = constraints.constrain(child!.size);
+  }
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) => constraints.constrain(
+    child!.getDryLayout(
+      constraints.copyWith(minHeight: 0, maxHeight: double.infinity),
+    ),
+  );
 }

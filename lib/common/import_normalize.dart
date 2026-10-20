@@ -195,7 +195,7 @@ class ImportNormalize {
         node['client-fingerprint'] = utls['fingerprint'];
       }
       if (realityOn) {
-        final realityMap = (reality as Map).cast<String, dynamic>();
+        final realityMap = reality.cast<String, dynamic>();
         node['reality-opts'] = {
           'public-key': realityMap['public_key'] ?? realityMap['publicKey'],
           'short-id': realityMap['short_id'] ?? realityMap['shortId'] ?? '',
@@ -355,7 +355,7 @@ class ImportNormalize {
       node['network'] = 'grpc';
       node['grpc-opts'] = {
         'grpc-service-name':
-            (grpc as Map)['serviceName'] ?? grpc['service_name'] ?? '',
+            grpc['serviceName'] ?? grpc['service_name'] ?? '',
       };
     }
   }

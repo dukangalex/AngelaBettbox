@@ -1,13 +1,25 @@
 package main
 
 import (
+	"bufio"
+	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"net/netip"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
+	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/metacubex/mihomo/adapter/outboundgroup"
 	"github.com/metacubex/mihomo/config"
 	"github.com/metacubex/mihomo/constant"
 	"github.com/metacubex/mihomo/log"
@@ -559,33 +571,138 @@ func TestApplyPatchChainInline(t *testing.T) {
 	}
 }
 
-func TestApplyPatchChainRelay(t *testing.T) {
-	rawCfg := parsePatchProfile(t, `
-proxies:
-  - {name: Entry, type: ss, server: e.example.com, port: 8388, cipher: aes-128-gcm, password: p}
+// Use the actual bundled Mihomo parser, not just the patched YAML structure.
+// The previous relay implementation passed map assertions but could not start.
+func parseChainConfig(t *testing.T, raw *config.RawConfig) *config.Config {
+	t.Helper()
+	parsed, err := config.ParseRawConfig(raw)
+	if err != nil {
+		t.Fatalf("patched chain is not a valid Mihomo config: %v", err)
+	}
+	t.Cleanup(func() {
+		for _, pd := range parsed.Providers {
+			if closer, ok := pd.(interface{ Close() error }); ok {
+				_ = closer.Close()
+			}
+		}
+	})
+	return parsed
+}
+
+func TestApplyPatchChainProviderNodes(t *testing.T) {
+	for _, entryInline := range []bool{false, true} {
+		for _, landingInline := range []bool{false, true} {
+			t.Run(fmt.Sprintf("entryInline=%v/landingInline=%v", entryInline, landingInline), func(t *testing.T) {
+				raw := parsePatchProfile(t, `
+proxy-providers:
+  subscription:
+    type: inline
+    override:
+      udp: true
+      additional-prefix: "[S] "
+      override-expr:
+        - '.name += "!"'
+    payload:
+      - {name: Entry, type: ss, server: e.example.com, port: 8388, cipher: aes-128-gcm, password: p}
+      - {name: Landing, type: ss, server: l.example.com, port: 8388, cipher: aes-128-gcm, password: p}
+      - {name: Other, type: ss, server: o.example.com, port: 8388, cipher: aes-128-gcm, password: p}
 proxy-groups:
-  - {name: Manual, type: select, proxies: [Entry]}
-  - {name: Auto, type: url-test, proxies: [Entry], url: "https://example.com", interval: 300}
+  - {name: Manual, type: select, use: [subscription]}
+  - {name: Auto, type: url-test, use: [subscription], url: "https://example.com", interval: 0}
 rules:
   - MATCH,Manual
 `)
-	params := patchParams(t, `{"chain-policy": {"enabled": true, "entry": "Entry", "landing": "Remote"}}`)
-	if _, err := applyPatch(rawCfg, params); err != nil {
+				for _, node := range []struct {
+					name   string
+					inline bool
+				}{{"Entry", entryInline}, {"Landing", landingInline}} {
+					if node.inline {
+						raw.Proxy = append(raw.Proxy, map[string]any{"name": "[S] " + node.name + "!", "type": "ss", "server": "example.com", "port": 8388, "cipher": "aes-128-gcm", "password": "p"})
+					}
+				}
+				params := patchParams(t, `{"chain-policy": {"enabled": true, "entry": "[S] Entry!", "landing": "[S] Landing!"}}`)
+				if _, err := applyPatch(raw, params); err != nil {
+					t.Fatal(err)
+				}
+				parsed := parseChainConfig(t, raw)
+				dialer := "[S] Entry!"
+				if !entryInline {
+					dialer = "链式入口"
+					entryGroup := parsed.Proxies[dialer].Adapter().(outboundgroup.ProxyGroup)
+					if got := entryGroup.Proxies(); len(got) != 1 || got[0].Name() != "[S] Entry!" {
+						t.Fatalf("entry filter: %v", got)
+					}
+				}
+				if landingInline {
+					if got := parsed.Proxies["[S] Landing!"].ProxyInfo().DialerProxy; got != dialer {
+						t.Fatalf("inline exit dialer = %q", got)
+					}
+				} else {
+					for _, proxy := range parsed.Providers["subscription"].Proxies() {
+						want := ""
+						if proxy.Name() == "[S] Landing!" {
+							want = dialer
+						}
+						if got := proxy.ProxyInfo().DialerProxy; got != want {
+							t.Errorf("%s dialer = %q, want %q", proxy.Name(), got, want)
+						}
+						if !proxy.SupportUDP() {
+							t.Errorf("existing UDP override lost: %s", proxy.Name())
+						}
+					}
+					exitGroup := parsed.Proxies[explicitChainGroup].Adapter().(outboundgroup.ProxyGroup)
+					if got := exitGroup.Proxies(); len(got) != 1 || got[0].Name() != "[S] Landing!" {
+						t.Fatalf("exit filter: %v", got)
+					}
+					if got := findGroup(raw.ProxyGroup, "Manual")["proxies"]; !reflect.DeepEqual(got, []any{explicitChainGroup}) {
+						t.Errorf("manual choices: %v", got)
+					}
+				}
+				if _, exists := findGroup(raw.ProxyGroup, "Auto")["proxies"]; exists {
+					t.Error("automatic group must stay untouched")
+				}
+			})
+		}
+	}
+}
+
+func TestApplyPatchChainMissingNode(t *testing.T) {
+	raw := parsePatchProfile(t, chainTestProfile())
+	params := patchParams(t, `{"chain-policy": {"enabled": true, "entry": "Entry", "landing": "Missing"}}`)
+	if _, err := applyPatch(raw, params); err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Fatalf("missing exit error = %v", err)
+	}
+}
+
+func TestApplyPatchChainProviderFilterAndCollision(t *testing.T) {
+	raw := parsePatchProfile(t, `
+proxy-providers:
+  subscription:
+    type: inline
+    payload:
+      - {name: 'a.+[1]`+"`"+`', type: ss, server: e.example.com, port: 8388, cipher: aes-128-gcm, password: p}
+      - {name: Other, type: ss, server: o.example.com, port: 8388, cipher: aes-128-gcm, password: p}
+proxy-groups:
+  - {name: 链式入口, type: select, proxies: [DIRECT]}
+  - {name: 链式落地, type: select, proxies: [DIRECT]}
+rules:
+  - MATCH,链式落地
+`)
+	params := &PatchParams{ChainPolicy: &PatchChainPolicy{Enabled: true, Entry: "a.+[1]`", Landing: "Missing"}}
+	if _, err := applyPatch(raw, params); err != nil {
 		t.Fatal(err)
 	}
-	relay := findGroup(rawCfg.ProxyGroup, "链式落地")
-	if relay == nil {
-		t.Fatal("relay group 链式落地 was not created")
+	parsed := parseChainConfig(t, raw)
+	entry := parsed.Proxies["链式入口 2"].Adapter().(outboundgroup.ProxyGroup).Proxies()
+	if len(entry) != 1 || entry[0].Name() != params.ChainPolicy.Entry {
+		t.Fatalf("literal node filter: %v", entry)
 	}
-	if got := relay["proxies"]; !reflect.DeepEqual(got, []any{"Entry", "Remote"}) {
-		t.Errorf("relay proxies = %v, want [Entry Remote]", got)
+	exit := parsed.Proxies["链式落地 2"].Adapter().(outboundgroup.ProxyGroup).Proxies()
+	if len(exit) != 1 || exit[0].Name() != "REJECT" {
+		t.Fatalf("missing exit must fail closed: %v", exit)
 	}
-	if got := findGroup(rawCfg.ProxyGroup, "Manual")["proxies"]; !reflect.DeepEqual(got, []any{"Entry", "链式落地"}) {
-		t.Errorf("Manual proxies = %v, want [Entry 链式落地]", got)
-	}
-	// url-test groups must not gain the relay group.
-	if got := findGroup(rawCfg.ProxyGroup, "Auto")["proxies"]; !reflect.DeepEqual(got, []any{"Entry"}) {
-		t.Errorf("Auto proxies = %v, want [Entry]", got)
+	if got := findGroup(raw.ProxyGroup, "链式入口")["proxies"].([]any)[0]; got != "DIRECT" {
+		t.Fatalf("existing group overwritten: %v", got)
 	}
 }
 
@@ -615,5 +732,86 @@ func TestApplyPatchChainDisabledOrInvalid(t *testing.T) {
 	}
 	if findGroup(rawCfg.ProxyGroup, "链式落地") != nil {
 		t.Errorf("nil policy: relay group should not be created")
+	}
+}
+
+// Prove the data path as well as configuration parsing using only loopback
+// servers: app -> entry CONNECT -> exit CONNECT -> HTTP target.
+func TestApplyPatchChainProviderConnect(t *testing.T) {
+	var entryHops, exitHops atomic.Int32
+	connectProxy := func(hops *atomic.Int32) *httptest.Server {
+		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodConnect {
+				http.Error(w, "CONNECT required", http.StatusMethodNotAllowed)
+				return
+			}
+			upstream, err := net.DialTimeout("tcp", r.Host, 3*time.Second)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadGateway)
+				return
+			}
+			defer upstream.Close()
+			client, _, err := w.(http.Hijacker).Hijack()
+			if err != nil {
+				return
+			}
+			defer client.Close()
+			hops.Add(1)
+			_, _ = io.WriteString(client, "HTTP/1.1 200 Connection Established\r\n\r\n")
+			go func() { _, _ = io.Copy(upstream, client); _ = upstream.Close() }()
+			_, _ = io.Copy(client, upstream)
+		}))
+	}
+	entry := connectProxy(&entryHops)
+	defer entry.Close()
+	exit := connectProxy(&exitHops)
+	defer exit.Close()
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, "chained response")
+	}))
+	defer origin.Close()
+	proxyConfig := func(name string, server *httptest.Server) map[string]any {
+		host, port, _ := net.SplitHostPort(server.Listener.Addr().String())
+		return map[string]any{"name": name, "type": "http", "server": host, "port": port}
+	}
+	raw := parsePatchProfile(t, "rules: ['MATCH,链式落地']\n")
+	raw.ProxyProvider = map[string]map[string]any{
+		"local": {"type": "inline", "payload": []map[string]any{proxyConfig("Entry", entry), proxyConfig("Landing", exit)}},
+	}
+	params := patchParams(t, `{"chain-policy":{"enabled":true,"entry":"Entry","landing":"Landing"}}`)
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	parsed := parseChainConfig(t, raw)
+	oldProxies, oldProviders := tunnel.Proxies(), tunnel.Providers()
+	tunnel.UpdateProxies(parsed.Proxies, parsed.Providers)
+	defer tunnel.UpdateProxies(oldProxies, oldProviders)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	host, port, _ := net.SplitHostPort(origin.Listener.Addr().String())
+	portNumber, _ := strconv.Atoi(port)
+	conn, err := parsed.Proxies[explicitChainGroup].DialContext(ctx, &constant.Metadata{
+		NetWork: constant.TCP, DstIP: netip.MustParseAddr(host), DstPort: uint16(portNumber),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
+	_, err = fmt.Fprintf(conn, "GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", origin.Listener.Addr())
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := http.ReadResponse(bufio.NewReader(conn), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(body) != "chained response" || entryHops.Load() != 1 || exitHops.Load() != 1 {
+		t.Fatalf("body=%q entry hops=%d exit hops=%d", body, entryHops.Load(), exitHops.Load())
 	}
 }

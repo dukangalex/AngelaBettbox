@@ -1,6 +1,7 @@
 # Miscellaneous
 *.md
 !/README.md
+!/DEVELOPMENT.md
 !/readme/*.md
 !/SIGNING-POLICY.md
 !.github/release_template.md
