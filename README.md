@@ -83,6 +83,8 @@
 ---
 ## 💻 开发构建与 UI 适配
 
+本分支的环境准备、回归测试和 Linux 构建说明见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+
 以 Windows 平台构建为例：
 
 * 系统需求：Windows 10 及以上

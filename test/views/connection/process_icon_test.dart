@@ -49,30 +49,33 @@ void main() {
       rule: '',
       rulePayload: '',
     );
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          localizationsDelegates: const [AppLocalizations.delegate],
-          home: Builder(
-            builder: (context) {
-              globalState.measure = Measure.of(context, 1);
-              return Scaffold(
-                body: TrackerInfoItem(
-                  trackerInfo: info,
-                  detailTitle: 'detail',
-                  index: 0,
-                  count: 1,
-                ),
-              );
-            },
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: const [AppLocalizations.delegate],
+            home: Builder(
+              builder: (context) {
+                globalState.measure = Measure.of(context, 1);
+                return Scaffold(
+                  body: TrackerInfoItem(
+                    trackerInfo: info,
+                    detailTitle: 'detail',
+                    index: 0,
+                    count: 1,
+                  ),
+                );
+              },
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pump();
-    await tester.pump();
-    await tester.pump();
+      );
+      // Start and await real filesystem/isolate work outside the fake widget
+      // clock; pumping frames alone cannot finish desktop icon loading.
+      await processIcon.get(info.metadata.processPath);
+    });
+    await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.terminal), findsOneWidget);
+    expect(find.byIcon(Icons.settings_suggest_outlined), findsOneWidget);
   }, skip: !system.isDesktop);
 }

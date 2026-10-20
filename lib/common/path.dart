@@ -43,9 +43,18 @@ class AppPath {
         tempDir.complete(value);
       });
     }
-    getDownloadsDirectory().then((value) {
-      downloadDir.complete(value);
-    });
+    downloadDir.complete(_resolveDownloadDirectory());
+  }
+
+  Future<Directory> _resolveDownloadDirectory() async {
+    try {
+      final directory = await getDownloadsDirectory();
+      if (directory != null) return directory;
+    } catch (_) {
+      // Some platforms/plugins do not expose a Downloads directory. File
+      // pickers still need a usable starting location, including portable mode.
+    }
+    return dataDir.future;
   }
 
   bool get isPortable =>

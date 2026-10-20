@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
@@ -169,7 +170,9 @@ func applyPatch(raw *config.RawConfig, params *PatchParams) (string, error) {
 	}
 	// AngelaBettbox fork: per-profile chain proxy (was applyChainPolicy in
 	// the fork's explicit_policy.dart).
-	patchChainPolicy(raw, params.ChainPolicy)
+	if err := patchChainPolicy(raw, params.ChainPolicy); err != nil {
+		return "", fmt.Errorf("patch chain: %w", err)
+	}
 
 	rules := raw.Rule
 	if params.OverrideRules != nil {
@@ -743,22 +746,29 @@ func patchDropAutomaticDirect(raw *config.RawConfig) {
 
 const explicitChainGroup = "链式落地"
 
-func patchChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) {
+// patchChainPolicy uses dialer-proxy, including for subscription nodes. Mihomo
+// removed relay groups. Provider overrides run after name transforms, so match
+// the displayed node name and leave every other node and override untouched.
+func patchChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) error {
 	if policy == nil || !policy.Enabled {
-		return
+		return nil
 	}
-	entry := strings.TrimSpace(policy.Entry)
-	landing := strings.TrimSpace(policy.Landing)
-	if entry == "" || landing == "" || entry == landing {
-		return
+	entry, landing := policy.Entry, policy.Landing
+	if strings.TrimSpace(entry) == "" || strings.TrimSpace(landing) == "" || entry == landing {
+		return nil
+	}
+	names := make(map[string]bool)
+	for _, name := range protectedProxyNames {
+		names[name] = true
+		if entry == name || landing == name {
+			return fmt.Errorf("%q is not a chain node", name)
+		}
 	}
 	var target map[string]any
 	hasEntry := false
 	for _, proxy := range raw.Proxy {
-		if proxy == nil {
-			continue
-		}
 		name, _ := proxy["name"].(string)
+		names[name] = true
 		if name == entry {
 			hasEntry = true
 		}
@@ -766,53 +776,97 @@ func patchChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) {
 			target = proxy
 		}
 	}
-	if hasEntry && target != nil {
-		target["dialer-proxy"] = entry
-		return
-	}
-	exists := false
 	for _, group := range raw.ProxyGroup {
-		if group == nil {
-			continue
-		}
-		if name, _ := group["name"].(string); name == explicitChainGroup {
-			exists = true
-			break
+		name, _ := group["name"].(string)
+		names[name] = true
+		if name == entry || name == landing {
+			return fmt.Errorf("%q is a group, not a chain node", name)
 		}
 	}
-	if !exists {
-		raw.ProxyGroup = append(raw.ProxyGroup, map[string]any{
-			"name":    explicitChainGroup,
-			"type":    "relay",
-			"proxies": []any{entry, landing},
-		})
+	for name := range raw.ProxyProvider {
+		names[name] = true
 	}
-	for _, group := range raw.ProxyGroup {
-		if group == nil {
-			continue
+	if (!hasEntry || target == nil) && len(raw.ProxyProvider) == 0 {
+		return fmt.Errorf("entry %q or exit %q not found in this profile", entry, landing)
+	}
+	uniqueName := func(base string) string {
+		name := base
+		for i := 2; names[name]; i++ {
+			name = fmt.Sprintf("%s %d", base, i)
 		}
+		names[name] = true
+		return name
+	}
+	// Freeze the original list: helper groups must never contain one another.
+	originalGroups := append([]map[string]any(nil), raw.ProxyGroup...)
+	providerGroup := func(name, node string, hidden bool) map[string]any {
+		return map[string]any{
+			"name": name, "type": "select", "include-all-providers": true,
+			"filter": `\A` + strings.ReplaceAll(regexp.QuoteMeta(node), "`", `\x60`) + `\z`,
+			// Provider nodes can disappear on refresh. Never fall back to DIRECT.
+			"empty-fallback": "REJECT", "hidden": hidden,
+		}
+	}
+	dialer := entry
+	if !hasEntry {
+		dialer = uniqueName("链式入口")
+		raw.ProxyGroup = append(raw.ProxyGroup, providerGroup(dialer, entry, true))
+	}
+	if target != nil {
+		target["dialer-proxy"] = dialer
+		return nil
+	}
+	quote := func(value string) string {
+		buf, _ := json.Marshal(value)
+		return string(buf)
+	}
+	expr := "(select(.name == " + quote(landing) + ") | .dialer-proxy) = " + quote(dialer)
+	for name, provider := range raw.ProxyProvider {
+		// Copy maps/lists to avoid modifying shared YAML anchors.
+		overrides := make(map[string]any)
+		if value := provider["override"]; value != nil {
+			old, ok := value.(map[string]any)
+			if !ok {
+				return fmt.Errorf("provider %q override must be a mapping", name)
+			}
+			for key, value := range old {
+				overrides[key] = value
+			}
+		}
+		var expressions []any
+		switch old := overrides["override-expr"].(type) {
+		case nil:
+		case []any:
+			expressions = append(expressions, old...)
+		case []string:
+			for _, value := range old {
+				expressions = append(expressions, value)
+			}
+		default:
+			return fmt.Errorf("provider %q override-expr must be a list", name)
+		}
+		overrides["override-expr"] = append(expressions, expr)
+		provider["override"] = overrides
+	}
+	chainGroup := uniqueName(explicitChainGroup)
+	raw.ProxyGroup = append(raw.ProxyGroup, providerGroup(chainGroup, landing, false))
+	for _, group := range originalGroups {
 		if groupType, _ := group["type"].(string); groupType != "select" {
 			continue
 		}
-		if name, _ := group["name"].(string); name == explicitChainGroup {
-			continue
-		}
-		members, ok := group["proxies"].([]any)
-		if !ok {
-			continue
-		}
-		found := false
-		for _, member := range members {
-			if name, isString := member.(string); isString && name == explicitChainGroup {
-				found = true
-				break
+		var members []any
+		switch old := group["proxies"].(type) {
+		case nil:
+		case []any:
+			members = append(members, old...)
+		case []string:
+			for _, value := range old {
+				members = append(members, value)
 			}
 		}
-		if found {
-			continue
-		}
-		group["proxies"] = append(members, explicitChainGroup)
+		group["proxies"] = append(members, chainGroup)
 	}
+	return nil
 }
 
 func patchProxies(raw *config.RawConfig) {
