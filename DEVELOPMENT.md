@@ -100,3 +100,21 @@ flutter test --no-pub test/common/backup_recovery_test.dart test/common/preferen
 - Linux 隔离子进程在脚本写入、profiles 重命名空窗、安装后、偏好镜像写入、半写配置、配置保存完成及恢复重放期间被 SIGKILL，覆盖真实缺陷及恢复结果。提交标记到清理之间的状态另用故障夹具验证；启动测试调用实际 `Preferences.getConfig`，验证文件和偏好回退顺序。
 - `flush: true` 用于快照、配置回滚和提交标记，但 Dart 目录重命名未做目录 fsync。SIGKILL 不是断电测试，不保证突然断电、文件系统损坏或硬件故障的一致性；Android/Windows/macOS 真机未验收。它也不是一般存储系统的多进程事务或所有后台写入的隔离方案。
 - 中断可能留下 `.backup-snapshot-*`、`.backup-recovery.retired-*` 或旧的 profile 临时目录。为避免误删唯一旧副本，不在启动时自动扫除；确认没有待恢复日志、完成恢复并备份之后再人工检查。
+
+## PR 自动回归（无签名、无发布）
+
+`.github/workflows/regression.yml` 对发往 `main` 和 `release/**` 的 PR 自动运行两项独立检查，也保留手动运行入口。标准公开仓库 Linux runner、只读 `contents` 权限、checkout 不保留凭据；不使用仓库 secrets、`pull_request_target`、发布或签名流程，也不更改分支保护。第三方 actions 固定到提交 SHA，PR 检查不保存或恢复跨 PR 缓存。
+
+本地与 CI 使用同一入口（先将上述工具链加入 `PATH`）：
+
+```sh
+bash tools/check-regressions.sh          # 两组全部运行
+bash tools/check-regressions.sh flutter  # 锁定依赖、Rust 测试/动态库、analyze、全套 Flutter、Python 夹具
+bash tools/check-regressions.sh core     # Go 普通/race/vet/with_gvisor
+```
+
+- Flutter 3.47.7、Rust 1.99.1、Go 1.25.1 与已验证工具链一致；更新工具链应另作独立变更并实际验证。锁文件不允许在检查中静默更新。
+- 全套 Flutter 自动包含配置导入、更新来源/版本比较、备份预检、SIGKILL 后重启恢复和偏好镜像回滚；先构建 Code Forge Rust release 动态库，再运行编辑器测试，不跳过原生依赖测试。
+- Go 组覆盖链式配置与回环双 CONNECT 测试、竞态检测、静态检查及 `with_gvisor` 构建标签。Python 组包含签名工具的假 `gh` 夹具（不会上传 secret）与回归入口的失败传播/分组测试。
+- 任一步失败会使该组失败；PR 更新取消同一 PR 的旧检查。无路径过滤，因此只改工作流或文档也不会留下未触发的检查。
+- 本检查不是打包或跨平台验收，不启用系统代理/TUN，不使用真实订阅。保留原有平台限定跳过；Linux 强杀回归不等于真实断电可靠性。分支保护未启用强制检查时，绿灯仍需合并者核对，不把工作流存在等同于合并门禁。
