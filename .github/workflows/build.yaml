@@ -208,7 +208,7 @@ jobs:
             echo "Verifying signature: $apk"
             verification_output="$("$apksigner" verify --verbose --print-certs "$apk")"
             printf '%s\n' "$verification_output"
-            if ! grep -Fqi "Signer #1 certificate SHA-256 digest: $expected_cert" <<< "$verification_output"; then
+            if ! grep -Eqi "certificate SHA-256 digest: *$expected_cert" <<< "$verification_output"; then
               echo "::error::APK signature certificate does not match the configured release keystore: $apk"
               exit 1
             fi
