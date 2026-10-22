@@ -101,14 +101,38 @@ jobs:
         if: matrix.platform == 'windows'
         run: git config --global core.longpaths true
 
-      - name: Setup Keystore (Android)
+      - name: Setup and Validate Release Keystore (Android)
         if: matrix.platform == 'android'
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/local.properties
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/local.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
-          
+          set -euo pipefail
+
+          for name in KEYSTORE_B64 KEY_ALIAS STORE_PASSWORD KEY_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Required Android release signing secret $name is missing."
+              exit 1
+            fi
+          done
+
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > android/app/keystore.jks
+          if [[ ! -s android/app/keystore.jks ]]; then
+            echo "::error::Decoded Android keystore is empty."
+            exit 1
+          fi
+
+          keytool -list -keystore android/app/keystore.jks -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+          {
+            printf 'keyAlias=%s\n' "$KEY_ALIAS"
+            printf 'storePassword=%s\n' "$STORE_PASSWORD"
+            printf 'keyPassword=%s\n' "$KEY_PASSWORD"
+          } > android/local.properties
+
+          echo "Android release keystore file and alias validated."
       - name: Setup Java (Android)
         if: matrix.platform == 'android'
         uses: actions/setup-java@v5
