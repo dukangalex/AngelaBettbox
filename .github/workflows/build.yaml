@@ -2,6 +2,8 @@ name: build
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   pull_request:
@@ -9,7 +11,7 @@ on:
       - main
 
 env:
-  IS_STABLE: ${{ !contains(github.ref, '-') }}
+  IS_STABLE: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') }}
   IS_PRERELEASE: ${{ contains(github.ref_name, 'pre') }}
   SHOULD_RELEASE: ${{ !contains(github.ref, '-') || contains(github.ref_name, 'pre') }}
   GRADLE_OPTS: -Dorg.gradle.vfs.watch=false
@@ -26,7 +28,7 @@ jobs:
       actions: write
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(github.event_name == 'pull_request' && '{"include":[{"platform":"android","os":"ubuntu-24.04","arch":"arm64"},{"platform":"android","os":"ubuntu-24.04","arch":"amd64"},{"platform":"android","os":"ubuntu-24.04","arch":"arm"},{"platform":"android","os":"ubuntu-24.04","arch":"universal"}]}' || '{"include":[{"platform":"android","os":"ubuntu-24.04","arch":"arm64"},{"platform":"android","os":"ubuntu-24.04","arch":"amd64"},{"platform":"android","os":"ubuntu-24.04","arch":"arm"},{"platform":"android","os":"ubuntu-24.04","arch":"universal"},{"platform":"windows","os":"windows-2022","arch":"amd64"},{"platform":"windows","os":"windows-11-arm","arch":"arm64"},{"platform":"windows","os":"windows-2022","arch":"amd64","compatible":true},{"platform":"macos","os":"macos-15","arch":"arm64"},{"platform":"macos","os":"macos-15","arch":"amd64"},{"platform":"macos","os":"macos-15","arch":"amd64","compatible":true},{"platform":"linux","os":"ubuntu-22.04","arch":"amd64"},{"platform":"linux","os":"ubuntu-24.04-arm","arch":"arm64"},{"platform":"linux","os":"ubuntu-22.04","arch":"amd64","compatible":true}]}') }}
+      matrix: ${{ fromJSON((github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))) && '{"include":[{"platform":"android","os":"ubuntu-24.04","arch":"arm64"},{"platform":"android","os":"ubuntu-24.04","arch":"amd64"},{"platform":"android","os":"ubuntu-24.04","arch":"arm"},{"platform":"android","os":"ubuntu-24.04","arch":"universal"}]}' || '{"include":[{"platform":"android","os":"ubuntu-24.04","arch":"arm64"},{"platform":"android","os":"ubuntu-24.04","arch":"amd64"},{"platform":"android","os":"ubuntu-24.04","arch":"arm"},{"platform":"android","os":"ubuntu-24.04","arch":"universal"},{"platform":"windows","os":"windows-2022","arch":"amd64"},{"platform":"windows","os":"windows-11-arm","arch":"arm64"},{"platform":"windows","os":"windows-2022","arch":"amd64","compatible":true},{"platform":"macos","os":"macos-15","arch":"arm64"},{"platform":"macos","os":"macos-15","arch":"amd64"},{"platform":"macos","os":"macos-15","arch":"amd64","compatible":true},{"platform":"linux","os":"ubuntu-22.04","arch":"amd64"},{"platform":"linux","os":"ubuntu-24.04-arm","arch":"arm64"},{"platform":"linux","os":"ubuntu-22.04","arch":"amd64","compatible":true}]}') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -501,7 +503,7 @@ jobs:
           overwrite: true
 
   upload:
-    if: github.event_name != 'pull_request'
+    if: startsWith(github.ref, 'refs/tags/v')
     permissions: write-all
     needs: [ build ]
     runs-on: ubuntu-latest
