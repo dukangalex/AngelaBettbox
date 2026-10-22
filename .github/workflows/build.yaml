@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - 'v*'
+  pull_request:
+    branches:
+      - main
 
 env:
   IS_STABLE: ${{ !contains(github.ref, '-') }}
@@ -23,51 +26,7 @@ jobs:
       actions: write
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - platform: android
-            os: ubuntu-24.04
-            arch: arm64
-          - platform: android
-            os: ubuntu-24.04
-            arch: amd64
-          - platform: android
-            os: ubuntu-24.04
-            arch: arm
-          - platform: android
-            os: ubuntu-24.04
-            arch: universal
-          - platform: windows
-            os: windows-2022
-            arch: amd64
-          - platform: windows
-            os: windows-11-arm
-            arch: arm64
-          - platform: windows
-            os: windows-2022
-            arch: amd64
-            compatible: true
-          - platform: macos
-            os: macos-15
-            arch: arm64
-          - platform: macos
-            os: macos-15
-            arch: amd64
-          - platform: macos
-            os: macos-15
-            arch: amd64
-            compatible: true
-          - platform: linux
-            os: ubuntu-22.04
-            arch: amd64
-          - platform: linux
-            os: ubuntu-24.04-arm
-            arch: arm64
-          - platform: linux
-            os: ubuntu-22.04
-            arch: amd64
-            compatible: true
-
+      matrix: ${{ fromJSON(github.event_name == 'pull_request' && '{"include":[{"platform":"android","os":"ubuntu-24.04","arch":"arm64"},{"platform":"android","os":"ubuntu-24.04","arch":"amd64"},{"platform":"android","os":"ubuntu-24.04","arch":"arm"},{"platform":"android","os":"ubuntu-24.04","arch":"universal"}]}' || '{"include":[{"platform":"android","os":"ubuntu-24.04","arch":"arm64"},{"platform":"android","os":"ubuntu-24.04","arch":"amd64"},{"platform":"android","os":"ubuntu-24.04","arch":"arm"},{"platform":"android","os":"ubuntu-24.04","arch":"universal"},{"platform":"windows","os":"windows-2022","arch":"amd64"},{"platform":"windows","os":"windows-11-arm","arch":"arm64"},{"platform":"windows","os":"windows-2022","arch":"amd64","compatible":true},{"platform":"macos","os":"macos-15","arch":"arm64"},{"platform":"macos","os":"macos-15","arch":"amd64"},{"platform":"macos","os":"macos-15","arch":"amd64","compatible":true},{"platform":"linux","os":"ubuntu-22.04","arch":"amd64"},{"platform":"linux","os":"ubuntu-24.04-arm","arch":"arm64"},{"platform":"linux","os":"ubuntu-22.04","arch":"amd64","compatible":true}]}') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -101,14 +60,38 @@ jobs:
         if: matrix.platform == 'windows'
         run: git config --global core.longpaths true
 
-      - name: Setup Keystore (Android)
+      - name: Setup and Validate Release Keystore (Android)
         if: matrix.platform == 'android'
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/local.properties
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/local.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
-          
+          set -euo pipefail
+
+          for name in KEYSTORE_B64 KEY_ALIAS STORE_PASSWORD KEY_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Required Android release signing secret $name is missing."
+              exit 1
+            fi
+          done
+
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > android/app/keystore.jks
+          if [[ ! -s android/app/keystore.jks ]]; then
+            echo "::error::Decoded Android keystore is empty."
+            exit 1
+          fi
+
+          keytool -list -keystore android/app/keystore.jks -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+          {
+            printf 'keyAlias=%s\n' "$KEY_ALIAS"
+            printf 'storePassword=%s\n' "$STORE_PASSWORD"
+            printf 'keyPassword=%s\n' "$KEY_PASSWORD"
+          } > android/local.properties
+
+          echo "Android release keystore file and alias validated."
       - name: Setup Java (Android)
         if: matrix.platform == 'android'
         uses: actions/setup-java@v5
@@ -198,6 +181,40 @@ jobs:
           dart run build_runner build -d
           dart setup.dart ${{ matrix.platform }} --arch ${{ matrix.arch }} ${{ env.IS_STABLE == 'true' && '--env stable' || '' }} ${{ matrix.compatible == true && '--compatible' || '' }}
 
+      - name: Verify Android APK Release Signatures
+        if: matrix.platform == 'android'
+        shell: bash
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          apks=(build/app/outputs/flutter-apk/*.apk)
+          if (( ${#apks[@]} == 0 )); then
+            echo "::error::No Android APKs found to verify."
+            exit 1
+          fi
+
+          expected_cert="$(keytool -exportcert -keystore android/app/keystore.jks -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" | sha256sum | awk '{print toupper($1)}')"
+          apksigner="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          if [[ -z "$apksigner" || ! -x "$apksigner" ]]; then
+            echo "::error::Android apksigner tool was not found."
+            exit 1
+          fi
+
+          for apk in "${apks[@]}"; do
+            echo "Verifying signature: $apk"
+            verification_output="$("$apksigner" verify --verbose --print-certs "$apk")"
+            printf '%s\n' "$verification_output"
+            if ! grep -Eqi "certificate SHA-256 digest: *$expected_cert" <<< "$verification_output"; then
+              echo "::error::APK signature certificate does not match the configured release keystore: $apk"
+              exit 1
+            fi
+          done
+
+          echo "All Android APK signatures verified against the configured release certificate."
       - name: Install SignPath (Windows)
         if: matrix.platform == 'windows'
         shell: pwsh
@@ -484,6 +501,7 @@ jobs:
           overwrite: true
 
   upload:
+    if: github.event_name != 'pull_request'
     permissions: write-all
     needs: [ build ]
     runs-on: ubuntu-latest
