@@ -20,7 +20,6 @@ env:
   
 jobs:
   build:
-    if: github.event_name != 'pull_request' || matrix.platform == 'android'
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -28,29 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - platform: android
-            os: ubuntu-24.04
-            arch: arm64
-          - platform: android
-            os: ubuntu-24.04
-            arch: amd64
-          - platform: android
-            os: ubuntu-24.04
-            arch: arm
-          - platform: android
-            os: ubuntu-24.04
-            arch: universal
-          - platform: windows
-            os: windows-2022
-            arch: amd64
-          - platform: windows
-            os: windows-11-arm
-            arch: arm64
-          - platform: windows
-            os: windows-2022
-            arch: amd64
-            compatible: true
+        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"platform":"android","os":"ubuntu-24.04","arch":"arm64"},{"platform":"android","os":"ubuntu-24.04","arch":"amd64"},{"platform":"android","os":"ubuntu-24.04","arch":"arm"},{"platform":"android","os":"ubuntu-24.04","arch":"universal"}]' || '[{"platform":"android","os":"ubuntu-24.04","arch":"arm64"},{"platform":"android","os":"ubuntu-24.04","arch":"amd64"},{"platform":"android","os":"ubuntu-24.04","arch":"arm"},{"platform":"android","os":"ubuntu-24.04","arch":"universal"},{"platform":"windows","os":"windows-2022","arch":"amd64"},{"platform":"windows","os":"windows-11-arm","arch":"arm64"},{"platform":"windows","os":"windows-2022","arch":"amd64","compatible":true},{"platform":"macos","os":"macos-15","arch":"arm64"},{"platform":"macos","os":"macos-15","arch":"amd64"},{"platform":"macos","os":"macos-15","arch":"amd64","compatible":true},{"platform":"linux","os":"ubuntu-22.04","arch":"amd64"},{"platform":"linux","os":"ubuntu-24.04-arm","arch":"arm64"},{"platform":"linux","os":"ubuntu-22.04","arch":"amd64","compatible":true}]') }}
           - platform: macos
             os: macos-15
             arch: arm64
