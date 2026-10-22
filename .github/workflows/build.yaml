@@ -181,6 +181,40 @@ jobs:
           dart run build_runner build -d
           dart setup.dart ${{ matrix.platform }} --arch ${{ matrix.arch }} ${{ env.IS_STABLE == 'true' && '--env stable' || '' }} ${{ matrix.compatible == true && '--compatible' || '' }}
 
+      - name: Verify Android APK Release Signatures
+        if: matrix.platform == 'android'
+        shell: bash
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          apks=(build/app/outputs/flutter-apk/*.apk)
+          if (( ${#apks[@]} == 0 )); then
+            echo "::error::No Android APKs found to verify."
+            exit 1
+          fi
+
+          expected_cert="$(keytool -exportcert -keystore android/app/keystore.jks -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" | sha256sum | awk '{print toupper($1)}')"
+          apksigner="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          if [[ -z "$apksigner" || ! -x "$apksigner" ]]; then
+            echo "::error::Android apksigner tool was not found."
+            exit 1
+          fi
+
+          for apk in "${apks[@]}"; do
+            echo "Verifying signature: $apk"
+            verification_output="$("$apksigner" verify --verbose --print-certs "$apk")"
+            printf '%s\n' "$verification_output"
+            if ! grep -Fqi "Signer #1 certificate SHA-256 digest: $expected_cert" <<< "$verification_output"; then
+              echo "::error::APK signature certificate does not match the configured release keystore: $apk"
+              exit 1
+            fi
+          done
+
+          echo "All Android APK signatures verified against the configured release certificate."
       - name: Install SignPath (Windows)
         if: matrix.platform == 'windows'
         shell: pwsh
