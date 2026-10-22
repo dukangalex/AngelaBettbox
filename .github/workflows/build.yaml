@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - 'v*'
+  pull_request:
+    branches:
+      - main
 
 env:
   IS_STABLE: ${{ !contains(github.ref, '-') }}
@@ -17,6 +20,7 @@ env:
   
 jobs:
   build:
+    if: github.event_name != 'pull_request' || matrix.platform == 'android'
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -508,6 +512,7 @@ jobs:
           overwrite: true
 
   upload:
+    if: github.event_name != 'pull_request'
     permissions: write-all
     needs: [ build ]
     runs-on: ubuntu-latest
