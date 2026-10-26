@@ -70,6 +70,7 @@ jobs:
               exit 1
             fi
             echo "::warning::Explicit debug preview: this APK is not signed with a production key."
+            echo "BETTBOX_ALLOW_DEBUG_PREVIEW=true" >> "$GITHUB_ENV"
             exit 0
           fi
           echo "${KEYSTORE}" | base64 --decode > android/app/keystore.jks
@@ -87,6 +88,7 @@ jobs:
           find dist -name '*.apk' -print
 
       - name: Verify production APK signatures
+        if: env.BETTBOX_ALLOW_DEBUG_PREVIEW != 'true'
         shell: bash
         env:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
