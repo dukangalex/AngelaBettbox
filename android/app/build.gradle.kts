@@ -13,7 +13,18 @@ val mStoreFile = file("keystore.jks")
 val mStorePassword: String? = localProperties.getProperty("storePassword")
 val mKeyAlias: String? = localProperties.getProperty("keyAlias")
 val mKeyPassword: String? = localProperties.getProperty("keyPassword")
-val isRelease = mStoreFile.exists() && mStorePassword != null && mKeyAlias != null && mKeyPassword != null
+val isRelease = mStoreFile.isFile &&
+    !mStorePassword.isNullOrBlank() &&
+    !mKeyAlias.isNullOrBlank() &&
+    !mKeyPassword.isNullOrBlank()
+val releaseTaskRequested = gradle.startParameter.taskNames.any {
+    it.contains("release", ignoreCase = true)
+}
+if (releaseTaskRequested && !isRelease) {
+    throw GradleException(
+        "Android Release signing is required. Configure a valid keystore and all signing properties; refusing debug-signature fallback."
+    )
+}
 
 android {
     namespace = "com.appshub.bettbox"
