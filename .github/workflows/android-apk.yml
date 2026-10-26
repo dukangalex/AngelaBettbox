@@ -70,6 +70,7 @@ jobs:
               exit 1
             fi
             echo "::warning::Explicit debug preview: this APK is not signed with a production key."
+            echo "BETTBOX_ALLOW_DEBUG_PREVIEW=true" >> "$GITHUB_ENV"
             exit 0
           fi
           echo "${KEYSTORE}" | base64 --decode > android/app/keystore.jks
@@ -85,6 +86,18 @@ jobs:
           dart setup.dart android --arch universal --env stable
           ls -lh dist || true
           find dist -name '*.apk' -print
+
+      - name: Verify production APK signatures
+        if: env.BETTBOX_ALLOW_DEBUG_PREVIEW != 'true'
+        shell: bash
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          apksigner="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          test -n "$apksigner"
+          python3 tools/verify-android-release.py --apksigner "$apksigner" dist/*.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

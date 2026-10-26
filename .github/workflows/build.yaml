@@ -117,6 +117,7 @@ jobs:
               exit 1
             fi
             echo "::warning::No complete release keystore. This prerelease APK uses a debug signature, not a production signing key."
+            echo "BETTBOX_ALLOW_DEBUG_PREVIEW=true" >> "$GITHUB_ENV"
             exit 0
           fi
           echo "${KEYSTORE}" | base64 --decode > android/app/keystore.jks
@@ -215,6 +216,18 @@ jobs:
           flutter pub get
           dart run build_runner build
           dart setup.dart ${{ matrix.platform }} --arch ${{ matrix.arch }} ${{ env.IS_STABLE == 'true' && '--env stable' || '' }} ${{ matrix.compatible == true && '--compatible' || '' }}
+
+      - name: Verify production APK signatures
+        if: matrix.platform == 'android' && env.BETTBOX_ALLOW_DEBUG_PREVIEW != 'true'
+        shell: bash
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          apksigner="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          test -n "$apksigner"
+          python3 tools/verify-android-release.py --apksigner "$apksigner" dist/*.apk
 
       - name: Install SignPath (Windows)
         if: matrix.platform == 'windows' && env.SIGNPATH_API_TOKEN != ''
