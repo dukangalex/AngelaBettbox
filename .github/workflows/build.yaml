@@ -553,3 +553,26 @@ jobs:
           files: ./dist/*
           body_path: './release.md'
           prerelease: ${{ env.IS_PRERELEASE == 'true' }}
+
+      - name: Notify Telegram channel
+        if: ${{ env.SHOULD_RELEASE == 'true' && success() }}
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHANNEL_ID: ${{ secrets.TG_CHANNEL_ID }}
+        run: |
+          if [ -z "$TG_BOT_TOKEN" ] || [ -z "$TG_CHANNEL_ID" ]; then
+            echo "::warning::Telegram secrets not configured, skipping channel announcement"
+            exit 0
+          fi
+          BODY="$(head -c 1200 ./release.md)"
+          MSG="🎉 Angela Mihomo ${{ github.ref_name }} 发布
+
+          ${BODY}
+
+          下载：https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+          curl -sS -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TG_CHANNEL_ID}" \
+            --data-urlencode "text=${MSG}" \
+            -o /tmp/tg_resp.json -w 'HTTP %{http_code}\n'
+          cat /tmp/tg_resp.json
+          grep -q '"ok":true' /tmp/tg_resp.json
