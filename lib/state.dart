@@ -1097,7 +1097,11 @@ class GlobalState {
             'AND,((DST-PORT,853),(IP-CIDR,198.51.100.0/30,no-resolve)),REJECT',
         ],
         if (config.vpnProps.disableQuic)
-          config.vpnProps.excludeChina && !isRussian
+          quicBlockExemptsChina(
+                vpnExcludeChina: config.vpnProps.excludeChina,
+                chinaDirect: SystemExplicitStore.instance.value.chinaDirect,
+                isRussian: isRussian,
+              )
               ? 'AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((GEOSITE,geolocation-cn),(GEOIP,CN,no-resolve)))))),REJECT'
               : 'AND,((NETWORK,UDP),(DST-PORT,443)),REJECT',
       ],

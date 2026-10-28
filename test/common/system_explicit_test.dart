@@ -133,7 +133,17 @@ void main() {
     expect(rules, contains('IP-CIDR,223.5.5.5/32,DIRECT,no-resolve'));
     expect(rules, contains('IP-CIDR6,2400:3200::1/128,DIRECT,no-resolve'));
     expect(rules, contains('DOMAIN-SUFFIX,doh.pub,DIRECT'));
-    expect(rules, contains('DOMAIN-SUFFIX,dns.alidns.com,DIRECT'));
+    expect(rules, contains('DOMAIN-SUFFIX,alidns.com,DIRECT'));
+    expect(rules, contains('DOMAIN-SUFFIX,360.cn,DIRECT'));
+    expect(rules, contains('DOMAIN-SUFFIX,onedns.net,DIRECT'));
+    expect(rules, contains('IP-CIDR,114.114.114.114/32,DIRECT,no-resolve'));
+    expect(rules, contains('IP-CIDR,52.80.60.30/32,DIRECT,no-resolve'));
+    expect(
+      rules,
+      contains('IP-CIDR6,2404:c2c0:85d8:901::8/128,DIRECT,no-resolve'),
+    );
+    // 26 IPv4 + 9 IPv6 host routes + 5 domain suffixes.
+    expect(rules, hasLength(40));
     expect(rules, isNot(contains('GEOSITE,geolocation-cn,DIRECT')));
   });
 
@@ -145,16 +155,62 @@ void main() {
     expect(rules, contains('DOMAIN-SUFFIX,home.arpa,DIRECT'));
   });
 
-  test('WebRTC blocker is narrow, explicit and rejects both transports', () {
+  test('WebRTC blocker covers STUN/TURN domains and UDP port ranges', () {
     final rules = SystemExplicitOptions(
       blockCommonWebRtc: true,
     ).buildRuntimeRules();
     expect(rules, [
-      'AND,((NETWORK,UDP),(DST-PORT,3478)),REJECT',
-      'AND,((NETWORK,TCP),(DST-PORT,3478)),REJECT',
-      'AND,((NETWORK,UDP),(DST-PORT,5349)),REJECT',
-      'AND,((NETWORK,TCP),(DST-PORT,5349)),REJECT',
+      'DOMAIN-KEYWORD,stun,REJECT',
+      'DOMAIN-KEYWORD,turn,REJECT',
+      'DOMAIN-SUFFIX,stun.l.google.com,REJECT',
+      'AND,((NETWORK,UDP),(DST-PORT,3478-3480)),REJECT',
+      'AND,((NETWORK,UDP),(DST-PORT,5349-5355)),REJECT',
+      'AND,((NETWORK,UDP),(DST-PORT,19302-19305)),REJECT',
     ]);
+  });
+  test('ad blocker is a single GEOSITE category rule', () {
+    final rules = SystemExplicitOptions(blockAds: true).buildRuntimeRules();
+    expect(rules, ['GEOSITE,category-ads-all,REJECT']);
+    final restored = SystemExplicitOptions.fromJson(
+      SystemExplicitOptions(blockAds: true).toJson(),
+    );
+    expect(restored.blockAds, isTrue);
+    expect(SystemExplicitOptions.fromJson({}).blockAds, isFalse);
+  });
+  test('QUIC China exemption shares the China-direct determination', () {
+    // Either switch alone exempts China QUIC: one traffic class, one owner.
+    expect(
+      quicBlockExemptsChina(
+        vpnExcludeChina: true,
+        chinaDirect: false,
+        isRussian: false,
+      ),
+      isTrue,
+    );
+    expect(
+      quicBlockExemptsChina(
+        vpnExcludeChina: false,
+        chinaDirect: true,
+        isRussian: false,
+      ),
+      isTrue,
+    );
+    expect(
+      quicBlockExemptsChina(
+        vpnExcludeChina: false,
+        chinaDirect: false,
+        isRussian: false,
+      ),
+      isFalse,
+    );
+    expect(
+      quicBlockExemptsChina(
+        vpnExcludeChina: true,
+        chinaDirect: true,
+        isRussian: true,
+      ),
+      isFalse,
+    );
   });
   test('port protections precede direct routing exceptions', () {
     final rules = SystemExplicitOptions(
@@ -164,11 +220,11 @@ void main() {
       blockCommonWebRtc: true,
     ).buildRuntimeRules();
     expect(
-      rules.indexOf('AND,((NETWORK,UDP),(DST-PORT,3478)),REJECT'),
+      rules.indexOf('DOMAIN-KEYWORD,stun,REJECT'),
       lessThan(rules.indexOf('IP-CIDR,223.5.5.5/32,DIRECT,no-resolve')),
     );
     expect(
-      rules.indexOf('AND,((NETWORK,TCP),(DST-PORT,5349)),REJECT'),
+      rules.indexOf('AND,((NETWORK,UDP),(DST-PORT,3478-3480)),REJECT'),
       lessThan(rules.indexOf('GEOIP,private,DIRECT,no-resolve')),
     );
   });

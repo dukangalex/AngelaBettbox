@@ -318,6 +318,8 @@ func explicitRuleCategory(rule string) string {
 			return "china-domain"
 		case "private":
 			return "lan-domain"
+		case "category-ads-all":
+			return "ads"
 		}
 	case "GEOIP":
 		switch strings.ToLower(arg) {
@@ -339,12 +341,19 @@ func explicitRuleCategory(rule string) string {
 		}
 	case "DOMAIN", "DOMAIN-SUFFIX":
 		switch strings.ToLower(arg) {
-		case "doh.pub", "dot.pub", "dns.pub", "dns.alidns.com":
+		case "alidns.com", "doh.pub", "dot.pub", "360.cn", "onedns.net":
 			return "china-public-dns-domain"
+		case "stun.l.google.com":
+			return "webrtc-domain"
 		case "local", "lan", "home.arpa":
 			if typ == "DOMAIN-SUFFIX" {
 				return "lan-domain"
 			}
+		}
+	case "DOMAIN-KEYWORD":
+		switch strings.ToLower(arg) {
+		case "stun", "turn":
+			return "webrtc-domain"
 		}
 	case "AND":
 		if len(parts) < 3 {
@@ -358,7 +367,10 @@ func explicitRuleCategory(rule string) string {
 		predicate := compact[len("AND,") : last+1]
 		switch predicate {
 		case "((NETWORK,UDP),(DST-PORT,3478))", "((NETWORK,TCP),(DST-PORT,3478))",
-			"((NETWORK,UDP),(DST-PORT,5349))", "((NETWORK,TCP),(DST-PORT,5349))":
+			"((NETWORK,UDP),(DST-PORT,5349))", "((NETWORK,TCP),(DST-PORT,5349))",
+			"((NETWORK,UDP),(DST-PORT,3478-3480))",
+			"((NETWORK,UDP),(DST-PORT,5349-5355))",
+			"((NETWORK,UDP),(DST-PORT,19302-19305))":
 			return "webrtc-common-ports"
 		case "((NETWORK,UDP),(DST-PORT,5353))", "((NETWORK,UDP),(DST-PORT,5355))",
 			"((NETWORK,UDP),(DST-PORT,1900))":
@@ -373,8 +385,17 @@ func explicitChinaDnsCIDR(value string) bool {
 	// a user's unrelated /32 or /128 must not be treated as this exception.
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "223.5.5.5/32", "223.6.6.6/32", "119.29.29.29/32", "1.12.12.12/32",
-		"180.184.1.1/32", "180.184.2.2/32", "101.226.4.6/32",
-		"2400:3200::1/128", "2400:3200:baba::1/128", "2402:4e00::/128", "2400:da00::6666/128":
+		"120.53.53.53/32", "180.76.76.76/32", "114.114.114.114/32",
+		"114.114.115.115/32", "114.114.114.119/32", "114.114.115.119/32",
+		"114.114.114.110/32", "114.114.115.110/32", "180.184.1.1/32",
+		"180.184.2.2/32", "101.226.4.6/32", "218.30.118.6/32",
+		"123.125.81.6/32", "140.207.198.6/32", "1.2.4.8/32", "210.2.4.8/32",
+		"52.80.66.66/32", "117.50.22.22/32", "117.50.10.10/32",
+		"52.80.52.52/32", "117.50.60.30/32", "52.80.60.30/32",
+		"2400:3200::1/128", "2400:3200:baba::1/128", "2402:4e00::/128",
+		"2402:4e00:1::/128", "2400:da00::6666/128",
+		"2400:7fc0:849e:200::4/128", "2404:c2c0:85d8:901::4/128",
+		"2400:7fc0:849e:200::8/128", "2404:c2c0:85d8:901::8/128":
 		return true
 	default:
 		return false
@@ -1408,31 +1429,51 @@ func uniqueChainGroupNameWithBase(used map[string]string, base string) string {
 // opt into our chain-specific fallback policy; never permit an empty group to
 // silently become COMPATIBLE. Explicit DIRECT members still fail validation.
 func hardenChainEntryGroup(raw *config.RawConfig, entry string) error {
- groups := make(map[string]map[string]any, len(raw.ProxyGroup))
- for _, group := range raw.ProxyGroup { if name, ok := groupName(group); ok { groups[name] = group } }
- seen := map[string]bool{}
- var walk func(string) error
- walk = func(name string) error {
-  if seen[name] { return nil }; seen[name] = true
-  group := groups[name]
-  if group == nil { return fmt.Errorf("entry group %q is unavailable", name) }
-  group["empty-fallback"] = "REJECT"
-  // GroupBase treats exclude-type as a pipe-delimited list, not a regexp.
-  if len(anyStrings(group["use"])) > 0 {
-   old, _ := group["exclude-type"].(string)
-   excluded := map[string]bool{}
-   for _, typ := range strings.Split(old, "|") { excluded[strings.ToLower(strings.TrimSpace(typ))] = true }
-   for _, typ := range []string{"Direct", "Compatible", "Pass"} {
-    if !excluded[strings.ToLower(typ)] { if old != "" { old += "|" }; old += typ }
-   }
-   group["exclude-type"] = old
-  }
-  for _, member := range anyStrings(group["proxies"]) {
-   if child, ok := member.(string); ok && groups[child] != nil { if err := walk(child); err != nil { return err } }
-  }
-  return nil
- }
- return walk(entry)
+	groups := make(map[string]map[string]any, len(raw.ProxyGroup))
+	for _, group := range raw.ProxyGroup {
+		if name, ok := groupName(group); ok {
+			groups[name] = group
+		}
+	}
+	seen := map[string]bool{}
+	var walk func(string) error
+	walk = func(name string) error {
+		if seen[name] {
+			return nil
+		}
+		seen[name] = true
+		group := groups[name]
+		if group == nil {
+			return fmt.Errorf("entry group %q is unavailable", name)
+		}
+		group["empty-fallback"] = "REJECT"
+		// GroupBase treats exclude-type as a pipe-delimited list, not a regexp.
+		if len(anyStrings(group["use"])) > 0 {
+			old, _ := group["exclude-type"].(string)
+			excluded := map[string]bool{}
+			for _, typ := range strings.Split(old, "|") {
+				excluded[strings.ToLower(strings.TrimSpace(typ))] = true
+			}
+			for _, typ := range []string{"Direct", "Compatible", "Pass"} {
+				if !excluded[strings.ToLower(typ)] {
+					if old != "" {
+						old += "|"
+					}
+					old += typ
+				}
+			}
+			group["exclude-type"] = old
+		}
+		for _, member := range anyStrings(group["proxies"]) {
+			if child, ok := member.(string); ok && groups[child] != nil {
+				if err := walk(child); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+	return walk(entry)
 }
 
 // A chain entry must itself be a proxy path. Allow ordinary proxies and

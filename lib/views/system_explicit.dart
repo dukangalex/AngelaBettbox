@@ -237,14 +237,14 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
           ListItem.switchItem(
             title: Text(
               _t(
-                '阻断常见 WebRTC/STUN/TURN 端口',
-                'Block common WebRTC/STUN/TURN ports',
+                '阻断 WebRTC/STUN/TURN',
+                'Block WebRTC/STUN/TURN',
               ),
             ),
             subtitle: Text(
               _t(
-                '默认关闭。阻断 TCP/UDP 3478、5349；可能影响语音/视频，不能覆盖其他端口或伪装流量，不能保证阻断所有 WebRTC。',
-                'Off by default. Rejects TCP/UDP 3478 and 5349; may disrupt calls and cannot cover other ports or disguised traffic, so it cannot block all WebRTC.',
+                '默认关闭。按域名阻断含 stun/turn 的主机名与 Google STUN，并阻断 UDP 3478-3480、5349-5355、19302-19305；可能影响语音/视频，伪装流量不在覆盖内，不能保证阻断所有 WebRTC。',
+                'Off by default. Rejects hostnames containing stun/turn and Google STUN by domain, plus UDP 3478-3480, 5349-5355 and 19302-19305. May disrupt calls; disguised traffic is not covered, so it cannot block all WebRTC.',
               ),
             ),
             delegate: SwitchDelegate(
@@ -253,6 +253,20 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
                 on,
                 (valueOn) => value.blockCommonWebRtc = valueOn,
               ),
+            ),
+          ),
+          ListItem.switchItem(
+            title: Text(_t('广告拦截', 'Block ads')),
+            subtitle: Text(
+              _t(
+                '默认关闭。按 Mihomo 的 GEOSITE category-ads-all 分类阻断广告域名；仅替换配置中同类广告规则，其它规则保留。',
+                'Off by default. Rejects ad domains via the Mihomo GEOSITE category-ads-all category. Replaces only same-category ad rules in the profile; unrelated rules remain.',
+              ),
+            ),
+            delegate: SwitchDelegate(
+              value: value.blockAds,
+              onChanged: (on) =>
+                  _setRuleOption(on, (valueOn) => value.blockAds = valueOn),
             ),
           ),
           if (system.isAndroid)
