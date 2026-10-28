@@ -5,7 +5,7 @@ class AppIdentity {
 
   static const productName = 'Bettbox';
   static const devSuffix = 'Dev';
-  static const packageId = 'com.appshub.bettbox';
+  static const packageId = 'app.angelabettbox';
 
   static const compactName = isDev ? '$productName$devSuffix' : productName;
   static const displayName = isDev ? '$productName Dev' : productName;
