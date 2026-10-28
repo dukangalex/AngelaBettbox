@@ -34,7 +34,6 @@ import 'common/archive.dart'
         decodeBackupArchive,
         readBackupFile,
         restoreBackupFiles;
-import 'common/backup_recovery.dart';
 import 'common/common.dart';
 import 'common/dav_client.dart';
 import 'common/path_guard.dart';
@@ -2491,24 +2490,6 @@ class AppController {
     }
   }
 
-  Future<void> _cleanProfilesDirForOverride() async {
-    try {
-      final profilesDirPath = await appPath.profilesPath;
-      final dir = Directory(profilesDirPath);
-      if (await dir.exists()) {
-        await for (final entity in dir.list(followLinks: false)) {
-          try {
-            await entity.delete(recursive: true);
-          } catch (e) {
-            commonPrint.warn('Delete profile entity failed: $e');
-          }
-        }
-      }
-    } catch (e) {
-      commonPrint.warn('Clean profiles dir for override failed: $e');
-    }
-  }
-
   /// Restore legacy
   Future<List<Profile>> _recoveryLegacyBackup(
     Archive archive,
@@ -2649,30 +2630,6 @@ class AppController {
       commonPrint.warn('Failed to extract label from YAML: $e');
     }
     return null;
-  }
-
-  /// Show results
-  void _showRecoveryResultMessage(List<Profile> profiles) {
-    if (profiles.isEmpty) return;
-
-    final hasEmptyUrl = profiles.any((p) => p.url.isEmpty);
-
-    String message;
-    if (hasEmptyUrl) {
-      // Partial recovery, missing URLs
-      message =
-          'Restored ${profiles.length} subscriptions.\n\n'
-          'Warning: URLs not included. Edit subscriptions to add URLs for auto-update.';
-    } else {
-      // Complete recovery
-      message = 'Restored ${profiles.length} subscriptions.';
-    }
-
-    globalState.showMessage(
-      title: appLocalizations.recoverySuccess,
-      message: TextSpan(text: message),
-      cancelable: false,
-    );
   }
 
   void _restoreProfiles(List<Profile> profiles) {

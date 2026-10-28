@@ -154,10 +154,6 @@ class IntranetIP extends StatelessWidget {
     );
   }
 
-  void _showMoreIpInfoDialog(BuildContext context) {
-    globalState.showCommonDialog(child: const _IntranetIpInfoDialog());
-  }
-
   @override
   Widget build(BuildContext context) {
     final size = this.size;

@@ -932,49 +932,6 @@ class Utils {
     return '${appName}_${DateTime.now().show}.log';
   }
 
-  Future<List<String>> getLanAddresses() async {
-    final addresses = <String>[];
-    void add(String address) {
-      if (address.isNotEmpty && !addresses.contains(address)) {
-        addresses.add(address);
-      }
-    }
-
-    try {
-      final primary = await getLocalIpAddress() ?? '';
-      if (primary.isNotEmpty && !primary.contains(':')) add(primary);
-      if (system.isAndroid) {
-        final list = await const MethodChannel(
-          'service',
-        ).invokeListMethod<String>('getLocalIpAddresses');
-        for (final address in list ?? const <String>[]) {
-          add(address);
-        }
-        return addresses;
-      }
-      final interfaces = await NetworkInterface.list(includeLoopback: false);
-      for (final interface in interfaces) {
-        if (_virtualInterfaceRegExp.hasMatch(interface.name)) {
-          continue;
-        }
-        for (final address in interface.addresses) {
-          if (address.isIPv4 && !address.isLinkLocal) add(address.address);
-        }
-      }
-    } catch (_) {}
-    return addresses;
-  }
-
-  Future<bool> isCellularNetwork() async {
-    try {
-      return (await Connectivity().checkConnectivity()).contains(
-        ConnectivityResult.mobile,
-      );
-    } catch (_) {
-      return false;
-    }
-  }
-
   Future<String?> getLocalIpAddress() async {
     List<NetworkInterface> interfaces =
         await NetworkInterface.list(includeLoopback: false)
