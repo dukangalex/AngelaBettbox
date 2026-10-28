@@ -34,3 +34,9 @@ func init() {
 		EnforceBindInterface = true
 	}
 }
+
+// TUN file-descriptor ownership is not used on Windows; Listener.New guards
+// this stub out for that platform.
+func closeTunFD(_ int) error {
+	return nil
+}

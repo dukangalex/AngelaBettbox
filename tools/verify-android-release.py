@@ -8,6 +8,20 @@ import re
 import subprocess
 
 
+def certificate_digests(text):
+    """Accept known SDK 36/37 labels, never public-key or source-stamp digests."""
+    counts = re.findall(r'^Number of signers:\s*([0-9]+)\s*$', text, re.M)
+    if counts != ['1']:
+        raise ValueError('Expected exactly one APK signer')
+    prefix = r'(?:Signer #[0-9]+|V[1-4](?:\.[0-9]+)? Signer):?'
+    digests = re.findall(
+        r'^' + prefix + r' certificate SHA-256 digest:\s*([a-fA-F0-9]{64})\s*$',
+        text, re.M)
+    if not digests:
+        raise ValueError('No recognized APK signing certificate digest')
+    return [digest.lower() for digest in digests]
+
+
 def verify(apks, keystore, apksigner):
     if not apks:
         raise ValueError('No APKs supplied for release verification')
@@ -24,8 +38,8 @@ def verify(apks, keystore, apksigner):
             [str(apksigner), 'verify', '--verbose', '--print-certs', str(apk)],
             check=True, capture_output=True, text=True)
         text = result.stdout
-        digests = re.findall(r'^Signer #\d+ certificate SHA-256 digest:\s*([a-fA-F0-9]+)\s*$', text, re.M)
-        if len(digests) != 1 or digests[0].lower() != expected:
+        digests = certificate_digests(text)
+        if any(digest != expected for digest in digests):
             raise ValueError('APK certificate does not match the configured release certificate: ' + str(apk))
         if re.search(r'certificate DN:.*\bCN\s*=\s*Android Debug\b', text, re.I):
             raise ValueError('Android Debug certificate is not a production release: ' + str(apk))

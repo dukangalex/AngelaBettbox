@@ -134,6 +134,16 @@ _AndroidVpnOptions _$AndroidVpnOptionsFromJson(Map<String, dynamic> json) =>
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      includePackage:
+          (json['includePackage'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      excludePackage:
+          (json['excludePackage'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       routeMode: json['routeMode'] as String? ?? 'config',
       dnsServerAddress: json['dnsServerAddress'] as String,
       dozeSuspend: json['dozeSuspend'] as bool? ?? false,
@@ -151,6 +161,8 @@ Map<String, dynamic> _$AndroidVpnOptionsToJson(_AndroidVpnOptions instance) =>
       'ipv4Address': instance.ipv4Address,
       'ipv6Address': instance.ipv6Address,
       'routeAddress': instance.routeAddress,
+      'includePackage': instance.includePackage,
+      'excludePackage': instance.excludePackage,
       'routeMode': instance.routeMode,
       'dnsServerAddress': instance.dnsServerAddress,
       'dozeSuspend': instance.dozeSuspend,
@@ -209,6 +221,10 @@ const _$AppMessageTypeEnumMap = {
   AppMessageType.delay: 'delay',
   AppMessageType.request: 'request',
   AppMessageType.loaded: 'loaded',
+  AppMessageType.speedTest: 'speedTest',
+  AppMessageType.stunTest: 'stunTest',
+  AppMessageType.iperf: 'iperf',
+  AppMessageType.localPing: 'localPing',
 };
 
 _InvokeMessage _$InvokeMessageFromJson(Map<String, dynamic> json) =>
@@ -354,6 +370,26 @@ const _$ActionMethodEnumMap = {
   ActionMethod.getMode: 'getMode',
   ActionMethod.parseExternalProviderContent: 'parseExternalProviderContent',
   ActionMethod.getCoreStatus: 'getCoreStatus',
+  ActionMethod.startSpeedTest: 'startSpeedTest',
+  ActionMethod.cancelSpeedTest: 'cancelSpeedTest',
+  ActionMethod.probeSpeedTest: 'probeSpeedTest',
+  ActionMethod.getSpeedTestServers: 'getSpeedTestServers',
+  ActionMethod.startStunTest: 'startStunTest',
+  ActionMethod.cancelStunTest: 'cancelStunTest',
+  ActionMethod.routeTrace: 'routeTrace',
+  ActionMethod.dnsQuery: 'dnsQuery',
+  ActionMethod.mrsPrepare: 'mrsPrepare',
+  ActionMethod.mrsLookup: 'mrsLookup',
+  ActionMethod.cancelMrsLookup: 'cancelMrsLookup',
+  ActionMethod.startToolProxy: 'startToolProxy',
+  ActionMethod.stopToolProxy: 'stopToolProxy',
+  ActionMethod.ageCrypt: 'ageCrypt',
+  ActionMethod.startIperfServer: 'startIperfServer',
+  ActionMethod.stopIperfServer: 'stopIperfServer',
+  ActionMethod.startIperfClient: 'startIperfClient',
+  ActionMethod.cancelIperfClient: 'cancelIperfClient',
+  ActionMethod.startLocalPing: 'startLocalPing',
+  ActionMethod.cancelLocalPing: 'cancelLocalPing',
   ActionMethod.setState: 'setState',
   ActionMethod.startTun: 'startTun',
   ActionMethod.stopTun: 'stopTun',

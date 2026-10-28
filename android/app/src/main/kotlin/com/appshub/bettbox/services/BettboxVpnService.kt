@@ -22,6 +22,7 @@ import com.appshub.bettbox.models.AccessControlMode
 import com.appshub.bettbox.models.VpnOptions
 import com.appshub.bettbox.plugins.VpnPlugin
 import com.appshub.bettbox.R
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -30,6 +31,8 @@ class BettboxVpnService : VpnService(), BaseServiceInterface {
     companion object {
         private const val TAG = "BettboxVpnService"
     }
+
+    override val destructionComplete = CompletableDeferred<Unit>()
 
     @Volatile
     private var isStopped = false
@@ -119,25 +122,39 @@ class BettboxVpnService : VpnService(), BaseServiceInterface {
 
         if (options.dnsServerAddress.isNotBlank()) {
             runCatching { addDnsServer(options.dnsServerAddress) }
-                .onFailure { Log.e(TAG, "Invalid DNS: ${options.dnsServerAddress}") }
+                .getOrElse { error ->
+                    Log.e(TAG, "Cannot configure VPN DNS: ${options.dnsServerAddress}", error)
+                    return@with -1
+                }
         }
 
         setMtu(options.mtu.takeIf { it in 1280..65535 } ?: 9000)
 
-        val accessControl = options.accessControl
-        if (accessControl.enable) {
-            when (accessControl.mode) {
-                AccessControlMode.acceptSelected -> {
-                    (accessControl.acceptList + packageName).filter { it.isNotBlank() }.distinct().forEach { appPkg ->
-                        runCatching { addAllowedApplication(appPkg) }
-                            .onFailure { Log.e(TAG, "Failed to allow package $appPkg: ${it.message}", it) }
-                    }
-                }
-                AccessControlMode.rejectSelected -> (accessControl.rejectList - packageName).filter { it.isNotBlank() }.distinct().forEach { appPkg ->
-                    runCatching { addDisallowedApplication(appPkg) }
-                        .onFailure { Log.e(TAG, "Failed to disallow package $appPkg: ${it.message}", it) }
-                }
+        // Android allows either an allowlist or a denylist, never both. Resolve
+        // conflicts at UID granularity because Android routes a shared UID as one.
+        // An unknown package or an empty intersection must not become full-tunnel.
+        val selection = runCatching {
+            val acl = options.accessControl
+            PackageRouting.resolve(
+                options.includePackage, options.excludePackage,
+                acl.enable, acl.mode == AccessControlMode.acceptSelected,
+                acl.acceptList, acl.rejectList, packageName,
+            ) { pkg -> packageManager.getApplicationInfo(pkg, 0).uid }
+        }.getOrElse { error ->
+            Log.e(TAG, "Cannot apply VPN package rules", error)
+            return@with -1
+        }
+        runCatching {
+            when (selection.mode) {
+                PackageRouting.Mode.ALL -> Unit
+                PackageRouting.Mode.ALLOW -> selection.packages.forEach { addAllowedApplication(it) }
+                PackageRouting.Mode.DENY -> selection.packages.forEach { addDisallowedApplication(it) }
             }
+        }.getOrElse { error ->
+            // A package may disappear between lookup and Builder use; abort rather
+            // than silently start a VPN with a different effective policy.
+            Log.e(TAG, "Cannot install VPN package rules", error)
+            return@with -1
         }
 
         setSession("Bettbox")
@@ -346,5 +363,7 @@ class BettboxVpnService : VpnService(), BaseServiceInterface {
         }
         fairMemoryHelper.unregister(this)
         super.onDestroy()
+        destructionComplete.complete(Unit)
+        VpnPlugin.onVpnServiceDestroyed(this)
     }
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/metacubex/mihomo/listener/sing_tun"
 	"github.com/metacubex/mihomo/log"
 	"github.com/metacubex/mihomo/tunnel"
+	"golang.org/x/sys/unix"
 	"net"
 	"net/netip"
 )
@@ -24,7 +25,16 @@ type Props struct {
 	Dns6     string `json:"dns6"`
 }
 
-func Start(fd int, device string, stack constant.TUNStack, disableIcmpForwarding bool, mtu uint32, ipv6Enabled bool, congestionController string) (*sing_tun.Listener, error) {
+func Start(fd int, device string, stack constant.TUNStack, dnsMode string, disableIcmpForwarding bool, mtu uint32, ipv6Enabled bool, congestionController string) (*sing_tun.Listener, error) {
+	fdUnclaimed := fd > 0
+	defer func() {
+		if fdUnclaimed {
+			if closeErr := unix.Close(fd); closeErr != nil {
+				log.Warnln("startTUN close unclaimed descriptor %d failed: %v", fd, closeErr)
+			}
+		}
+	}()
+
 	var prefix4 []netip.Prefix
 	tempPrefix4, err := netip.ParsePrefix(state.DefaultIpv4Address)
 	if err != nil {
@@ -54,6 +64,7 @@ func Start(fd int, device string, stack constant.TUNStack, disableIcmpForwarding
 		Enable:                true,
 		Device:                device,
 		Stack:                 stack,
+		DNSMode:               dnsMode,
 		DNSHijack:             dnsHijack,
 		AutoRoute:             false,
 		AutoDetectInterface:   false,
@@ -65,6 +76,9 @@ func Start(fd int, device string, stack constant.TUNStack, disableIcmpForwarding
 		CongestionController:  congestionController,
 	}
 
+	// Ownership moves to sing_tun.New, which closes the descriptor until a
+	// Listener has adopted it, then delegates closure to Listener.Close.
+	fdUnclaimed = false
 	listener, err := sing_tun.New(options, tunnel.Tunnel)
 
 	if err != nil {

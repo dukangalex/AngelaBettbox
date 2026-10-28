@@ -259,8 +259,18 @@ class ClashLibHandler {
   }
 
   Future<bool> startListener() async {
-    clashFFI.startListener();
-    return true;
+    final action = Action(
+      id: '${ActionMethod.startListener.name}#${utils.id}',
+      method: ActionMethod.startListener,
+      data: null,
+    );
+    final result = ActionResult.fromJson(
+      json.decode(await invokeAction(json.encode(action))),
+    ).toResult;
+    if (result.isError) {
+      throw result.message;
+    }
+    return result.data == true;
   }
 
   Future<bool> stopListener() async {

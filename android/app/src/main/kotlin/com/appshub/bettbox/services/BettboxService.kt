@@ -15,6 +15,7 @@ import com.appshub.bettbox.R
 import com.appshub.bettbox.models.VpnOptions
 
 class BettboxService : Service(), BaseServiceInterface {
+    override val destructionComplete = kotlinx.coroutines.CompletableDeferred<Unit>()
 
     @Volatile
     private var cachedBuilder: NotificationCompat.Builder? = null
@@ -108,5 +109,6 @@ class BettboxService : Service(), BaseServiceInterface {
         stop()
         fairMemoryHelper.unregister(this)
         super.onDestroy()
+        destructionComplete.complete(Unit)
     }
 }

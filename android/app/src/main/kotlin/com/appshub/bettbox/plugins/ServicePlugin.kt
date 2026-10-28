@@ -22,8 +22,9 @@ class ServicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         private val gson = Gson()
         private const val TAG = "ServicePlugin"
 
-        private fun notify(method: String) {
+        private fun notify(method: String, stillCurrent: () -> Boolean = { true }) {
             mainHandler.post {
+                if (!stillCurrent()) return@post
                 activeChannels.forEach { ch ->
                     runCatching { ch.invokeMethod(method, null) }
                         .onFailure { Log.e(TAG, "$method notify error: ${it.message}") }
@@ -33,9 +34,10 @@ class ServicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
 
         fun notifyNetworkChanged() = notify("networkChanged")
         fun notifyQuickResponse() = notify("quickResponse")
-        fun notifyVpnStartFailed() = notify("vpnStartFailed")
-        fun notifyRunStateChanged(state: RunState) {
+        fun notifyVpnStartFailed(stillCurrent: () -> Boolean = { true }) = notify("vpnStartFailed", stillCurrent)
+        fun notifyRunStateChanged(state: RunState, stillCurrent: () -> Boolean = { true }) {
             mainHandler.post {
+                if (!stillCurrent()) return@post
                 activeChannels.forEach { ch ->
                     runCatching { ch.invokeMethod("runStateChanged", state.name) }
                         .onFailure { Log.e(TAG, "runStateChanged notify error: ${it.message}") }
@@ -60,18 +62,18 @@ class ServicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         when (call.method) {
             "startVpn" -> handleStartVpn(call, result)
             "stopVpn" -> {
-                VpnPlugin.handleStop(force = true)
-                result.success(true)
+                VpnPlugin.stopConfirmed { ok -> android.os.Handler(android.os.Looper.getMainLooper()).post { result.success(ok) } }
             }
             "smartStop" -> {
-                VpnPlugin.handleSmartStop()
-                result.success(true)
+                VpnPlugin.stopConfirmed { ok ->
+                    if (ok) GlobalState.isSmartStopped = true
+                    android.os.Handler(android.os.Looper.getMainLooper()).post { result.success(ok) }
+                }
             }
             "smartResume" -> {
                 val data = call.argument<String>("data")
                 val options = gson.fromJson(data, VpnOptions::class.java)
-                VpnPlugin.handleSmartResume(options)
-                result.success(true)
+                VpnPlugin.startConfirmed(options) { ok -> android.os.Handler(android.os.Looper.getMainLooper()).post { result.success(ok) } }
             }
             "setSmartStopped" -> {
                 GlobalState.isSmartStopped = call.argument<Boolean>("value") ?: false
@@ -130,8 +132,7 @@ class ServicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         }
         runCatching { gson.fromJson(data, VpnOptions::class.java) }
             .onSuccess { options ->
-                VpnPlugin.handleStart(options)
-                result.success(true)
+                VpnPlugin.startConfirmed(options) { ok -> android.os.Handler(android.os.Looper.getMainLooper()).post { result.success(ok) } }
             }
             .onFailure { result.error("PARSE_ERROR", it.message, null) }
     }

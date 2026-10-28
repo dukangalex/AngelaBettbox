@@ -24,6 +24,7 @@ import android.content.Intent
 import android.graphics.BitmapFactory
 
 interface BaseServiceInterface {
+    val destructionComplete: Deferred<Unit>
     suspend fun start(options: VpnOptions): Int
     fun stop()
     suspend fun startForeground()

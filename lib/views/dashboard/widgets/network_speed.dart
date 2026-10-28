@@ -47,7 +47,9 @@ class NetworkSpeed extends ConsumerWidget {
           globalState.openUrl('https://ptclspeed.speedtestcustom.com');
         },
         info: Info(
-          label: appLocalizations.networkSpeed,
+          label: Localizations.localeOf(context).languageCode == 'zh'
+              ? '流量与网速'
+              : 'Traffic and speed',
           iconData: Icons.speed_sharp,
         ),
         child: RepaintBoundary(
@@ -57,12 +59,13 @@ class NetworkSpeed extends ConsumerWidget {
               final traffics = ref.read(trafficsProvider).list;
               final points = _getPoints(traffics);
               final speedText = _getLastTraffic(traffics).toSpeedText();
+              final total = ref.read(totalTrafficProvider);
               return Stack(
                 children: [
                   Positioned.fill(
                     child: Padding(
                       padding: const EdgeInsets.only(
-                        top: 16,
+                        top: 84,
                         left: 0,
                         right: 0,
                         bottom: 0,
@@ -72,6 +75,65 @@ class NetworkSpeed extends ConsumerWidget {
                         color: primaryColor,
                         points: points,
                       ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    left: 16,
+                    right: 16,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 56,
+                          height: 56,
+                          child: DonutChart(
+                            trackColor: context
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: 0.35),
+                            data: [
+                              DonutChartData(
+                                value: total.up.value.toDouble(),
+                                color:
+                                    globalState.theme.darken3PrimaryContainer,
+                              ),
+                              DonutChartData(
+                                value: total.down.value.toDouble(),
+                                color:
+                                    globalState.theme.darken2SecondaryContainer,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${appLocalizations.upload} ↑ ${total.up}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: context.textTheme.bodySmall?.copyWith(
+                                  color:
+                                      globalState.theme.darken3PrimaryContainer,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${appLocalizations.download} ↓ ${total.down}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: context.textTheme.bodySmall?.copyWith(
+                                  color: globalState
+                                      .theme
+                                      .darken2SecondaryContainer,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Positioned(

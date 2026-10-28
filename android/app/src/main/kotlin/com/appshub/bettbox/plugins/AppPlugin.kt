@@ -61,7 +61,7 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
     private var cachedTaskId: Int? = null
     private lateinit var channel: MethodChannel
     private lateinit var scope: CoroutineScope
-    private var vpnCallBack: (() -> Unit)? = null
+    private var vpnCallBack: ((Boolean) -> Unit)? = null
     @Volatile
     private var packages: List<Package> = emptyList()
     private val packagesMutex = Mutex()
@@ -424,22 +424,26 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
         }
     }
 
-    fun requestVpnPermission(callBack: () -> Unit) {
+    private fun completeVpnPermission(granted: Boolean) {
+        val callback = vpnCallBack
+        vpnCallBack = null
+        callback?.invoke(granted)
+    }
+
+    fun requestVpnPermission(callBack: (Boolean) -> Unit) {
+        // Never let a new request inherit an older prompt's eventual result.
+        if (vpnCallBack != null) { callBack(false); return }
         vpnCallBack = callBack
-        val intent = runCatching { VpnService.prepare(BettboxApplication.getAppContext()) }.getOrNull()
-        if (intent != null) {
+        try {
+            val intent = VpnService.prepare(BettboxApplication.getAppContext())
+            if (intent == null) { completeVpnPermission(true); return }
             val activity = activityRef?.get()
-            if (activity != null) {
-                runCatching {
-                    activity.startActivityForResult(intent, VPN_PERMISSION_REQUEST_CODE)
-                }.onFailure { e ->
-                    android.util.Log.e("AppPlugin", "startActivityForResult for VPN permission failed: ${e.message}")
-                    vpnCallBack?.invoke()
-                }
-                return
-            }
+            if (activity == null) { completeVpnPermission(false); return }
+            activity.startActivityForResult(intent, VPN_PERMISSION_REQUEST_CODE)
+        } catch (e: Exception) {
+            android.util.Log.e("AppPlugin", "VPN permission request failed", e)
+            completeVpnPermission(false)
         }
-        vpnCallBack?.invoke()
     }
 
     fun requestNotificationsPermission() {
@@ -524,14 +528,15 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
         activityRef = null
         cachedTaskId = null
         isActivityAttached = false
+        completeVpnPermission(false)
     }
 
     private fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
-        if (!isActivityAttached) return false
-        if (requestCode == VPN_PERMISSION_REQUEST_CODE && resultCode == FlutterActivity.RESULT_OK) {
-            GlobalState.initServiceEngine()
-            vpnCallBack?.invoke()
-        }
+        if (!isActivityAttached || requestCode != VPN_PERMISSION_REQUEST_CODE) return false
+        val granted = resultCode == FlutterActivity.RESULT_OK &&
+            runCatching { VpnService.prepare(BettboxApplication.getAppContext()) == null }.getOrDefault(false)
+        if (granted) GlobalState.initServiceEngine()
+        completeVpnPermission(granted)
         return true
     }
 

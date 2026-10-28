@@ -44,6 +44,10 @@ class AppController {
   final List<Log> _pendingLogs = [];
   Completer<void>? _exitLock;
   final Lock _coreLifecycleLock = Lock(reentrant: true);
+  // Most recent profile whose application completed, or the prior selection
+  // supplied on the first change. This is not VPN readiness confirmation.
+  String? _profileRollbackId;
+  bool _hasProfileRollbackId = false;
   int _backgroundLoadVersion = 0;
 
   int _updateGroupsRetryCount = 0;
@@ -154,7 +158,11 @@ class AppController {
     _invalidateCoreReads();
 
     final wasRunning = _ref.read(runTimeProvider.notifier).isStart;
-    if (wasRunning) {
+    // UI run time may already be cleared after a failed transition. Resolve
+    // that native cleanup obligation before init/restart can mutate the core.
+    if (wasRunning ||
+        (system.isAndroid &&
+            (globalState.isStart || globalState.vpnTransitionUnconfirmed))) {
       await globalState.handleStop();
       _ref.read(runTimeProvider.notifier).value = null;
     }
@@ -174,6 +182,9 @@ class AppController {
     await _initCore();
 
     final configured = setupConfig ? await _setupCoreConfig() : false;
+    if (setupConfig && !configured) {
+      throw StateError('Core configuration was not applied during restart');
+    }
     if (refreshData && configured) {
       await updateGroups();
       await updateProviders();
@@ -362,7 +373,32 @@ class AppController {
     return _checkIfNeedReapply();
   }
 
-  Future<bool> _setupCoreConfig({bool? enableTun}) async {
+  // All callers, including silent/setup/fast-start paths, share the same lock.
+  // A failed config/start stays stopped; never resume the failed configuration.
+  Future<T> _withAndroidVpnRebuild<T>(
+    Future<T> Function() configure, {
+    bool Function(T)? accepted,
+  }) {
+    return _coreLifecycleLock.synchronized(() async {
+      final rebuild = system.isAndroid && globalState.isStart;
+      if (system.isAndroid &&
+          (rebuild || globalState.vpnTransitionUnconfirmed)) {
+        await globalState.handleStop();
+      }
+      final value = await configure();
+      if (rebuild && (accepted == null || accepted(value))) {
+        await globalState.handleStart([updateRunTime, updateTraffic]);
+      }
+      return value;
+    });
+  }
+
+  Future<bool> _setupCoreConfig({bool? enableTun}) => _withAndroidVpnRebuild(
+    () => _setupCoreConfigStopped(enableTun: enableTun),
+    accepted: (value) => value,
+  );
+
+  Future<bool> _setupCoreConfigStopped({bool? enableTun}) async {
     final currentProfile = _ref.read(currentProfileProvider);
     if (currentProfile == null) {
       return false;
@@ -671,16 +707,24 @@ class AppController {
   }
 
   Future<void> _updateClashConfig() async {
+    await _withAndroidVpnRebuild(
+      _updateClashConfigStopped,
+      accepted: (value) => value,
+    );
+  }
+
+  Future<bool> _updateClashConfigStopped() async {
     await _initCore();
     final updateParams = _ref.read(updateParamsProvider);
+    await SystemExplicitStore.instance.ensureLoaded();
     final tunResult = await _requestAdmin(updateParams.tun.enable);
-    if (tunResult.isError) return;
+    if (tunResult.isError) return false;
 
     final bool realTunEnable =
         tunResult.data ?? _ref.read(realTunEnableProvider);
     if (tunResult.needRestart) {
       await _restartCore();
-      return;
+      return true;
     }
 
     final message = await clashCore.updateConfig(
@@ -693,6 +737,7 @@ class AppController {
       await prefs?.setBool('is_tun_running', realTunEnable);
     }
     scheduleIdleGc();
+    return true;
   }
 
   Future<Result<bool>> _requestAdmin(bool enableTun) async {
@@ -727,7 +772,8 @@ class AppController {
     });
   }
 
-  Future<void> _applyProfile() async {
+  Future<bool> _applyProfile() async {
+    if (_ref.read(currentProfileProvider) == null) return false;
     _invalidateCoreReads();
     _ref.read(delayDataSourceProvider.notifier).value = {};
     unawaited(
@@ -737,11 +783,24 @@ class AppController {
       ),
     );
     final configured = await _setupCoreConfig();
-    if (!configured) return;
+    if (!configured) return false;
     final providers = await clashCore.getExternalProviders();
     _ref.read(providersProvider.notifier).value = providers;
     await updateGroups(preloadedProviders: providers);
     scheduleIdleGc();
+    return true;
+  }
+
+  /// Rebuild the profile and report whether a configuration was actually applied.
+  Future<bool> applyProfileChecked() {
+    return _coreLifecycleLock.synchronized(() async {
+      try {
+        return await _applyProfile();
+      } catch (err) {
+        globalState.showNotifier(err.toString());
+        rethrow;
+      }
+    });
   }
 
   Future<void> applyProfile({bool silence = false}) {
@@ -761,8 +820,24 @@ class AppController {
     });
   }
 
-  Future<void> handleChangeProfile({bool hardRestart = false}) {
+  Future<void> handleChangeProfile({
+    bool hardRestart = false,
+    bool profileChanged = false,
+    String? previousProfileId,
+    String? requestedProfileId,
+  }) {
     return _coreLifecycleLock.synchronized(() async {
+      if (profileChanged &&
+          !_hasProfileRollbackId &&
+          previousProfileId != null) {
+        _profileRollbackId = previousProfileId;
+        _hasProfileRollbackId = true;
+      }
+      // A later selection wins over work that was queued for an older one.
+      if (profileChanged &&
+          _ref.read(currentProfileIdProvider) != requestedProfileId) {
+        return;
+      }
       if (hardRestart) {
         _ref.read(isRestartingCoreProvider.notifier).state = true;
         try {
@@ -774,19 +849,37 @@ class AppController {
           _ref.read(isRestartingCoreProvider.notifier).state = false;
         }
       } else {
-        if (system.isAndroid) {
-          clashCore.closeConnections();
-          await clashCore.flushFakeIP();
-          await clashCore.flushDnsCache();
-        }
-        final prevProfileId = _ref.read(currentProfileIdProvider);
         try {
-          await _applyProfile();
+          if (system.isAndroid) {
+            await clashCore.closeConnections();
+            await clashCore.flushFakeIP();
+            await clashCore.flushDnsCache();
+          }
+          final appliedId = _ref.read(currentProfileIdProvider);
+          if (!await _applyProfile()) {
+            throw StateError('Profile configuration was not applied');
+          }
+          if (_ref.read(currentProfileIdProvider) == appliedId) {
+            _profileRollbackId = appliedId;
+            _hasProfileRollbackId = true;
+          }
         } catch (err) {
-          _ref.read(currentProfileIdProvider.notifier).value = prevProfileId;
-          try {
-            await _applyProfile();
-          } catch (_) {}
+          final currentId = _ref.read(currentProfileIdProvider);
+          final fallback = _profileRollbackId;
+          final canRollback =
+              profileChanged &&
+              currentId == requestedProfileId &&
+              _hasProfileRollbackId &&
+              fallback != null &&
+              fallback != currentId &&
+              _ref
+                  .read(profilesProvider)
+                  .any((profile) => profile.id == fallback);
+          if (canRollback) {
+            // The provider listener queues the fallback once. A failed fallback
+            // won't switch back to the failed selection or override a newer one.
+            _ref.read(currentProfileIdProvider.notifier).value = fallback;
+          }
           globalState.showNotifier(err.toString());
         }
       }
@@ -1146,11 +1239,11 @@ class AppController {
     } catch (e) {
       commonPrint.warn('handleExit error: $e');
     } finally {
-      if (macOS != null) {
+      if (system.isMacOS || system.isLinux) {
         try {
-          await macOS!.updateDns(true);
+          await system.updateDns(true);
         } catch (e) {
-          commonPrint.warn('Failed to restore macOS system DNS on exit: $e');
+          commonPrint.warn('Failed to restore system DNS on exit: $e');
         }
       }
       if (!exitLock.isCompleted) {
@@ -1310,6 +1403,18 @@ class AppController {
     _wakelockSyncTimer = null;
   }
 
+  Future<void> holdWakelock(bool hold) async {
+    try {
+      if (hold) {
+        await WakelockPlus.enable();
+      } else if (!_ref.read(wakelockStateProvider)) {
+        await WakelockPlus.disable();
+      }
+    } catch (e) {
+      commonPrint.warn('Failed to update wake lock: $e');
+    }
+  }
+
   Future<void> syncWakelockIfNeeded() async {
     final userEnabled = _ref.read(wakelockStateProvider);
     if (!userEnabled) {
@@ -1424,8 +1529,8 @@ class AppController {
         }
       }
     }
-    if (system.isMacOS && !globalState.isStart) {
-      await macOS?.updateDns(true);
+    if ((system.isMacOS || system.isLinux) && !globalState.isStart) {
+      await system.updateDns(true);
     }
     final hasProfile = _ref.read(currentProfileProvider) != null;
     final shouldStart =
@@ -1773,11 +1878,71 @@ class AppController {
         .setProfile(currentProfile.copyWith(unfoldSet: value));
   }
 
-  void changeMode(Mode mode) {
+  Future<void> changeMode(Mode mode) async {
+    await SystemExplicitStore.instance.ensureLoaded();
+    if (!context.mounted) return;
+    final explicit = SystemExplicitStore.instance.value;
+    final currentMode = _ref.read(patchClashConfigProvider).mode;
+    if (currentMode == mode) return;
+    final zh = Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
+    if (currentMode == Mode.rule && mode != Mode.rule && explicit.anyEnabled) {
+      final accepted = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(zh ? '切换模式？' : 'Change routing mode?'),
+          content: Text(
+            zh
+                ? '全局或直连模式会暂停系统显式路由规则，包括局域网发现和常见端口阻断。直连模式不经过代理。选项会保留，切回规则模式时恢复；VPN 内 UDP 阻断如已开启则不受模式影响。'
+                : 'Global or direct mode suspends system explicit routing rules, including discovery and common-port blocks. Direct mode bypasses the proxy. Choices are kept and restored in rule mode; the TUN UDP block, if enabled, is independent of mode.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(zh ? '取消' : 'Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(zh ? '切换' : 'Switch'),
+            ),
+          ],
+        ),
+      );
+      if (accepted != true || !context.mounted) return;
+    }
+    final oldMode = _ref.read(patchClashConfigProvider).mode;
+    final isZh = Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
     _lastModeChangeTime = DateTime.now();
     _ref
         .read(patchClashConfigProvider.notifier)
         .updateState((state) => state.copyWith(mode: mode));
+    if (SystemExplicitStore.instance.value.anyEnabled ||
+        SystemExplicitStore.instance.value.blockTunUdp) {
+      bool applied;
+      try {
+        applied = await applyProfileChecked();
+      } on Object catch (error) {
+        // Core setup can succeed before a later provider/group refresh fails.
+        // Do not present the old mode as an assured rollback in that case.
+        globalState.showNotifier(
+          isZh
+              ? '模式与系统显式设置的实际应用状态不确定：$error'
+              : 'Rule mode / system explicit application state is uncertain: $error',
+        );
+        return;
+      }
+      if (!applied) {
+        // A false result is returned only when setup did not apply a profile.
+        _ref
+            .read(patchClashConfigProvider.notifier)
+            .updateState((state) => state.copyWith(mode: oldMode));
+        globalState.showNotifier(
+          isZh
+              ? '模式和系统显式设置未应用：没有当前配置或 TUN 准备失败。'
+              : 'Rule mode / system explicit rules not applied: no active profile or TUN setup unavailable',
+        );
+        return;
+      }
+    }
     if (mode == Mode.global) {
       updateCurrentGroupName(GroupName.GLOBAL.name);
     }
@@ -1806,15 +1971,11 @@ class AppController {
   }
 
   void updateMode() {
-    _lastModeChangeTime = DateTime.now();
-    _ref.read(patchClashConfigProvider.notifier).updateState((state) {
-      final index = Mode.values.indexWhere((item) => item == state.mode);
-      if (index == -1) {
-        return null;
-      }
-      final nextIndex = index + 1 > Mode.values.length - 1 ? 0 : index + 1;
-      return state.copyWith(mode: Mode.values[nextIndex]);
-    });
+    final current = _ref.read(patchClashConfigProvider).mode;
+    final index = Mode.values.indexOf(current);
+    if (index < 0) return;
+    final next = Mode.values[(index + 1) % Mode.values.length];
+    unawaited(changeMode(next));
   }
 
   Future<void> handleAddOrUpdate(WidgetRef ref, [Rule? rule]) async {

@@ -5,9 +5,11 @@ import java.net.InetSocketAddress
 
 object Core {
 
-    private external fun startTun(fd: Int, cb: TunInterface)
+    private external fun startTun(fd: Int, cb: TunInterface, epoch: Long): Boolean
     private external fun suspend(suspended: Int)
     external fun stopTun()
+    external fun beginTunTransition(): Long
+    external fun stopTunEpoch(epoch: Long): Boolean
 
     init {
         System.loadLibrary("core")
@@ -27,14 +29,15 @@ object Core {
 
     fun startTun(
         fd: Int,
+        epoch: Long,
         protect: (Int) -> Boolean,
         resolverProcess: (protocol: Int, source: InetSocketAddress, target: InetSocketAddress, uid: Int) -> String
-    ) {
-        startTun(fd, object : TunInterface {
-            override fun protect(fd: Int) {
+    ): Boolean {
+        return startTun(fd, object : TunInterface {
+            override fun protect(fd: Int): Boolean =
                 runCatching { protect(fd) }
                     .onFailure { Log.e("Core", "protect JNI callback error: ${it.message}") }
-            }
+                    .getOrDefault(false)
 
             override fun resolverProcess(
                 protocol: Int,
@@ -51,7 +54,7 @@ object Core {
             }.onFailure {
                 Log.e("Core", "resolverProcess JNI callback error: ${it.message}")
             }.getOrDefault("")
-        })
+        }, epoch)
     }
 
     fun suspended(value: Boolean) {

@@ -131,7 +131,16 @@ enum ResultType {
   error,
 }
 
-enum AppMessageType { log, delay, request, loaded }
+enum AppMessageType {
+  log,
+  delay,
+  request,
+  loaded,
+  speedTest,
+  stunTest,
+  iperf,
+  localPing,
+}
 
 enum InvokeMessageType { protect, process }
 
@@ -267,6 +276,28 @@ enum ActionMethod {
   getMode,
   parseExternalProviderContent,
   getCoreStatus,
+  startSpeedTest,
+  cancelSpeedTest,
+  probeSpeedTest,
+  getSpeedTestServers,
+  startStunTest,
+  cancelStunTest,
+  routeTrace,
+  dnsQuery,
+  mrsPrepare,
+  mrsLookup,
+  cancelMrsLookup,
+  startToolProxy,
+  stopToolProxy,
+  ageCrypt,
+  startIperfServer,
+  stopIperfServer,
+  startIperfClient,
+  cancelIperfClient,
+  startLocalPing,
+  cancelLocalPing,
+
+
 
   ///Android,
   setState,
@@ -276,6 +307,52 @@ enum ActionMethod {
   updateDns,
   getAndroidVpnOptions,
   getCurrentProfileName,
+}
+
+enum StunTestPhase { connecting, binding, filtering, mapping, done }
+
+enum IperfRole { client, server }
+
+enum IperfPhase { connecting, running, done }
+
+enum IperfProtocol { tcp, udp }
+
+enum IperfDirection { upload, download, bidir }
+
+enum LocalPingProtocol { icmp, tcp, udp }
+
+enum LocalPingPhase { resolving, running, done }
+
+enum LocalPingStatus { ok, closed, timeout, unreachable, error }
+
+@JsonEnum(fieldRename: FieldRename.kebab)
+enum NatType {
+  open,
+  fullCone,
+  restricted,
+  portRestricted,
+  symmetric,
+  cone,
+  blocked,
+  unknown,
+}
+
+enum SpeedTestProvider { apple, speedtest, cloudflare }
+
+enum SpeedTestPhase { connecting, latency, download, upload, done }
+
+enum SpeedTestProtocol {
+  http1('h1', 'HTTP/1.1'),
+  http2('h2', 'HTTP/2'),
+  http3('h3', 'HTTP/3');
+
+  final String value;
+  final String label;
+
+  const SpeedTestProtocol(this.value, this.label);
+
+  static SpeedTestProtocol fromValue(String value) =>
+      values.firstWhere((item) => item.value == value, orElse: () => http1);
 }
 
 enum AuthorizeCode { none, success, error }
@@ -371,6 +448,7 @@ enum PageLabel {
   requests,
   resources,
   script,
+  toolbox,
   connections,
 }
 
@@ -393,6 +471,8 @@ extension PageLabelExtension on PageLabel {
         return appLocalizations.resources;
       case PageLabel.script:
         return appLocalizations.script;
+      case PageLabel.toolbox:
+        return appLocalizations.toolbox;
       case PageLabel.connections:
         return appLocalizations.navConnections;
     }
@@ -538,4 +618,20 @@ enum DelayAnimationType {
   squareCircle,
   wanderingCubes,
   waveSpinner,
+}
+
+enum MrsRawSource {
+  bettRules(
+    'bett-rules',
+    'https://raw.githubusercontent.com/appshubcc/bett-rules/meta/',
+  ),
+  metaRulesDat(
+    'meta-rules-dat',
+    'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/',
+  );
+
+  final String label;
+  final String baseUrl;
+
+  const MrsRawSource(this.label, this.baseUrl);
 }

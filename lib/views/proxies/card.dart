@@ -45,6 +45,93 @@ final proxyIconProvider = Provider.autoDispose.family<String, String>((
   );
 });
 
+class ProxyDelayText extends StatelessWidget {
+  final Proxy proxy;
+  final String? testUrl;
+  final bool enableTest;
+
+  const ProxyDelayText({
+    super.key,
+    required this.proxy,
+    this.testUrl,
+    this.enableTest = true,
+  });
+
+  bool get _isNonTestableProxy {
+    return switch (proxy.name.toUpperCase()) {
+      'REJECT' || 'REJECT-DROP' || 'PASS' => true,
+      _ => proxy.type.toUpperCase() == 'REMATCH',
+    };
+  }
+
+  void _handleTestCurrentDelay() {
+    if (_isNonTestableProxy) return;
+    proxyDelayTest(proxy, testUrl);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isNonTestableProxy) {
+      return const SizedBox.shrink();
+    }
+    final labelSmallHeight = globalState.measure.labelSmallHeight;
+    return SizedBox(
+      height: labelSmallHeight,
+      child: Consumer(
+        builder: (context, ref, _) {
+          final delay = ref.watch(
+            getDelayProvider(proxyName: proxy.name, testUrl: testUrl),
+          );
+
+          if (delay == 0) {
+            final delayAnimation = ref.watch(
+              proxiesStyleSettingProvider.select((s) => s.delayAnimation),
+            );
+            return RepaintBoundary(
+              child: SizedBox.square(
+                dimension: labelSmallHeight,
+                child: DelayAnimation(
+                  type: delayAnimation,
+                  size: labelSmallHeight,
+                  color: context.colorScheme.primary,
+                ),
+              ),
+            );
+          }
+
+          if (delay == null) {
+            if (!enableTest) return const SizedBox.shrink();
+            return SizedBox.square(
+              dimension: labelSmallHeight,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _handleTestCurrentDelay,
+                child: Icon(
+                  Icons.bolt,
+                  size: labelSmallHeight,
+                  color: context.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            );
+          }
+
+          final text = Text(
+            delay > 0 ? '$delay ms' : 'Timeout',
+            style: context.textTheme.labelSmall?.copyWith(
+              overflow: TextOverflow.ellipsis,
+              color: utils.getDelayColor(delay),
+            ),
+          );
+
+          if (!enableTest) return text;
+
+          return GestureDetector(onTap: _handleTestCurrentDelay, child: text);
+        },
+      ),
+    );
+  }
+}
+
 class ProxyCard extends StatelessWidget {
   static final _emojiRegex = emojiRegex();
   static final Map<String, bool> _emojiMatchCache = {};

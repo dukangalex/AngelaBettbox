@@ -23,6 +23,9 @@ class ClashService extends ClashHandlerInterface {
 
   bool isStarting = false;
   bool _isDestroying = false;
+  bool _coreLost = false;
+  Socket? _socket;
+  DateTime? _lastAutoRestartAt;
 
   Process? process;
 
@@ -94,6 +97,8 @@ class ClashService extends ClashHandlerInterface {
         serverCompleter.complete(server);
         await for (final socket in server) {
           await _destroySocket();
+          _socket = socket;
+          _coreLost = false;
           socketCompleter.complete(socket);
 
           socket
@@ -109,6 +114,7 @@ class ClashService extends ClashHandlerInterface {
                 onDone: () {
                   commonPrint.log('Socket connection closed');
                   abortRequests(socket);
+                  _handleSocketClosed(socket);
                 },
               );
         }
@@ -140,6 +146,7 @@ class ClashService extends ClashHandlerInterface {
       // core after this call returns. Queued calls will run sequentially.
       await _doRestart();
     } finally {
+      isStarting = false;
       if (_restartCompleter == completer) {
         _restartCompleter = null;
       }
@@ -152,6 +159,7 @@ class ClashService extends ClashHandlerInterface {
   Future<void> _doRestart() async {
     isStarting = true;
     _isDestroying = false;
+    _coreLost = false;
 
     await _destroySocket();
 
@@ -171,7 +179,7 @@ class ClashService extends ClashHandlerInterface {
     }
     process = null;
 
-    socketCompleter = Completer();
+    await _destroySocket();
 
     final serverSocket = await serverCompleter.future;
 
@@ -197,7 +205,9 @@ class ClashService extends ClashHandlerInterface {
           homeDir: homeDirPath,
         );
         if (started) {
-          await _waitForCoreReady();
+          if (!await _waitForCoreReady()) {
+            throw const CoreDisconnectedException();
+          }
           isStarting = false;
           if (system.isWindows &&
               globalState.config.appSetting.enableHighPriority) {
@@ -240,8 +250,9 @@ class ClashService extends ClashHandlerInterface {
       final retryArg = _transportType == TransportType.unixSocket
           ? _socketPath!
           : '${(await serverCompleter.future).port}';
-      await _startCoreDirectly(retryArg, environment);
+      connected = await _startCoreDirectly(retryArg, environment);
     }
+    if (!connected) throw const CoreDisconnectedException();
     isStarting = false;
     if (system.isWindows &&
         !kDebugMode &&
@@ -300,11 +311,11 @@ class ClashService extends ClashHandlerInterface {
             return false;
           }),
         ]).timeout(timeout);
-        return result;
+        return result && _socket != null && !_coreLost;
       }
 
       await socketCompleter.future.timeout(timeout);
-      return true;
+      return _socket != null && !_coreLost;
     } on TimeoutException {
       commonPrint.error('Core ready timeout after ${timeout.inSeconds}s');
       return false;
@@ -322,7 +333,7 @@ class ClashService extends ClashHandlerInterface {
 
   @override
   Future<Socket> sendMessage(String message) async {
-    if (_isDestroying || globalState.isExiting) {
+    if (_isDestroying || globalState.isExiting || _coreLost) {
       throw const CoreDisconnectedException();
     }
     final socket = await socketCompleter.future.timeout(
@@ -331,6 +342,12 @@ class ClashService extends ClashHandlerInterface {
         throw TimeoutException('Core socket connection timed out');
       },
     );
+    if (!identical(_socket, socket) ||
+        _coreLost ||
+        _isDestroying ||
+        globalState.isExiting) {
+      throw const CoreDisconnectedException();
+    }
     try {
       final frame = FrameCodec.encode(message);
       socket.add(frame);
@@ -366,9 +383,46 @@ class ClashService extends ClashHandlerInterface {
   Future<void> _destroySocket() async {
     if (socketCompleter.isCompleted) {
       final lastSocket = await socketCompleter.future;
-      await lastSocket.close();
+      // Detach before awaiting close: its delayed onDone must not invalidate
+      // a replacement connection or a replacement completer.
+      _socket = null;
       socketCompleter = Completer();
+      await lastSocket.close();
     }
+  }
+
+  void _handleSocketClosed(Socket socket) {
+    if (!identical(_socket, socket)) return;
+    _socket = null;
+    socketCompleter = Completer();
+    socket.destroy();
+    _coreLost = true;
+    if (_isDestroying || isStarting || globalState.isExiting) return;
+    commonPrint.error('Core disconnected unexpectedly');
+    final now = DateTime.now();
+    final last = _lastAutoRestartAt;
+    if (!globalState.isInit ||
+        (last != null && now.difference(last) < const Duration(minutes: 1))) {
+      return;
+    }
+    _lastAutoRestartAt = now;
+    unawaited(_autoRestart());
+  }
+
+  bool get _canAutoRestart =>
+      _coreLost && !_isDestroying && !isStarting && !globalState.isExiting;
+
+  Future<void> _autoRestart() async {
+    await Future.delayed(const Duration(seconds: 2));
+    if (!_canAutoRestart) return;
+    if (system.isWindows &&
+        !kDebugMode &&
+        !(await windows?.isHelperHealthy() ?? false)) {
+      return;
+    }
+    if (!_canAutoRestart) return;
+    commonPrint.warn('Restarting core after unexpected disconnect');
+    await globalState.appController.restartCore().catchError((_) {});
   }
 
   @override
@@ -386,7 +440,9 @@ class ClashService extends ClashHandlerInterface {
   Future<bool> checkCoreHealth({
     Duration timeout = const Duration(seconds: 2),
   }) async {
-    if (_isDestroying || globalState.isExiting || isStarting) return false;
+    if (_isDestroying || globalState.isExiting || isStarting || _coreLost) {
+      return false;
+    }
     if (!socketCompleter.isCompleted) return false;
     try {
       final result = await invoke<bool>(

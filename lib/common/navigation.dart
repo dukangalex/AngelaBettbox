@@ -70,6 +70,14 @@ class Navigation {
         modes: [NavigationItemMode.more],
       ),
       NavigationItem(
+        icon: const Icon(Icons.handyman_outlined),
+        label: PageLabel.toolbox,
+        description: 'toolboxDesc',
+        builder: (_) =>
+            ToolboxView(key: const GlobalObjectKey(PageLabel.toolbox)),
+        modes: [NavigationItemMode.desktop, NavigationItemMode.more],
+      ),
+      NavigationItem(
         icon: const Icon(Icons.adb_rounded),
         label: PageLabel.logs,
         builder: (_) => LogsView(key: const GlobalObjectKey(PageLabel.logs)),

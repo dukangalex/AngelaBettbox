@@ -7,14 +7,15 @@ package main
 
 typedef void (*release_object_func)(void *obj);
 
-typedef void (*protect_func)(void *tun_interface, int fd);
+typedef int (*protect_func)(void *tun_interface, int fd);
 
 typedef const char* (*resolve_process_func)(void *tun_interface, int protocol, const char *source, const char *target, int uid);
 
-static void protect(protect_func fn, void *tun_interface, int fd) {
-    if (fn) {
-        fn(tun_interface, fd);
+static int protect(protect_func fn, void *tun_interface, int fd) {
+    if (!fn) {
+        return 0;
     }
+    return fn(tun_interface, fd);
 }
 
 static const char* resolve_process(resolve_process_func fn, void *tun_interface, int protocol, const char *source, const char *target, int uid) {
@@ -43,10 +44,11 @@ var (
 	}
 )
 
-func Protect(callback unsafe.Pointer, fd int) {
-	if globalCallbacks.protectFunc != nil {
-		C.protect(globalCallbacks.protectFunc, callback, C.int(fd))
+func Protect(callback unsafe.Pointer, fd int) bool {
+	if globalCallbacks.protectFunc == nil || callback == nil {
+		return false
 	}
+	return C.protect(globalCallbacks.protectFunc, callback, C.int(fd)) != 0
 }
 
 func ResolveProcess(callback unsafe.Pointer, protocol int, source, target string, uid int) string {

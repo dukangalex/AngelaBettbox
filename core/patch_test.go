@@ -839,3 +839,672 @@ func TestApplyPatchChainCircularDialerIsRejectedByMihomo(t *testing.T) {
 		t.Fatalf("cycle must be reported by actual kernel validation: %v", err)
 	}
 }
+
+func TestExternalChainIsReachableFromActiveManualSelector(t *testing.T) {
+	raw := parsePatchProfile(t, `
+proxies:
+  - {name: Entry, type: http, server: entry.example, port: 80}
+proxy-groups:
+  - {name: Manual, type: select, proxies: [Entry]}
+  - {name: Auto, type: url-test, proxies: [Entry], url: "https://example.invalid", interval: 60}
+rules:
+  - MATCH,Manual
+`)
+	params := &PatchParams{ChainPolicy: &PatchChainPolicy{
+		Enabled: true, Entry: "Entry", EntryKind: "proxy",
+		Landing: "[ext] Exit Group", LandingKind: "group",
+		ExternalProfile: "other", ExternalTarget: "[ext] Exit Group", ExternalKind: "group",
+		ExternalProxies: []map[string]any{{"name": "[ext] Exit", "type": "http", "server": "exit.example", "port": 80}},
+		ExternalGroups:  []map[string]any{{"name": "[ext] Exit Group", "type": "select", "proxies": []any{"[ext] Exit"}}},
+	}}
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	chain := findGroup(raw.ProxyGroup, explicitChainGroup)
+	if chain == nil || !reflect.DeepEqual(chain["proxies"], []any{"[ext] Exit Group"}) {
+		t.Fatalf("generated chain must point at selected exit graph: %#v", chain)
+	}
+	manual := findGroup(raw.ProxyGroup, "Manual")["proxies"]
+	if !reflect.DeepEqual(manual, []any{"Entry", explicitChainGroup}) {
+		t.Fatalf("manual selector must preserve original choice and expose chain: %#v", manual)
+	}
+	if got := findGroup(raw.ProxyGroup, "Auto")["proxies"]; !reflect.DeepEqual(got, []any{"Entry"}) {
+		t.Fatalf("non-manual group must remain unchanged: %#v", got)
+	}
+	if _, err := config.ParseRawConfig(raw); err != nil {
+		t.Fatalf("patched external chain invalid: %v", err)
+	}
+}
+
+// An entry selector cannot contain the generated exit, directly or through a nested group.
+func TestExternalChainAvoidsEntryGroupCycle(t *testing.T) {
+	raw := parsePatchProfile(t, `
+proxies:
+  - {name: Entry, type: http, server: entry.example, port: 80}
+proxy-groups:
+  - {name: Inner, type: select, proxies: [Entry]}
+  - {name: EntryGroup, type: select, proxies: [Inner]}
+  - {name: Main, type: select, proxies: [Entry]}
+rules: ['MATCH,Main']
+`)
+	params := &PatchParams{ChainPolicy: &PatchChainPolicy{
+		Enabled: true, Entry: "EntryGroup", EntryKind: "group", Landing: "exit", LandingKind: "proxy",
+		ExternalProfile: "other", ExternalTarget: "exit", ExternalKind: "proxy",
+		ExternalProxies: []map[string]any{{"name": "exit", "type": "http", "server": "exit.example", "port": 80}},
+	}}
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	if got := findGroup(raw.ProxyGroup, "EntryGroup")["proxies"]; !reflect.DeepEqual(got, []any{"Inner"}) {
+		t.Fatalf("entry changed: %#v", got)
+	}
+	if got := findGroup(raw.ProxyGroup, "Inner")["proxies"]; !reflect.DeepEqual(got, []any{"Entry"}) {
+		t.Fatalf("nested entry changed: %#v", got)
+	}
+	if got := findGroup(raw.ProxyGroup, "Main")["proxies"]; !reflect.DeepEqual(got, []any{"Entry", explicitChainGroup}) {
+		t.Fatalf("main: %#v", got)
+	}
+	if _, err := config.ParseRawConfig(raw); err != nil {
+		t.Fatalf("kernel rejected chain: %v", err)
+	}
+}
+
+func TestChainEntryGroupRejectsImplicitProviderFallback(t *testing.T) {
+	raw := parsePatchProfile(t, `
+proxy-providers:
+  remote: {type: http, url: 'https://example.invalid/provider', path: './unused.yaml'}
+proxy-groups:
+  - {name: EntryGroup, type: select, use: [remote]}
+  - {name: Main, type: select, proxies: [REJECT]}
+rules: ['MATCH,Main']
+`)
+	err := validateChainEntryGroup(raw, "EntryGroup")
+	if err == nil || !strings.Contains(err.Error(), "empty-fallback") {
+		t.Fatalf("unsafe fallback accepted: %v", err)
+	}
+}
+
+func TestChainEntryGroupRejectsEmptyOrFilteredFallback(t *testing.T) {
+	for _, group := range []map[string]any{
+		{"name": "entry", "type": "select", "proxies": []any{}},
+		{"name": "entry", "type": "select", "proxies": []any{"node"}, "filter": "does-not-match"},
+	} {
+		raw := config.DefaultRawConfig()
+		raw.Proxy = []map[string]any{{"name": "node", "type": "http", "server": "example.invalid", "port": 80}}
+		raw.ProxyGroup = []map[string]any{group}
+		if err := validateChainEntryGroup(raw, "entry"); err == nil {
+			t.Fatal("unsafe default fallback must be rejected")
+		}
+	}
+}
+
+func TestChainEntryGroupRejectsDirectEscape(t *testing.T) {
+	raw := parsePatchProfile(t, `
+proxy-groups:
+  - {name: Entry Group, type: select, proxies: [Entry, DIRECT]}
+proxies:
+  - {name: Entry, type: http, server: entry.example, port: 80}
+rules: ['MATCH,Entry Group']
+`)
+	params := &PatchParams{ChainPolicy: &PatchChainPolicy{
+		Enabled: true, Entry: "Entry Group", EntryKind: "group", Landing: "[ext] Exit", LandingKind: "proxy",
+		ExternalProfile: "other", ExternalTarget: "[ext] Exit", ExternalKind: "proxy",
+		ExternalProxies: []map[string]any{{"name": "[ext] Exit", "type": "http", "server": "exit.example", "port": 80}},
+	}}
+	if _, err := applyPatch(raw, params); err == nil || !strings.Contains(err.Error(), "bypass") {
+		t.Fatalf("entry group with DIRECT must be rejected, got %v", err)
+	}
+}
+
+func TestSystemExplicitOverridesOnlyHomologousRuleCategories(t *testing.T) {
+	rules := []string{
+		"DOMAIN-SUFFIX,service.example,Proxy",
+		"GEOSITE,geolocation-cn,Proxy",
+		"GEOIP,CN,REJECT,no-resolve",
+		"GEOIP,CN,REJECT-DROP,no-resolve",
+		"IP-CIDR,223.5.5.5/32,Proxy,no-resolve",
+		"DOMAIN,doh.pub,Proxy",
+		"IP-CIDR,8.8.8.8/32,DIRECT,no-resolve",
+		"IP-CIDR,192.168.0.0/16,REJECT,no-resolve",
+		"IP-CIDR,10.0.0.0/8,REJECT-DROP,no-resolve",
+		"DOMAIN-SUFFIX,lan,Proxy",
+		"AND,((NETWORK,UDP),(DST-PORT,3478)),Proxy",
+		"AND,((NETWORK,UDP),(DST-PORT,5353)),Proxy",
+		"MATCH,Proxy",
+	}
+	additions := []string{
+		"AND,((NETWORK,UDP),(DST-PORT,5353)),REJECT",
+		"GEOSITE,geolocation-cn,DIRECT",
+		"GEOIP,CN,DIRECT,no-resolve",
+		"IP-CIDR,223.5.5.5/32,DIRECT,no-resolve",
+		"DOMAIN-SUFFIX,doh.pub,DIRECT",
+		"IP-CIDR,192.168.0.0/16,DIRECT,no-resolve",
+		"DOMAIN-SUFFIX,lan,DIRECT",
+		"AND,((NETWORK,UDP),(DST-PORT,3478)),REJECT",
+	}
+	got := replaceExplicitRuleCategories(rules, additions)
+	want := []string{
+		// Matching source safety blocks stay ahead of generated direct routes.
+		"GEOIP,CN,REJECT,no-resolve",
+		"GEOIP,CN,REJECT-DROP,no-resolve",
+		"IP-CIDR,192.168.0.0/16,REJECT,no-resolve",
+		"IP-CIDR,10.0.0.0/8,REJECT-DROP,no-resolve",
+		// Same-function positive profile routes are replaced by explicit settings.
+		"AND,((NETWORK,UDP),(DST-PORT,5353)),REJECT",
+		"GEOSITE,geolocation-cn,DIRECT",
+		"GEOIP,CN,DIRECT,no-resolve",
+		"IP-CIDR,223.5.5.5/32,DIRECT,no-resolve",
+		"DOMAIN-SUFFIX,doh.pub,DIRECT",
+		"IP-CIDR,192.168.0.0/16,DIRECT,no-resolve",
+		"DOMAIN-SUFFIX,lan,DIRECT",
+		"AND,((NETWORK,UDP),(DST-PORT,3478)),REJECT",
+		// Unrelated source rules retain their relative order after additions.
+		"DOMAIN-SUFFIX,service.example,Proxy",
+		"IP-CIDR,8.8.8.8/32,DIRECT,no-resolve",
+		"MATCH,Proxy",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("rules after explicit priority:\n got: %#v\nwant: %#v", got, want)
+	}
+	if category := explicitRuleCategory("IP-CIDR,8.8.8.8/32,Proxy,no-resolve"); category != "" {
+		t.Fatalf("unrelated host route misclassified as public DNS: %q", category)
+	}
+}
+
+func TestSystemExplicitPatchKeepsSourceSafetyBlocks(t *testing.T) {
+	raw := parsePatchProfile(t, `rules:
+  - DOMAIN-SUFFIX,service.example,Proxy
+  - GEOIP,CN,Proxy,no-resolve
+  - GEOIP,CN,REJECT,no-resolve
+  - IP-CIDR,192.168.0.0/16,Proxy,no-resolve
+  - IP-CIDR,192.168.0.0/16,REJECT-DROP,no-resolve
+  - DOMAIN-SUFFIX,corp.example,REJECT
+  - DOMAIN,blocked.corp.example,REJECT
+  - RULE-SET,blocked-corp,REJECT
+  - MATCH,Proxy
+`)
+	params := &PatchParams{
+		SystemExplicitRules: []string{
+			"GEOSITE,geolocation-cn,DIRECT",
+			"GEOIP,CN,DIRECT,no-resolve",
+			"IP-CIDR,192.168.0.0/16,DIRECT,no-resolve",
+		},
+	}
+	original := append([]string{}, raw.Rule...)
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(original, []string{
+		"DOMAIN-SUFFIX,service.example,Proxy",
+		"GEOIP,CN,Proxy,no-resolve",
+		"GEOIP,CN,REJECT,no-resolve",
+		"IP-CIDR,192.168.0.0/16,Proxy,no-resolve",
+		"IP-CIDR,192.168.0.0/16,REJECT-DROP,no-resolve",
+		"DOMAIN-SUFFIX,corp.example,REJECT",
+		"DOMAIN,blocked.corp.example,REJECT",
+		"RULE-SET,blocked-corp,REJECT",
+		"MATCH,Proxy",
+	}) {
+		t.Fatal("test fixture did not contain the expected source profile rules")
+	}
+	want := []string{
+		// All profile-authored denies precede broad generated routes, including
+		// matchers whose overlap needs geosite/provider data to determine.
+		"GEOIP,CN,REJECT,no-resolve",
+		"IP-CIDR,192.168.0.0/16,REJECT-DROP,no-resolve",
+		"DOMAIN-SUFFIX,corp.example,REJECT",
+		"DOMAIN,blocked.corp.example,REJECT",
+		"RULE-SET,blocked-corp,REJECT",
+		"GEOSITE,geolocation-cn,DIRECT",
+		"GEOIP,CN,DIRECT,no-resolve",
+		"IP-CIDR,192.168.0.0/16,DIRECT,no-resolve",
+		"DOMAIN-SUFFIX,service.example,Proxy",
+		"MATCH,Proxy",
+	}
+	if !reflect.DeepEqual(raw.Rule, want) {
+		t.Fatalf("patched profile rules = %#v, want %#v", raw.Rule, want)
+	}
+}
+
+func TestApplyPatchAppChainReplacesOnlySelectedNativeChain(t *testing.T) {
+	raw := parsePatchProfile(t, `
+proxies:
+  - {name: Entry, type: http, server: entry.example, port: 80}
+  - {name: Landing, type: http, server: landing.example, port: 80, dialer-proxy: Native Entry}
+  - {name: Other, type: http, server: other.example, port: 80, dialer-proxy: Native Entry}
+  - {name: Native Entry, type: http, server: native.example, port: 80}
+proxy-groups:
+  - {name: Proxy, type: select, proxies: [Entry]}
+rules:
+  - DOMAIN-SUFFIX,keep.example,Proxy
+  - MATCH,Proxy
+`)
+	beforeRules := append([]string{}, raw.Rule...)
+	params := patchParams(t, `{"chain-policy":{"enabled":true,"entry":"Entry","entry-kind":"proxy","landing":"Landing","landing-kind":"proxy"}}`)
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	if got := findProxy(t, raw.Proxy, "Landing")["dialer-proxy"]; got != "Entry" {
+		t.Fatalf("selected exit dialer = %v, want explicit app chain Entry", got)
+	}
+	if got := findProxy(t, raw.Proxy, "Other")["dialer-proxy"]; got != "Native Entry" {
+		t.Fatalf("unrelated native chain changed: %v", got)
+	}
+	if !reflect.DeepEqual(raw.Rule, beforeRules) {
+		t.Fatalf("unrelated routing rules changed: %#v", raw.Rule)
+	}
+	if _, err := config.ParseRawConfig(raw); err != nil {
+		t.Fatalf("explicit chain must remain a valid Mihomo config: %v", err)
+	}
+}
+
+func TestApplyPatchExternalGroupChainReplacesOnlyImportedChainSettings(t *testing.T) {
+	raw := parsePatchProfile(t, `
+proxies:
+  - {name: Entry, type: http, server: entry.example, port: 80}
+  - {name: Unrelated, type: http, server: unrelated.example, port: 80, dialer-proxy: Native Entry}
+  - {name: Native Entry, type: http, server: native.example, port: 80}
+proxy-groups:
+  - {name: Proxy, type: select, proxies: [Entry]}
+rules:
+  - DOMAIN-SUFFIX,keep.example,Proxy
+  - MATCH,Proxy
+`)
+	params := &PatchParams{ChainPolicy: &PatchChainPolicy{
+		Enabled:         true,
+		Entry:           "Entry",
+		EntryKind:       "proxy",
+		Landing:         "[external] Exit group",
+		LandingKind:     "group",
+		ExternalProfile: "other-profile",
+		ExternalTarget:  "[external] Exit group",
+		ExternalKind:    "group",
+		ExternalProxies: []map[string]any{
+			{"name": "[external] Exit", "type": "http", "server": "exit.example", "port": 80, "dialer-proxy": "[external] Old entry"},
+			{"name": "[external] Other", "type": "http", "server": "other.example", "port": 80},
+		},
+		ExternalGroups: []map[string]any{{
+			"name":    "[external] Exit group",
+			"type":    "select",
+			"proxies": []any{"[external] Exit", "[external] Other"},
+		}},
+	}}
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	if got := findProxy(t, raw.Proxy, "[external] Exit")["dialer-proxy"]; got != "Entry" {
+		t.Fatalf("app chain did not replace selected external chain: %v", got)
+	}
+	if got := findProxy(t, raw.Proxy, "[external] Other")["dialer-proxy"]; got != "Entry" {
+		t.Fatalf("app chain did not apply to selected external group member: %v", got)
+	}
+	if got := findProxy(t, raw.Proxy, "Unrelated")["dialer-proxy"]; got != "Native Entry" {
+		t.Fatalf("unrelated active native chain changed: %v", got)
+	}
+	if _, err := config.ParseRawConfig(raw); err != nil {
+		t.Fatalf("external group chain must remain a valid Mihomo config: %v", err)
+	}
+}
+
+func TestExternalProfileGroupChainTwoHopConnect(t *testing.T) {
+	var entryHops, exitHops atomic.Int32
+	connectProxy := func(hops *atomic.Int32) *httptest.Server {
+		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodConnect {
+				http.Error(w, "CONNECT required", http.StatusMethodNotAllowed)
+				return
+			}
+			upstream, err := net.DialTimeout("tcp", r.Host, 3*time.Second)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadGateway)
+				return
+			}
+			defer upstream.Close()
+			client, _, err := w.(http.Hijacker).Hijack()
+			if err != nil {
+				return
+			}
+			defer client.Close()
+			hops.Add(1)
+			_, _ = io.WriteString(client, "HTTP/1.1 200 Connection Established\r\n\r\n")
+			go func() { _, _ = io.Copy(upstream, client); _ = upstream.Close() }()
+			_, _ = io.Copy(client, upstream)
+		}))
+	}
+	entry := connectProxy(&entryHops)
+	defer entry.Close()
+	exit := connectProxy(&exitHops)
+	defer exit.Close()
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, "chained response")
+	}))
+	defer origin.Close()
+	proxyConfig := func(name string, server *httptest.Server) map[string]any {
+		host, port, _ := net.SplitHostPort(server.Listener.Addr().String())
+		return map[string]any{"name": name, "type": "http", "server": host, "port": port}
+	}
+	raw := parsePatchProfile(t, "rules: ['MATCH,Main']\n")
+	raw.Proxy = []map[string]any{proxyConfig("Entry", entry)}
+	raw.ProxyGroup = []map[string]any{
+		{"name": "EntryGroup", "type": "select", "proxies": []any{"Entry"}},
+		{"name": "Main", "type": "select", "proxies": []any{"Entry"}},
+	}
+	params := &PatchParams{ChainPolicy: &PatchChainPolicy{
+		Enabled: true, Entry: "EntryGroup", EntryKind: "group", Landing: "ExitGroup", LandingKind: "group",
+		ExternalProfile: "other", ExternalTarget: "[other] ExitGroup", ExternalKind: "group",
+		ExternalProxies: []map[string]any{proxyConfig("[other] Exit", exit)},
+		ExternalGroups: []map[string]any{
+			{"name": "[other] Inner", "type": "select", "proxies": []any{"[other] Exit"}, "empty-fallback": "REJECT"},
+			{"name": "[other] ExitGroup", "type": "select", "proxies": []any{"[other] Inner"}, "empty-fallback": "REJECT"},
+		},
+	}}
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	parsed := parseChainConfig(t, raw)
+	oldProxies, oldProviders := tunnel.Proxies(), tunnel.Providers()
+	tunnel.UpdateProxies(parsed.Proxies, parsed.Providers)
+	defer tunnel.UpdateProxies(oldProxies, oldProviders)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	host, port, _ := net.SplitHostPort(origin.Listener.Addr().String())
+	portNumber, _ := strconv.Atoi(port)
+	conn, err := parsed.Proxies[explicitChainGroup].DialContext(ctx, &constant.Metadata{
+		NetWork: constant.TCP, DstIP: netip.MustParseAddr(host), DstPort: uint16(portNumber),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
+	_, err = fmt.Fprintf(conn, "GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", origin.Listener.Addr())
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := http.ReadResponse(bufio.NewReader(conn), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(body) != "chained response" || entryHops.Load() != 1 || exitHops.Load() != 1 {
+		t.Fatalf("body=%q entry hops=%d exit hops=%d", body, entryHops.Load(), exitHops.Load())
+	}
+}
+
+// LAN-direct must not intercept loopback traffic before the existing built-in
+// port protection, while a matching LAN rule is still replaced.
+func TestSystemExplicitKeepsBuiltinLoopbackProtection(t *testing.T) {
+	raw := parsePatchProfile(t, "rules: ['MATCH,DIRECT']\n")
+	safety := "AND,((DST-PORT,7890),(IP-CIDR,127.0.0.0/8,no-resolve)),REJECT"
+	params := &PatchParams{
+		PrependRules:        []string{safety, "IP-CIDR,127.0.0.0/8,Proxy,no-resolve"},
+		SystemExplicitRules: []string{"IP-CIDR,127.0.0.0/8,DIRECT,no-resolve"},
+	}
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{safety, "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve", "MATCH,DIRECT"}
+	if !reflect.DeepEqual(raw.Rule, want) {
+		t.Fatalf("rules = %#v, want %#v", raw.Rule, want)
+	}
+}
+
+func TestExternalProfileProviderGroupTwoHopConnect(t *testing.T) {
+	var entryHops, exitHops atomic.Int32
+	connectProxy := func(hops *atomic.Int32) *httptest.Server {
+		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodConnect {
+				http.Error(w, "CONNECT required", http.StatusMethodNotAllowed)
+				return
+			}
+			upstream, err := net.DialTimeout("tcp", r.Host, 3*time.Second)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadGateway)
+				return
+			}
+			defer upstream.Close()
+			client, _, err := w.(http.Hijacker).Hijack()
+			if err != nil {
+				return
+			}
+			defer client.Close()
+			hops.Add(1)
+			_, _ = io.WriteString(client, "HTTP/1.1 200 Connection Established\r\n\r\n")
+			go func() { _, _ = io.Copy(upstream, client); _ = upstream.Close() }()
+			_, _ = io.Copy(client, upstream)
+		}))
+	}
+	entry := connectProxy(&entryHops)
+	defer entry.Close()
+	exit := connectProxy(&exitHops)
+	defer exit.Close()
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, "chained response")
+	}))
+	defer origin.Close()
+	proxyConfig := func(name string, server *httptest.Server) map[string]any {
+		host, port, _ := net.SplitHostPort(server.Listener.Addr().String())
+		return map[string]any{"name": name, "type": "http", "server": host, "port": port}
+	}
+	raw := parsePatchProfile(t, "rules: ['MATCH,Main']\n")
+	raw.Proxy = []map[string]any{proxyConfig("Entry", entry)}
+	raw.ProxyGroup = []map[string]any{
+		{"name": "EntryGroup", "type": "select", "proxies": []any{"Entry"}},
+		{"name": "Main", "type": "select", "proxies": []any{"Entry"}},
+	}
+	params := &PatchParams{ChainPolicy: &PatchChainPolicy{
+		Enabled: true, Entry: "EntryGroup", EntryKind: "group", Landing: "ExitGroup", LandingKind: "group",
+		ExternalProfile: "other", ExternalTarget: "[other] ExitGroup", ExternalKind: "group",
+		ExternalProviders: map[string]map[string]any{
+			"[other] provider": {"type": "inline", "payload": []map[string]any{proxyConfig("Exit", exit)}, "override": map[string]any{"override-expr": []any{`.name = "[BettBox chain other/provider] " + .name`}}},
+		},
+		ExternalGroups: []map[string]any{
+			{"name": "[other] ExitGroup", "type": "select", "use": []any{"[other] provider"}, "empty-fallback": "REJECT", "exclude-type": "Direct|Compatible|Pass"},
+		},
+	}}
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	parsed := parseChainConfig(t, raw)
+	oldProxies, oldProviders := tunnel.Proxies(), tunnel.Providers()
+	tunnel.UpdateProxies(parsed.Proxies, parsed.Providers)
+	defer tunnel.UpdateProxies(oldProxies, oldProviders)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	host, port, _ := net.SplitHostPort(origin.Listener.Addr().String())
+	portNumber, _ := strconv.Atoi(port)
+	conn, err := parsed.Proxies[explicitChainGroup].DialContext(ctx, &constant.Metadata{
+		NetWork: constant.TCP, DstIP: netip.MustParseAddr(host), DstPort: uint16(portNumber),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
+	_, err = fmt.Fprintf(conn, "GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", origin.Listener.Addr())
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := http.ReadResponse(bufio.NewReader(conn), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(body) != "chained response" || entryHops.Load() != 1 || exitHops.Load() != 1 {
+		t.Fatalf("body=%q entry hops=%d exit hops=%d", body, entryHops.Load(), exitHops.Load())
+	}
+}
+
+func TestExternalProfileProviderEntryTwoHopConnect(t *testing.T) {
+	var entryHops, exitHops atomic.Int32
+	connectProxy := func(hops *atomic.Int32) *httptest.Server {
+		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodConnect {
+				http.Error(w, "CONNECT required", http.StatusMethodNotAllowed)
+				return
+			}
+			upstream, err := net.DialTimeout("tcp", r.Host, 3*time.Second)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadGateway)
+				return
+			}
+			defer upstream.Close()
+			client, _, err := w.(http.Hijacker).Hijack()
+			if err != nil {
+				return
+			}
+			defer client.Close()
+			hops.Add(1)
+			_, _ = io.WriteString(client, "HTTP/1.1 200 Connection Established\r\n\r\n")
+			go func() { _, _ = io.Copy(upstream, client); _ = upstream.Close() }()
+			_, _ = io.Copy(client, upstream)
+		}))
+	}
+	entry := connectProxy(&entryHops)
+	defer entry.Close()
+	exit := connectProxy(&exitHops)
+	defer exit.Close()
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, "chained response")
+	}))
+	defer origin.Close()
+	proxyConfig := func(name string, server *httptest.Server) map[string]any {
+		host, port, _ := net.SplitHostPort(server.Listener.Addr().String())
+		return map[string]any{"name": name, "type": "http", "server": host, "port": port}
+	}
+	raw := parsePatchProfile(t, "rules: ['MATCH,Main']\n")
+	raw.ProxyProvider = map[string]map[string]any{
+		"current": {"type": "inline", "payload": []map[string]any{proxyConfig("Entry", entry)}},
+	}
+	raw.ProxyGroup = []map[string]any{
+		{"name": "Main", "type": "select", "use": []any{"current"}},
+	}
+	params := &PatchParams{ChainPolicy: &PatchChainPolicy{
+		Enabled: true, Entry: "Entry", EntryKind: "proxy", Landing: "ExitGroup", LandingKind: "group",
+		ExternalProfile: "other", ExternalTarget: "[other] ExitGroup", ExternalKind: "group",
+		ExternalProxies: []map[string]any{proxyConfig("[other] Exit", exit)},
+		ExternalGroups: []map[string]any{
+			{"name": "[other] Inner", "type": "select", "proxies": []any{"[other] Exit"}, "empty-fallback": "REJECT"},
+			{"name": "[other] ExitGroup", "type": "select", "proxies": []any{"[other] Inner"}, "empty-fallback": "REJECT"},
+		},
+	}}
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	parsed := parseChainConfig(t, raw)
+	oldProxies, oldProviders := tunnel.Proxies(), tunnel.Providers()
+	tunnel.UpdateProxies(parsed.Proxies, parsed.Providers)
+	defer tunnel.UpdateProxies(oldProxies, oldProviders)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	host, port, _ := net.SplitHostPort(origin.Listener.Addr().String())
+	portNumber, _ := strconv.Atoi(port)
+	conn, err := parsed.Proxies[explicitChainGroup].DialContext(ctx, &constant.Metadata{
+		NetWork: constant.TCP, DstIP: netip.MustParseAddr(host), DstPort: uint16(portNumber),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
+	_, err = fmt.Fprintf(conn, "GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", origin.Listener.Addr())
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := http.ReadResponse(bufio.NewReader(conn), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(body) != "chained response" || entryHops.Load() != 1 || exitHops.Load() != 1 {
+		t.Fatalf("body=%q entry hops=%d exit hops=%d", body, entryHops.Load(), exitHops.Load())
+	}
+}
+
+func TestProviderEntryUsesOnlyOriginalProfileProviders(t *testing.T) {
+	raw := parsePatchProfile(t, "rules: ['MATCH,Main']\n")
+	raw.ProxyProvider = map[string]map[string]any{"active-provider": {"type": "inline", "payload": []map[string]any{}}}
+	raw.ProxyGroup = []map[string]any{{"name": "Main", "type": "select", "proxies": []any{"DIRECT"}}}
+	params := &PatchParams{ChainPolicy: &PatchChainPolicy{Enabled: true, Entry: "Live node", EntryKind: "proxy", Landing: "exit", LandingKind: "group", ExternalProfile: "external", ExternalTarget: "external group", ExternalKind: "group", ExternalProviders: map[string]map[string]any{"external-provider": {"type": "inline", "payload": []map[string]any{}}}, ExternalGroups: []map[string]any{{"name": "external group", "type": "select", "use": []any{"external-provider"}}}}}
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	g := findGroup(raw.ProxyGroup, "链式入口")
+	if g == nil || !reflect.DeepEqual(g["use"], []string{"active-provider"}) || g["include-all-providers"] != nil || g["empty-fallback"] != "REJECT" {
+		t.Fatalf("entry selector: %#v", g)
+	}
+}
+
+// Reproduce the reported latest-build error with a normal filtered url-test
+// entry. The subscription need not include chain-specific safety directives.
+func TestChainEntryCompatibilityHardenedInProductionPatch(t *testing.T) {
+ for _, typ := range []string{"select", "url-test", "fallback", "load-balance"} {
+  t.Run(typ, func(t *testing.T) {
+   raw := parsePatchProfile(t, `
+proxies:
+ - {name: entry-node, type: http, server: 127.0.0.1, port: 1}
+proxy-groups:
+ - {name: 自动选择, type: `+typ+`, proxies: [entry-node], filter: '^entry', url: 'http://127.0.0.1:1', interval: 86400}
+ - {name: Main, type: select, proxies: [entry-node]}
+rules: ['MATCH,Main']
+`)
+   params := &PatchParams{ChainPolicy:&PatchChainPolicy{Enabled:true, Entry:"自动选择",EntryKind:"group",Landing:"[ext] ♻️ 自动选择",LandingKind:"group",ExternalProfile:"synthetic",ExternalTarget:"[ext] ♻️ 自动选择",ExternalKind:"group",ExternalProxies:[]map[string]any{{"name":"[ext] exit","type":"http","server":"127.0.0.1","port":1}},ExternalGroups:[]map[string]any{{"name":"[ext] ♻️ 自动选择","type":"select","proxies":[]any{"[ext] exit"},"empty-fallback":"REJECT"}}}}
+   if _,err:=applyPatch(raw,params);err!=nil{t.Fatal(err)}
+   if findGroup(raw.ProxyGroup,"自动选择")["empty-fallback"]!="REJECT"{t.Fatal("entry not fail-closed")}
+   if findGroup(raw.ProxyGroup,"Main")["empty-fallback"]!=nil{t.Fatal("unrelated selector was hardened")}
+   parseChainConfig(t,raw)
+  })
+ }
+}
+
+func TestChainEntryCompatibilityProviderAndNested(t *testing.T) {
+ raw:=parsePatchProfile(t, `
+proxy-providers:
+ remote: {type: inline, payload: [{name: node, type: http, server: 127.0.0.1, port: 1}]}
+proxy-groups:
+ - {name: Inner, type: url-test, use: [remote], exclude-type: Shadowsocks, url: 'http://127.0.0.1:1', interval: 86400}
+ - {name: 自动选择, type: select, proxies: [Inner]}
+`)
+ if err:=hardenChainEntryGroup(raw,"自动选择");err!=nil{t.Fatal(err)}
+ if err:=validateChainEntryGroup(raw,"自动选择");err!=nil{t.Fatal(err)}
+ if got:=findGroup(raw.ProxyGroup,"Inner")["exclude-type"];got!="Shadowsocks|Direct|Compatible|Pass"{t.Fatalf("lost user filter %v",got)}
+ for _,name:=range []string{"Inner","自动选择"}{if findGroup(raw.ProxyGroup,name)["empty-fallback"]!="REJECT"{t.Fatal(name)}}
+ parseChainConfig(t,raw)
+}
+
+// Exercise the real Mihomo group's dialing, not just map fields. A reachable
+// destination must not be reached when filtering empties the entry, or its
+// chosen proxy fails. A default COMPATIBLE fallback would dial the listener.
+func TestChainEntryCompatibilityNeverDialsDirectOnEmptyOrFailure(t *testing.T) {
+ for _,filtered:=range []bool{true,false} { t.Run(fmt.Sprint(filtered),func(t *testing.T){
+  var hits atomic.Int32
+  target:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){hits.Add(1);w.WriteHeader(200)}));defer target.Close()
+  raw:=parsePatchProfile(t, `
+proxies:
+ - {name: dead-node, type: http, server: 127.0.0.1, port: 1}
+proxy-groups:
+ - {name: 自动选择, type: select, proxies: [dead-node]}
+`)
+  if filtered {findGroup(raw.ProxyGroup,"自动选择")["filter"]="^does-not-match$"}
+  if err:=hardenChainEntryGroup(raw,"自动选择");err!=nil{t.Fatal(err)}
+  if err:=validateChainEntryGroup(raw,"自动选择");err!=nil{t.Fatal(err)}
+  parsed:=parseChainConfig(t,raw)
+  oldP,oldProviders:=tunnel.Proxies(),tunnel.Providers();tunnel.UpdateProxies(parsed.Proxies,parsed.Providers);defer tunnel.UpdateProxies(oldP,oldProviders)
+  host,port,_:=net.SplitHostPort(target.Listener.Addr().String());n,_:=strconv.Atoi(port)
+  ctx,cancel:=context.WithTimeout(context.Background(),time.Second);defer cancel()
+  c,err:=parsed.Proxies["自动选择"].DialContext(ctx,&constant.Metadata{NetWork:constant.TCP,DstIP:netip.MustParseAddr(host),DstPort:uint16(n)})
+  if c!=nil{c.Close()};if err==nil{t.Fatal("unsafe direct dial succeeded")};if hits.Load()!=0{t.Fatal("direct origin contacted")}
+ }) }
+}

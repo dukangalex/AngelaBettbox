@@ -32,8 +32,7 @@ import (
 type TunHandler struct {
 	listener *sing_tun.Listener
 	callback unsafe.Pointer
-
-	limit *semaphore.Weighted
+	limit    *semaphore.Weighted
 }
 
 func (t *TunHandler) close() {
@@ -51,16 +50,14 @@ func (t *TunHandler) close() {
 	t.listener = nil
 }
 
-func (t *TunHandler) handleProtect(fd int) {
-	_ = t.limit.Acquire(context.Background(), 1)
+func (t *TunHandler) handleProtect(fd int) bool {
+	if err := t.limit.Acquire(context.Background(), 1); err != nil {
+		return false
+	}
 	defer t.limit.Release(1)
 
 	cb := t.callback
-	if cb == nil {
-		return
-	}
-
-	Protect(cb, fd)
+	return cb != nil && Protect(cb, fd)
 }
 
 func (t *TunHandler) handleResolveProcess(source, target net.Addr) string {
@@ -85,10 +82,13 @@ func (t *TunHandler) handleResolveProcess(source, target net.Addr) string {
 }
 
 var (
-	tunLock    sync.Mutex
-	runTime    *time.Time
-	errBlocked = errors.New("blocked")
-	tunHandler atomic.Pointer[TunHandler]
+	tunLock          sync.Mutex // serializes listener construction and teardown
+	runTime          *time.Time // accessed under tunLock
+	errBlocked       = errors.New("blocked")
+	errTunTransition = errors.New("tun lifecycle is transitioning")
+	errTunProtect    = errors.New("vpn socket protection failed")
+	tunHandler       atomic.Pointer[TunHandler]
+	tunLifecycle     tunLifecycleState
 )
 
 func init() {
@@ -96,56 +96,131 @@ func init() {
 		if platform.ShouldBlockConnection() {
 			return errBlocked
 		}
-		handler := tunHandler.Load()
-		if handler != nil {
-			return conn.Control(func(fd uintptr) {
-				handler.handleProtect(int(fd))
+		var gateOpen bool
+		protected := false
+		if err := conn.Control(func(fd uintptr) {
+			gateOpen = tunLifecycle.withRunning(func() bool {
+				handler := tunHandler.Load()
+				if handler == nil {
+					protected = true // non-VPN core run (fd == 0)
+					return true
+				}
+				protected = handler.handleProtect(int(fd))
+				return true
 			})
+		}); err != nil {
+			return err
+		}
+		if !gateOpen {
+			return errTunTransition
+		}
+		if !protected {
+			return errTunProtect
 		}
 		return nil
 	}
 }
 
-func handleStopTun() {
-	tunLock.Lock()
-	defer tunLock.Unlock()
+// closeTunHandlerLocked tears down only the currently published handler. The
+// caller holds tunLock, which serializes start/stop and listener ownership.
+func closeTunHandlerLocked() {
 	runTime = nil
 	handler := tunHandler.Swap(nil)
 	if handler != nil {
 		handler.close()
+	} else {
+		removeTunHook()
 	}
 }
 
-func handleStartTun(fd int, callback unsafe.Pointer) {
-	handleStopTun()
-	tunLock.Lock()
-	defer tunLock.Unlock()
+func closeUnclaimedTunFD(fd int) {
+	if fd <= 0 {
+		return
+	}
+	if err := syscall.Close(fd); err != nil {
+		log.Warnln("[APP] close unclaimed TUN descriptor %d failed: %v", fd, err)
+	}
+}
+
+func startTunLocked(fd int, callback unsafe.Pointer) error {
+	fdUnclaimed := fd > 0
+	defer func() {
+		if fdUnclaimed {
+			closeUnclaimedTunFD(fd)
+		}
+	}()
+	closeTunHandlerLocked()
+	if fd == 0 {
+		if callback != nil {
+			releaseObject(callback)
+		}
+		now := time.Now()
+		runTime = &now
+		return nil
+	}
+	if callback == nil {
+		return errors.New("VPN protect callback is unavailable")
+	}
+	if currentConfig == nil {
+		log.Warnln("[APP] startTUN called before setupConfig")
+		releaseObject(callback)
+		return errors.New("core configuration is unavailable")
+	}
+	handler := &TunHandler{callback: callback, limit: semaphore.NewWeighted(4)}
+	tunHandler.Store(handler)
+	initTunHook()
+	// Ownership moves to core/tun.Start, which either closes the descriptor on
+	// validation failure or passes it to sing_tun.New for listener ownership.
+	fdUnclaimed = false
+	listener, err := t.Start(fd, currentConfig.General.Tun.Device, currentConfig.General.Tun.Stack, currentConfig.General.Tun.DNSMode, currentConfig.General.Tun.DisableICMPForwarding, uint32(currentConfig.General.Tun.MTU), currentConfig.General.IPv6, currentConfig.General.Tun.CongestionController)
+	if err != nil {
+		if tunHandler.CompareAndSwap(handler, nil) {
+			removeTunHook()
+		}
+		handler.close()
+		return fmt.Errorf("start TUN listener: %w", err)
+	}
+	if listener == nil {
+		if tunHandler.CompareAndSwap(handler, nil) {
+			removeTunHook()
+		}
+		handler.close()
+		return errors.New("start TUN listener returned no listener")
+	}
+	handler.listener = listener
+	log.Infoln("TUN address: %v", listener.Address())
 	now := time.Now()
 	runTime = &now
-	if fd != 0 {
-		if currentConfig == nil {
-			log.Warnln("[APP] handleStartTun called before setupConfig")
-			handleStopTun()
-			return
-		}
-		handler := &TunHandler{
-			callback: callback,
-			limit:    semaphore.NewWeighted(4),
-		}
-		tunHandler.Store(handler)
-		initTunHook()
-		tunListener, _ := t.Start(fd, currentConfig.General.Tun.Device, currentConfig.General.Tun.Stack, currentConfig.General.Tun.DisableICMPForwarding, uint32(currentConfig.General.Tun.MTU), currentConfig.General.IPv6, currentConfig.General.Tun.CongestionController)
-		if tunListener != nil {
-			log.Infoln("TUN address: %v", tunListener.Address())
-			handler.listener = tunListener
-		} else {
-			removeTunHook()
-			tunHandler.Store(nil)
-		}
+	return nil
+}
+
+func beginTunTransitionState() uint64 {
+	return tunLifecycle.begin()
+}
+
+func stopTunEpochState(epoch uint64) bool {
+	if !tunLifecycle.stop(epoch) {
+		return false
 	}
+	tunLock.Lock()
+	defer tunLock.Unlock()
+	// A newer transition can supersede this stop while it waits for an in-flight
+	// Start. Never let a late stop close that newer epoch's listener.
+	if !tunLifecycle.current(epoch) {
+		return false
+	}
+	closeTunHandlerLocked()
+	return true
+}
+
+func handleStopTun() {
+	epoch := beginTunTransitionState()
+	_ = stopTunEpochState(epoch)
 }
 
 func handleGetRunTime() string {
+	tunLock.Lock()
+	defer tunLock.Unlock()
 	if runTime == nil {
 		return ""
 	}
@@ -190,6 +265,8 @@ func handleGetAndroidVpnOptions() string {
 		SystemProxy:           state.CurrentState.VpnProps.SystemProxy,
 		AllowBypass:           state.CurrentState.VpnProps.AllowBypass,
 		RouteAddress:          currentConfig.General.Tun.RouteAddress,
+		IncludePackage:        currentConfig.General.Tun.IncludePackage,
+		ExcludePackage:        currentConfig.General.Tun.ExcludePackage,
 		RouteMode:             state.CurrentState.VpnProps.RouteMode,
 		BypassDomain:          state.CurrentState.BypassDomain,
 		DnsServerAddress:      state.GetDnsServerAddress(),
@@ -259,9 +336,35 @@ func quickStart(initParamsChar *C.char, paramsChar *C.char, stateParamsChar *C.c
 }
 
 //export startTUN
-func startTUN(fd C.int, callback unsafe.Pointer) bool {
-	handleStartTun(int(fd), callback)
+func startTUN(fd C.int, callback unsafe.Pointer, epoch C.longlong) bool {
+	tunLock.Lock()
+	defer tunLock.Unlock()
+	if !tunLifecycle.canStart(uint64(epoch)) {
+		closeUnclaimedTunFD(int(fd))
+		if callback != nil {
+			releaseObject(callback)
+		}
+		return false
+	}
+	if err := startTunLocked(int(fd), callback); err != nil {
+		log.Errorln("[APP] TUN start failed: %v", err)
+		return false
+	}
+	if !tunLifecycle.activate(uint64(epoch)) {
+		closeTunHandlerLocked()
+		return false
+	}
 	return true
+}
+
+//export beginTunTransition
+func beginTunTransition() C.longlong {
+	return C.longlong(beginTunTransitionState())
+}
+
+//export stopTunEpoch
+func stopTunEpoch(epoch C.longlong) bool {
+	return stopTunEpochState(uint64(epoch))
 }
 
 //export getRunTime

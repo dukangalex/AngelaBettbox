@@ -48,7 +48,6 @@ type Manager struct {
 	proxyUploadTotal   atomic.Int64
 	proxyDownloadTotal atomic.Int64
 	pid                int32
-	memory             uint64
 }
 
 func (m *Manager) Join(c Tracker) {
@@ -102,8 +101,7 @@ func (m *Manager) Total() (up, down int64) {
 }
 
 func (m *Manager) Memory() uint64 {
-	m.updateMemory()
-	return m.memory
+	return m.updateMemory()
 }
 
 func (m *Manager) ResetStatistic() {
@@ -122,10 +120,10 @@ func (m *Manager) ResetStatistic() {
 	m.proxyDownloadTotal.Store(0)
 }
 
-func (m *Manager) updateMemory() {
+func (m *Manager) updateMemory() uint64 {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	m.memory = memStats.StackInuse + memStats.HeapInuse
+	return memStats.StackInuse + memStats.HeapInuse
 }
 
 func (m *Manager) handle() {
@@ -140,14 +138,14 @@ func (m *Manager) handle() {
 }
 
 type Snapshot struct {
-	DownloadTotal   int64         `json:"downloadTotal"`
-	UploadTotal     int64         `json:"uploadTotal"`
-	Connections     []TrackerInfo `json:"connections"`
-	Memory          uint64        `json:"memory"`
+	DownloadTotal int64         `json:"downloadTotal"`
+	UploadTotal   int64         `json:"uploadTotal"`
+	Connections   []TrackerInfo `json:"connections"`
+	Memory        uint64        `json:"memory"`
 }
 
 func (m *Manager) Snapshot() *Snapshot {
-	m.updateMemory()
+	memory := m.updateMemory()
 
 	connections := make([]TrackerInfo, 0)
 	m.connections.Range(func(key string, value Tracker) bool {
@@ -156,9 +154,9 @@ func (m *Manager) Snapshot() *Snapshot {
 	})
 
 	return &Snapshot{
-		DownloadTotal:   m.downloadTotal.Load(),
-		UploadTotal:     m.uploadTotal.Load(),
-		Connections:     connections,
-		Memory:          m.memory,
+		DownloadTotal: m.downloadTotal.Load(),
+		UploadTotal:   m.uploadTotal.Load(),
+		Connections:   connections,
+		Memory:        memory,
 	}
 }

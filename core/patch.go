@@ -31,29 +31,39 @@ type PatchRules struct {
 }
 
 type PatchChainPolicy struct {
-	Enabled bool   `json:"enabled"`
-	Entry   string `json:"entry"`
-	Landing string `json:"landing"`
+	Enabled               bool                      `json:"enabled"`
+	Entry                 string                    `json:"entry"`
+	EntryKind             string                    `json:"entry-kind"`
+	Landing               string                    `json:"landing"`
+	LandingKind           string                    `json:"landing-kind"`
+	ExternalProfile       string                    `json:"external-profile-id"`
+	ExternalProvidersPath string                    `json:"external-providers-path"`
+	ExternalTarget        string                    `json:"external-target"`
+	ExternalKind          string                    `json:"external-target-kind"`
+	ExternalProxies       []map[string]any          `json:"external-proxies"`
+	ExternalGroups        []map[string]any          `json:"external-groups"`
+	ExternalProviders     map[string]map[string]any `json:"external-providers"`
 }
 
 type PatchParams struct {
-	General            json.RawMessage `json:"general"`
-	GeoXUrl            json.RawMessage `json:"geox-url"`
-	Hosts              []PatchHost     `json:"hosts"`
-	OverrideDns        bool            `json:"override-dns"`
-	DnsNodeOverride    bool            `json:"dns-node-override"`
-	Dns                json.RawMessage `json:"dns"`
-	Ntp                json.RawMessage `json:"ntp"`
-	Sniffer            json.RawMessage `json:"sniffer"`
-	Experimental       json.RawMessage `json:"experimental"`
-	Tunnels            json.RawMessage `json:"tunnels"`
-	ProvidersPath      string          `json:"providers-path"`
-	NodeExcludeFilter  string          `json:"node-exclude-filter"`
-	HealthCheckTimeout int             `json:"health-check-timeout"`
-	OverrideRules      *PatchRules     `json:"override-rules"`
-	PrependRules       []string        `json:"prepend-rules"`
-	DisabledGroups     []string        `json:"disabled-groups"`
-	SelectGlobal       bool            `json:"select-global"`
+	General             json.RawMessage `json:"general"`
+	GeoXUrl             json.RawMessage `json:"geox-url"`
+	Hosts               []PatchHost     `json:"hosts"`
+	OverrideDns         bool            `json:"override-dns"`
+	DnsNodeOverride     bool            `json:"dns-node-override"`
+	Dns                 json.RawMessage `json:"dns"`
+	Ntp                 json.RawMessage `json:"ntp"`
+	Sniffer             json.RawMessage `json:"sniffer"`
+	Experimental        json.RawMessage `json:"experimental"`
+	Tunnels             json.RawMessage `json:"tunnels"`
+	ProvidersPath       string          `json:"providers-path"`
+	NodeExcludeFilter   string          `json:"node-exclude-filter"`
+	HealthCheckTimeout  int             `json:"health-check-timeout"`
+	OverrideRules       *PatchRules     `json:"override-rules"`
+	PrependRules        []string        `json:"prepend-rules"`
+	SystemExplicitRules []string        `json:"system-explicit-rules"`
+	DisabledGroups      []string        `json:"disabled-groups"`
+	SelectGlobal        bool            `json:"select-global"`
 	// AngelaBettbox fork: runtime policy ported from the fork's
 	// SystemExplicitStore.apply / ProfileChainStore.apply, which used to
 	// mutate the Dart-assembled full config before the Go patch pipeline
@@ -182,8 +192,15 @@ func applyPatch(raw *config.RawConfig, params *PatchParams) (string, error) {
 			rules = append(append([]string{}, params.OverrideRules.Rules...), rules...)
 		}
 	}
+	if len(params.SystemExplicitRules) > 0 {
+		rules = replaceExplicitRuleCategories(rules, params.SystemExplicitRules)
+	}
 	if len(params.PrependRules) > 0 {
-		rules = append(append([]string{}, params.PrependRules...), rules...)
+		// These are app-generated rules, not profile-authored rules. An
+		// enabled explicit setting replaces the same-category generated rule
+		// even when that rule is a REJECT; unrelated guards remain ahead.
+		prepend := removeGeneratedExplicitRuleCategories(params.PrependRules, params.SystemExplicitRules)
+		rules = append(prepend, rules...)
 	}
 
 	patchProxies(raw)
@@ -212,6 +229,166 @@ func applyPatch(raw *config.RawConfig, params *PatchParams) (string, error) {
 	})
 	raw.Rule = rules
 	return global, nil
+}
+
+// Explicit settings replace positive routes in known equivalent categories.
+// Keep every profile-authored REJECT intact and before generated routes: without
+// expanding geosite/rule-set data, a narrower deny cannot be assumed disjoint
+// from a broad DIRECT rule. All other surviving profile rules keep their
+// relative order after the explicit additions.
+func replaceExplicitRuleCategories(rules, additions []string) []string {
+	survivors := removeExplicitRuleCategories(rules, additions)
+	blocks := make([]string, 0, len(survivors))
+	remaining := make([]string, 0, len(survivors))
+	for _, rule := range survivors {
+		if explicitSafetyBlockRule(rule) {
+			blocks = append(blocks, rule)
+			continue
+		}
+		remaining = append(remaining, rule)
+	}
+
+	result := make([]string, 0, len(blocks)+len(additions)+len(remaining))
+	result = append(result, blocks...)
+	result = append(result, additions...)
+	return append(result, remaining...)
+}
+
+func removeExplicitRuleCategories(rules, additions []string) []string {
+	categories := make(map[string]bool)
+	for _, addition := range additions {
+		if category := explicitRuleCategory(addition); category != "" {
+			categories[category] = true
+		}
+	}
+	result := make([]string, 0, len(rules))
+	for _, rule := range rules {
+		category := explicitRuleCategory(rule)
+		if category != "" && categories[category] && !explicitSafetyBlockRule(rule) {
+			continue
+		}
+		result = append(result, rule)
+	}
+	return result
+}
+
+// App-generated prefix rules may be replaced in an equivalent category,
+// including an app-owned REJECT that conflicts with an explicit route setting.
+// This helper must not be used for profile rules, whose safety blocks are kept.
+func removeGeneratedExplicitRuleCategories(rules, additions []string) []string {
+	categories := make(map[string]bool)
+	for _, addition := range additions {
+		if category := explicitRuleCategory(addition); category != "" {
+			categories[category] = true
+		}
+	}
+	result := make([]string, 0, len(rules))
+	for _, rule := range rules {
+		if category := explicitRuleCategory(rule); category != "" && categories[category] {
+			continue
+		}
+		result = append(result, rule)
+	}
+	return result
+}
+
+// explicitSafetyBlockRule keeps profile-authored deny rules even when their
+// match category is also covered by an explicit direct-route setting. Route
+// replacement must not turn a safety block into a bypass.
+func explicitSafetyBlockRule(rule string) bool {
+	parsed := parseRule(rule)
+	if !parsed.hasTarget {
+		return false
+	}
+	action := strings.ToUpper(strings.TrimSpace(parsed.target))
+	return action == "REJECT" || strings.HasPrefix(action, "REJECT-")
+}
+
+func explicitRuleCategory(rule string) string {
+	parts := strings.Split(rule, ",")
+	if len(parts) < 2 {
+		return ""
+	}
+	typ := strings.ToUpper(strings.TrimSpace(parts[0]))
+	arg := strings.TrimSpace(parts[1])
+	switch typ {
+	case "GEOSITE":
+		switch strings.ToLower(arg) {
+		case "geolocation-cn":
+			return "china-domain"
+		case "private":
+			return "lan-domain"
+		}
+	case "GEOIP":
+		switch strings.ToLower(arg) {
+		case "cn":
+			return "china-ip"
+		case "private":
+			return "lan-ip"
+		}
+	case "IP-CIDR", "IP-CIDR6":
+		if len(parts) < 3 {
+			return ""
+		}
+		cidr := strings.TrimSpace(parts[1])
+		if explicitChinaDnsCIDR(cidr) {
+			return "china-public-dns-ip"
+		}
+		if explicitLanCIDR(cidr) {
+			return "lan-ip"
+		}
+	case "DOMAIN", "DOMAIN-SUFFIX":
+		switch strings.ToLower(arg) {
+		case "doh.pub", "dot.pub", "dns.pub", "dns.alidns.com":
+			return "china-public-dns-domain"
+		case "local", "lan", "home.arpa":
+			if typ == "DOMAIN-SUFFIX" {
+				return "lan-domain"
+			}
+		}
+	case "AND":
+		if len(parts) < 3 {
+			return ""
+		}
+		compact := strings.ToUpper(strings.Join(strings.Fields(rule), ""))
+		last := strings.LastIndex(compact, "),")
+		if last < len("AND,") {
+			return ""
+		}
+		predicate := compact[len("AND,") : last+1]
+		switch predicate {
+		case "((NETWORK,UDP),(DST-PORT,3478))", "((NETWORK,TCP),(DST-PORT,3478))",
+			"((NETWORK,UDP),(DST-PORT,5349))", "((NETWORK,TCP),(DST-PORT,5349))":
+			return "webrtc-common-ports"
+		case "((NETWORK,UDP),(DST-PORT,5353))", "((NETWORK,UDP),(DST-PORT,5355))",
+			"((NETWORK,UDP),(DST-PORT,1900))":
+			return "privacy-discovery"
+		}
+	}
+	return ""
+}
+
+func explicitChinaDnsCIDR(value string) bool {
+	// Replace only the exact resolver host routes emitted by System Explicit;
+	// a user's unrelated /32 or /128 must not be treated as this exception.
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "223.5.5.5/32", "223.6.6.6/32", "119.29.29.29/32", "1.12.12.12/32",
+		"180.184.1.1/32", "180.184.2.2/32", "101.226.4.6/32",
+		"2400:3200::1/128", "2400:3200:baba::1/128", "2402:4e00::/128", "2400:da00::6666/128":
+		return true
+	default:
+		return false
+	}
+}
+
+func explicitLanCIDR(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16",
+		"127.0.0.0/8", "::1/128", "fc00::/7", "fe80::/10":
+		return true
+	default:
+		return false
+	}
 }
 
 func patchTunRouteExclude(raw *config.RawConfig) {
@@ -753,6 +930,333 @@ func patchChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) error {
 	if policy == nil || !policy.Enabled {
 		return nil
 	}
+	entry := strings.TrimSpace(policy.Entry)
+	landing := strings.TrimSpace(policy.Landing)
+	entryKind := policy.EntryKind
+	if entryKind == "" {
+		entryKind = "proxy" // v1 settings stored nodes only.
+	}
+	landingKind := policy.LandingKind
+	if landingKind == "" {
+		landingKind = "proxy"
+	}
+	// Keep legacy same-profile node behavior for existing native callers;
+	// the new UI requires an external exit profile.
+	if policy.ExternalProfile == "" && entryKind == "proxy" && landingKind == "proxy" {
+		return patchLegacyChainPolicy(raw, policy)
+	}
+	if entry == "" || landing == "" {
+		return fmt.Errorf("choose both an entry and an exit before enabling the chain")
+	}
+	if entry == landing && policy.ExternalProfile == "" && entryKind == landingKind {
+		return fmt.Errorf("chain entry and exit must be different nodes")
+	}
+	for _, name := range protectedProxyNames {
+		if entry == name || landing == name {
+			return fmt.Errorf("%q is not a chain node", name)
+		}
+	}
+
+	// Cross-profile exits are copied into this runtime config only. The
+	// original profile file and provider cache are not edited. Preserve the
+	// active selectors so the user can explicitly choose the generated chain.
+	originalGroups := append([]map[string]any(nil), raw.ProxyGroup...)
+	// Snapshot current-profile providers before importing external ones. An
+	// entry-node fallback must never resolve against the exit's providers.
+	entryProviderNames := make([]string, 0, len(raw.ProxyProvider))
+	for name := range raw.ProxyProvider {
+		entryProviderNames = append(entryProviderNames, name)
+	}
+	sort.Strings(entryProviderNames)
+	used := make(map[string]string)
+	if policy.ExternalProfile != "" {
+		if policy.ExternalTarget == "" || (policy.ExternalKind != "proxy" && policy.ExternalKind != "group") {
+			return fmt.Errorf("external exit selection is incomplete")
+		}
+		if raw.ProxyProvider == nil {
+			raw.ProxyProvider = make(map[string]map[string]any)
+		}
+		for _, proxy := range raw.Proxy {
+			name, _ := proxy["name"].(string)
+			if name != "" {
+				used[name] = "proxy"
+			}
+		}
+		for _, group := range raw.ProxyGroup {
+			name, _ := group["name"].(string)
+			if name != "" {
+				used[name] = "group"
+			}
+		}
+		for name := range raw.ProxyProvider {
+			used[name] = "provider"
+		}
+		for _, proxy := range policy.ExternalProxies {
+			name, _ := proxy["name"].(string)
+			if name == "" || used[name] != "" {
+				return fmt.Errorf("external proxy name %q is empty or conflicts with the active profile", name)
+			}
+			used[name] = "proxy"
+			raw.Proxy = append(raw.Proxy, proxy)
+		}
+		for _, group := range policy.ExternalGroups {
+			name, _ := group["name"].(string)
+			if name == "" || used[name] != "" {
+				return fmt.Errorf("external group name %q is empty or conflicts with the active profile", name)
+			}
+			used[name] = "group"
+			raw.ProxyGroup = append(raw.ProxyGroup, group)
+		}
+		patchProviderPaths(policy.ExternalProviders, policy.ExternalProvidersPath, "proxies")
+		for name, provider := range policy.ExternalProviders {
+			if name == "" || used[name] != "" {
+				return fmt.Errorf("external provider name %q is empty or conflicts with the active profile", name)
+			}
+			used[name] = "provider"
+			raw.ProxyProvider[name] = provider
+		}
+		landing = policy.ExternalTarget
+		landingKind = policy.ExternalKind
+	}
+
+	entryFound := false
+	for _, proxy := range raw.Proxy {
+		name, _ := proxy["name"].(string)
+		if name == entry && entryKind == "proxy" {
+			typ := strings.ToLower(fmt.Sprint(proxy["type"]))
+			if typ == "direct" || typ == "pass" || typ == "compatible" {
+				return fmt.Errorf("entry %q is a direct-capable adapter", entry)
+			}
+			entryFound = true
+		}
+	}
+	for _, group := range raw.ProxyGroup {
+		name, _ := group["name"].(string)
+		if name == entry && entryKind == "group" {
+			entryFound = true
+		}
+	}
+	if !entryFound && entryKind == "proxy" && len(entryProviderNames) > 0 && policy.ExternalProfile != "" {
+		// Live provider nodes are not present in raw.Proxy. Resolve their
+		// exact display name through a private provider selector that fails
+		// closed if refresh removes the node. Do not alter the source provider.
+		providerEntry := uniqueChainGroupNameWithBase(used, "链式入口")
+		raw.ProxyGroup = append(raw.ProxyGroup, map[string]any{
+			"name": providerEntry, "type": "select", "use": entryProviderNames,
+			"filter":       `\A` + strings.ReplaceAll(regexp.QuoteMeta(entry), "`", `\x60`) + `\z`,
+			"exclude-type": "Direct|Compatible|Pass", "empty-fallback": "REJECT", "hidden": true,
+		})
+		entry = providerEntry
+		entryFound = true
+	}
+	if !entryFound {
+		return fmt.Errorf("entry %q is not a directly verifiable node or group in the active profile", entry)
+	}
+	if entryKind == "group" {
+		if err := hardenChainEntryGroup(raw, entry); err != nil {
+			return err
+		}
+		if err := validateChainEntryGroup(raw, entry); err != nil {
+			return err
+		}
+	}
+	if entryKind != "proxy" && entryKind != "group" {
+		return fmt.Errorf("unsupported entry type %q", entryKind)
+	}
+
+	findProxy := func(name string) map[string]any {
+		for _, proxy := range raw.Proxy {
+			if proxyName, _ := proxy["name"].(string); proxyName == name {
+				return proxy
+			}
+		}
+		return nil
+	}
+	findGroup := func(name string) map[string]any {
+		for _, group := range raw.ProxyGroup {
+			if groupName, _ := group["name"].(string); groupName == name {
+				return group
+			}
+		}
+		return nil
+	}
+	appendDialer := func(provider map[string]any) error {
+		override := map[string]any{}
+		if value := provider["override"]; value != nil {
+			old, ok := value.(map[string]any)
+			if !ok {
+				return fmt.Errorf("provider override must be a mapping")
+			}
+			for key, value := range old {
+				override[key] = value
+			}
+		}
+		var expressions []any
+		switch old := override["override-expr"].(type) {
+		case nil:
+		case []any:
+			for _, value := range old {
+				if expression, ok := value.(string); ok && strings.Contains(expression, ".dialer-proxy") {
+					if strings.HasPrefix(strings.TrimSpace(expression), ".dialer-proxy =") {
+						continue // replace the same chain setting only.
+					}
+					return fmt.Errorf("provider chain override expression is too complex to safely replace")
+				}
+				expressions = append(expressions, value)
+			}
+		case []string:
+			for _, value := range old {
+				if strings.Contains(value, ".dialer-proxy") {
+					if strings.HasPrefix(strings.TrimSpace(value), ".dialer-proxy =") {
+						continue
+					}
+					return fmt.Errorf("provider chain override expression is too complex to safely replace")
+				}
+				expressions = append(expressions, value)
+			}
+		default:
+			return fmt.Errorf("provider override-expr must be a list")
+		}
+		buf, _ := json.Marshal(entry)
+		expressions = append(expressions, ".dialer-proxy = "+string(buf))
+		override["override-expr"] = expressions
+		provider["override"] = override
+		return nil
+	}
+
+	if policy.ExternalProfile != "" {
+		if landingKind == "proxy" {
+			target := findProxy(landing)
+			if target == nil {
+				return fmt.Errorf("external exit %q was not imported", landing)
+			}
+			// The enabled app chain is the explicit chain choice. It replaces
+			// only this selected exit's existing dialer-proxy on the runtime copy.
+			// Only the selected exit's homologous chain setting is replaced;
+			// all other profile-native rules and chains remain intact.
+			target["dialer-proxy"] = entry
+		} else if landingKind != "group" || findGroup(landing) == nil {
+			return fmt.Errorf("external exit group %q was not imported", landing)
+		}
+		if landingKind == "group" && findGroup(landing) == nil {
+			return fmt.Errorf("external exit group %q was not imported", landing)
+		}
+		if landingKind == "group" && len(policy.ExternalProxies) == 0 && len(policy.ExternalProviders) == 0 {
+			return fmt.Errorf("external exit group %q has no usable proxy members", landing)
+		}
+		for _, proxy := range policy.ExternalProxies {
+			// Explicit app chain wins for the imported exit graph only. These
+			// are runtime copies; saved source-profile YAML remains untouched.
+			proxy["dialer-proxy"] = entry
+		}
+		for _, provider := range policy.ExternalProviders {
+			if err := appendDialer(provider); err != nil {
+				return err
+			}
+		}
+		chainGroup := uniqueChainGroupName(used)
+		raw.ProxyGroup = append(raw.ProxyGroup, map[string]any{
+			"name":    chainGroup,
+			"type":    "select",
+			"proxies": []any{landing},
+		})
+		// The chain must not be inserted into its own entry group or any
+		// nested entry group: doing so would create a dialer cycle.
+		entryGroups := make(map[string]bool)
+		if entryKind == "group" {
+			var visit func(string)
+			visit = func(name string) {
+				if entryGroups[name] {
+					return
+				}
+				g := findGroup(name)
+				if g == nil {
+					return
+				}
+				entryGroups[name] = true
+				for _, child := range anyStrings(g["proxies"]) {
+					if n, ok := child.(string); ok {
+						visit(n)
+					}
+				}
+			}
+			visit(entry)
+		}
+		selectors := 0
+		for _, group := range originalGroups {
+			if group == nil {
+				continue
+			}
+			groupType, _ := group["type"].(string)
+			groupName, _ := group["name"].(string)
+			if groupType != "select" || entryGroups[groupName] {
+				continue
+			}
+			selectors++
+			members := anyStrings(group["proxies"])
+			group["proxies"] = append(members, chainGroup)
+		}
+		if selectors == 0 {
+			return fmt.Errorf("the active profile has no manual selector to expose the chain")
+		}
+		return nil
+	}
+
+	if landingKind == "group" {
+		return fmt.Errorf("strategy-group exits must be supplied as an isolated runtime overlay")
+	}
+	if landingKind != "proxy" {
+		return fmt.Errorf("unsupported exit type %q", landingKind)
+	}
+	if entryKind == "proxy" {
+		if target := findProxy(landing); target != nil {
+			if findProxy(entry) == nil && len(raw.ProxyProvider) == 0 {
+				return fmt.Errorf("entry %q not found in this profile", entry)
+			}
+			target["dialer-proxy"] = entry
+			return nil
+		}
+	}
+	// Nodes supplied by a proxy provider are selected by their displayed
+	// name. The provider override keeps working after future refreshes.
+	if len(raw.ProxyProvider) == 0 {
+		return fmt.Errorf("exit %q not found in this profile", landing)
+	}
+	quote := func(value string) string { buf, _ := json.Marshal(value); return string(buf) }
+	expr := "(select(.name == " + quote(landing) + ") | .dialer-proxy) = " + quote(entry)
+	for name, provider := range raw.ProxyProvider {
+		overrides := make(map[string]any)
+		if value := provider["override"]; value != nil {
+			old, ok := value.(map[string]any)
+			if !ok {
+				return fmt.Errorf("provider %q override must be a mapping", name)
+			}
+			for key, value := range old {
+				overrides[key] = value
+			}
+		}
+		var expressions []any
+		switch old := overrides["override-expr"].(type) {
+		case nil:
+		case []any:
+			expressions = append(expressions, old...)
+		case []string:
+			for _, value := range old {
+				expressions = append(expressions, value)
+			}
+		default:
+			return fmt.Errorf("provider %q override-expr must be a list", name)
+		}
+		overrides["override-expr"] = append(expressions, expr)
+		provider["override"] = overrides
+	}
+	return nil
+}
+
+func patchLegacyChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) error {
+	if policy == nil || !policy.Enabled {
+		return nil
+	}
 	entry, landing := policy.Entry, policy.Landing
 	if strings.TrimSpace(entry) == "" || strings.TrimSpace(landing) == "" {
 		return fmt.Errorf("choose both an entry and an exit before enabling the chain")
@@ -870,6 +1374,161 @@ func patchChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) error {
 		group["proxies"] = append(members, chainGroup)
 	}
 	return nil
+}
+
+func anyStrings(value any) []any {
+	switch values := value.(type) {
+	case []any:
+		return append([]any(nil), values...)
+	case []string:
+		result := make([]any, 0, len(values))
+		for _, item := range values {
+			result = append(result, item)
+		}
+		return result
+	default:
+		return nil
+	}
+}
+
+func uniqueChainGroupName(used map[string]string) string {
+	return uniqueChainGroupNameWithBase(used, explicitChainGroup)
+}
+
+func uniqueChainGroupNameWithBase(used map[string]string, base string) string {
+	name := base
+	for suffix := 2; used[name] != ""; suffix++ {
+		name = fmt.Sprintf("%s %d", base, suffix)
+	}
+	used[name] = "group"
+	return name
+}
+
+// Harden only the selected runtime entry graph. Subscription authors need not
+// opt into our chain-specific fallback policy; never permit an empty group to
+// silently become COMPATIBLE. Explicit DIRECT members still fail validation.
+func hardenChainEntryGroup(raw *config.RawConfig, entry string) error {
+ groups := make(map[string]map[string]any, len(raw.ProxyGroup))
+ for _, group := range raw.ProxyGroup { if name, ok := groupName(group); ok { groups[name] = group } }
+ seen := map[string]bool{}
+ var walk func(string) error
+ walk = func(name string) error {
+  if seen[name] { return nil }; seen[name] = true
+  group := groups[name]
+  if group == nil { return fmt.Errorf("entry group %q is unavailable", name) }
+  group["empty-fallback"] = "REJECT"
+  // GroupBase treats exclude-type as a pipe-delimited list, not a regexp.
+  if len(anyStrings(group["use"])) > 0 {
+   old, _ := group["exclude-type"].(string)
+   excluded := map[string]bool{}
+   for _, typ := range strings.Split(old, "|") { excluded[strings.ToLower(strings.TrimSpace(typ))] = true }
+   for _, typ := range []string{"Direct", "Compatible", "Pass"} {
+    if !excluded[strings.ToLower(typ)] { if old != "" { old += "|" }; old += typ }
+   }
+   group["exclude-type"] = old
+  }
+  for _, member := range anyStrings(group["proxies"]) {
+   if child, ok := member.(string); ok && groups[child] != nil { if err := walk(child); err != nil { return err } }
+  }
+  return nil
+ }
+ return walk(entry)
+}
+
+// A chain entry must itself be a proxy path. Allow ordinary proxies and
+// provider-backed groups, but reject choices that can bypass the selected
+// entry by choosing DIRECT or a direct-capable nested strategy group.
+func validateChainEntryGroup(raw *config.RawConfig, entry string) error {
+	groups := make(map[string]map[string]any, len(raw.ProxyGroup))
+	for _, group := range raw.ProxyGroup {
+		if name, ok := groupName(group); ok {
+			groups[name] = group
+		}
+	}
+	visiting, visited := map[string]bool{}, map[string]bool{}
+	var walk func(string) error
+	walk = func(name string) error {
+		if visited[name] {
+			return nil
+		}
+		if visiting[name] {
+			return fmt.Errorf("entry group %q contains a cycle", name)
+		}
+		group := groups[name]
+		if group == nil {
+			return fmt.Errorf("entry group %q is unavailable", name)
+		}
+		visiting[name] = true
+		for _, key := range []string{"include-all", "include-all-proxies", "include-all-providers"} {
+			if group[key] == true {
+				return fmt.Errorf("entry group %q dynamically includes proxies and cannot guarantee chain safety", name)
+			}
+		}
+		// Provider membership and filtered lists can become empty. Mihomo's
+		// default empty fallback is COMPATIBLE, which can bypass the chain.
+		use, _ := group["use"].([]any)
+		members, _ := group["proxies"].([]any)
+		excludeFilter, _ := group["exclude-filter"].(string)
+		includeFilter, _ := group["filter"].(string)
+		if len(use) > 0 || len(members) == 0 || excludeFilter != "" || includeFilter != "" {
+			fallback, _ := group["empty-fallback"].(string)
+			if fallback != "REJECT" && fallback != "REJECT-DROP" {
+				return fmt.Errorf("entry group %q needs a reject empty-fallback to avoid direct bypass", name)
+			}
+		}
+		if len(use) > 0 {
+			exclude, _ := group["exclude-type"].(string)
+			excluded := map[string]bool{}
+			for _, typ := range strings.Split(exclude, "|") {
+				excluded[strings.ToLower(strings.TrimSpace(typ))] = true
+			}
+			if !excluded["direct"] || !excluded["compatible"] || !excluded["pass"] {
+				return fmt.Errorf("entry group %q uses a provider without excluding direct-capable adapters", name)
+			}
+		}
+		if proxies, ok := group["proxies"]; ok && proxies != nil {
+			items, ok := proxies.([]any)
+			if !ok {
+				return fmt.Errorf("entry group %q has an unsupported proxy list", name)
+			}
+			for _, value := range items {
+				member, ok := value.(string)
+				if !ok {
+					return fmt.Errorf("entry group %q has an unsupported member", name)
+				}
+				switch member {
+				case "DIRECT", "PASS", "COMPATIBLE":
+					return fmt.Errorf("entry group %q can bypass the selected chain entry via %s", name, member)
+				case "REJECT", "REJECT-DROP":
+					continue
+				}
+				for _, proxy := range raw.Proxy {
+					proxyName, _ := proxy["name"].(string)
+					typ := strings.ToLower(fmt.Sprint(proxy["type"]))
+					if proxyName == member && (typ == "direct" || typ == "pass" || typ == "compatible") {
+						return fmt.Errorf("entry group %q contains direct-capable adapter %q", name, member)
+					}
+				}
+				if groups[member] != nil {
+					if err := walk(member); err != nil {
+						return err
+					}
+				}
+			}
+		}
+		if use, ok := group["use"].([]any); ok {
+			for _, value := range use {
+				provider, ok := value.(string)
+				if !ok || raw.ProxyProvider[provider] == nil {
+					return fmt.Errorf("entry group %q references unavailable provider", name)
+				}
+			}
+		}
+		visiting[name] = false
+		visited[name] = true
+		return nil
+	}
+	return walk(entry)
 }
 
 func patchProxies(raw *config.RawConfig) {

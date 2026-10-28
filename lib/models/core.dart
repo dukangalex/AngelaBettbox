@@ -15,6 +15,14 @@ abstract mixin class AppMessageListener {
   void onRequest(TrackerInfo connection) {}
 
   void onLoaded(String providerName) {}
+
+  void onSpeedTest(SpeedTestState state) {}
+
+  void onStunTest(StunTestState state) {}
+
+  void onIperf(IperfState state) {}
+
+  void onLocalPing(LocalPingState state) {}
 }
 
 // abstract mixin class ServiceMessageListener {
@@ -103,6 +111,8 @@ abstract class AndroidVpnOptions with _$AndroidVpnOptions {
     required String ipv4Address,
     required String ipv6Address,
     @Default([]) List<String> routeAddress,
+    @Default([]) List<String> includePackage,
+    @Default([]) List<String> excludePackage,
     @Default('config') String routeMode,
     required String dnsServerAddress,
     @Default(false) bool dozeSuspend,
