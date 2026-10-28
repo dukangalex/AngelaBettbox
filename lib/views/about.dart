@@ -39,7 +39,7 @@ class AboutView extends StatelessWidget {
         title: 'Github Releases',
         icon: Icons.star,
         onTap: () =>
-            globalState.openUrl('https://github.com/appshubcc/Bettbox'),
+            globalState.openUrl('https://github.com/dukangalex/AngelaMihomo/releases'),
       ),
       _LinkTile(
         title: appLocalizations.checkUpdate,
@@ -48,14 +48,9 @@ class AboutView extends StatelessWidget {
         onTap: () => _checkUpdate(context),
       ),
       _LinkTile(
-        title: 'Telegram Group',
-        icon: Icons.forum_outlined,
-        onTap: () => globalState.openUrl('https://telegram.me/appshub_chat'),
-      ),
-      _LinkTile(
         title: 'Channel',
         icon: Icons.campaign_outlined,
-        onTap: () => globalState.openUrl('https://telegram.me/appshub_channel'),
+        onTap: () => globalState.openUrl('https://t.me/AngelaNexus'),
       ),
       _LinkTile(
         prefix: 'Forked from',
@@ -75,7 +70,10 @@ class AboutView extends StatelessWidget {
       title: appLocalizations.more,
       items: [
         for (var i = 0; i < links.length; i += 2)
-          _LinkGridRow(left: links[i], right: links[i + 1]),
+          _LinkGridRow(
+            left: links[i],
+            right: i + 1 < links.length ? links[i + 1] : null,
+          ),
       ],
     );
   }
@@ -360,7 +358,7 @@ class _ContributorsRowState extends State<_ContributorsRow> {
 
 class _LinkGridRow extends StatelessWidget {
   final _LinkTile left;
-  final _LinkTile right;
+  final _LinkTile? right;
 
   const _LinkGridRow({required this.left, required this.right});
 
@@ -381,7 +379,7 @@ class _LinkGridRow extends StatelessWidget {
               alpha: colorScheme.brightness == Brightness.light ? 0.6 : 0.45,
             ),
           ),
-          Expanded(child: right),
+          Expanded(child: right ?? const SizedBox.shrink()),
         ],
       ),
     );
