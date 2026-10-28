@@ -20,7 +20,7 @@ class StubAdapter implements HttpClientAdapter {
 }
 
 void main() {
-  const repo = 'dukangalex/AngelaBettbox';
+  const repo = 'dukangalex/AngelaMihomo';
   const tag = 'v1.19.6-chain.2';
   const page = 'https://github.com/$repo/releases/tag/$tag';
   const suffix = 'linux-amd64-compatible.tar.gz';
