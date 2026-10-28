@@ -517,7 +517,7 @@ class AppController {
           .firstOrNull;
       await SystemExplicitStore.instance.ensureLoaded();
       final profileName = SystemExplicitStore.instance.notificationLabel(
-        profile?.label ?? 'Bettbox',
+        profile?.label ?? 'Angela Mihomo',
       );
       final speedInfo = traffic.toString();
       await vpn_service.service?.updateNotificationSpeed(

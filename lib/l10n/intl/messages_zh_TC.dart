@@ -20,7 +20,7 @@ typedef String MessageIfAbsent(String messageStr, List<dynamic> args);
 class MessageLookup extends MessageLookupByLibrary {
   String get localeName => 'zh_TC';
 
-  static String m0(log) => "分析Bettbox(Mihomo)日誌:${log}";
+  static String m0(log) => "分析Angela Mihomo(Mihomo)日誌:${log}";
 
   static String m1(error) => "自動備份失敗：${error}";
 
@@ -404,7 +404,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "deleteTip": m5,
     "deleteTunnel": MessageLookupByLibrary.simpleMessage("刪除轉發"),
     "desc": MessageLookupByLibrary.simpleMessage(
-      "Bettbox 基於強大靈活的 Mihomo 核心深度打造，致力於更好的客戶端體驗，我們的願景: Connecting Open Source and AI，Accelerating Innovation",
+      "Angela Mihomo 基於強大靈活的 Mihomo 核心深度打造，致力於更好的客戶端體驗，我們的願景: Connecting Open Source and AI，Accelerating Innovation",
     ),
     "destination": MessageLookupByLibrary.simpleMessage("目標地址"),
     "destinationGeoIP": MessageLookupByLibrary.simpleMessage("目標地理定位"),
@@ -708,7 +708,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "iperfErrorUdp": MessageLookupByLibrary.simpleMessage("UDP 交握失敗，可能被防火牆攔截"),
     "iperfErrorUnreachable": MessageLookupByLibrary.simpleMessage("無法連線到伺服器"),
     "iperfFirewallTip": MessageLookupByLibrary.simpleMessage(
-      "如果其他裝置無法連線，請在系統防火牆中允許 Bettbox 核心的傳入連線。",
+      "如果其他裝置無法連線，請在系統防火牆中允許 Angela Mihomo 核心的傳入連線。",
     ),
     "iperfLostPackets": m16,
     "iperfNoAddress": MessageLookupByLibrary.simpleMessage(
@@ -730,7 +730,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "iperfRunning": MessageLookupByLibrary.simpleMessage("測試中"),
     "iperfScan": MessageLookupByLibrary.simpleMessage("掃碼連線"),
     "iperfScanHint": MessageLookupByLibrary.simpleMessage(
-      "在另一台裝置的 Bettbox 中掃碼，即可一鍵連線",
+      "在另一台裝置的 Angela Mihomo 中掃碼，即可一鍵連線",
     ),
     "iperfScanInvalid": MessageLookupByLibrary.simpleMessage(
       "這不是 iPerf3 連線 QR 碼",

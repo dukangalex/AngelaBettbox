@@ -1,3 +1,5 @@
+> ⚠️ **Angela Mihomo**는 [Bettbox](https://github.com/appshubcc/Bettbox)(GPL-3.0)의 독립 포크로, 체인 프록시를 강화했습니다. 다운로드: [이 저장소의 Releases](https://github.com/dukangalex/AngelaMihomo/releases). 릴리스 공지: https://t.me/AngelaNexus . 아래는 업스트림 프로젝트의 원문 설명입니다.
+
 <h4 align="right">
   <a href="../README.md">简体中文</a> | <a href="README_en.md">English</a> | <a href="README_ru.md">Русский</a> | <a href="README_fa.md">فارسی</a> | <a href="README_ja.md">日本語</a> | <strong>한국어</strong>
 </h4>

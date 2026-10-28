@@ -1,3 +1,5 @@
+> ⚠️ **Angela Mihomo** は [Bettbox](https://github.com/appshubcc/Bettbox)（GPL-3.0）の独立フォークで、チェーンプロキシを強化しています。ダウンロード: [本リポジトリの Releases](https://github.com/dukangalex/AngelaMihomo/releases)。リリース告知: https://t.me/AngelaNexus 。以下は上流プロジェクトの原文説明です。
+
 <h4 align="right">
   <a href="../README.md">简体中文</a> | <a href="README_en.md">English</a> | <a href="README_ru.md">Русский</a> | <a href="README_fa.md">فارسی</a> | <strong>日本語</strong> | <a href="README_ko.md">한국어</a>
 </h4>
