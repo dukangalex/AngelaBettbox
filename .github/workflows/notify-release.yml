@@ -1,0 +1,35 @@
+name: Notify release to Telegram
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send announcement to Telegram channel
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHANNEL_ID: ${{ secrets.TG_CHANNEL_ID }}
+          TAG: ${{ github.event.release.tag_name }}
+          REL_BODY: ${{ github.event.release.body }}
+          REL_URL: ${{ github.event.release.html_url }}
+        run: |
+          set -euo pipefail
+          BODY="$(printf '%s' "$REL_BODY" | head -c 1200)"
+          MSG="🎉 Angela Mihomo ${TAG} 发布"
+          if [ -n "$BODY" ]; then
+            MSG="${MSG}
+
+          ${BODY}"
+          fi
+          MSG="${MSG}
+
+          下载：${REL_URL}"
+          curl -sS -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TG_CHANNEL_ID}" \
+            --data-urlencode "text=${MSG}" \
+            -o /tmp/tg_resp.json -w 'HTTP %{http_code}\n'
+          cat /tmp/tg_resp.json
+          grep -q '"ok":true' /tmp/tg_resp.json
