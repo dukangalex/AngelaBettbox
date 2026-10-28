@@ -621,10 +621,6 @@ enum DelayAnimationType {
 }
 
 enum MrsRawSource {
-  bettRules(
-    'bett-rules',
-    'https://raw.githubusercontent.com/appshubcc/bett-rules/meta/',
-  ),
   metaRulesDat(
     'meta-rules-dat',
     'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/',

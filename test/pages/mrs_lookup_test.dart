@@ -24,7 +24,7 @@ const _result = MrsLookupResult(
 Future<String?> _tapAndCopy(
   WidgetTester tester,
   bool copyRaw, {
-  MrsRawSource source = MrsRawSource.bettRules,
+  MrsRawSource source = MrsRawSource.metaRulesDat,
 }) async {
   String? copied;
   tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -74,7 +74,7 @@ void main() {
   testWidgets('开启后复制 GitHub Raw 链接', (tester) async {
     expect(
       await _tapAndCopy(tester, true),
-      'https://raw.githubusercontent.com/appshubcc/bett-rules/meta/geo/geosite/telegram.mrs',
+      'https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.mrs',
     );
   });
 
