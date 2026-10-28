@@ -151,7 +151,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Only route selected apps through VPN",
     ),
     "accessControlDesc": MessageLookupByLibrary.simpleMessage(
-      "Configure per-app access allowlist/blocklist",
+      "App allowlist and blocklist",
     ),
     "accessControlNotAllowDesc": MessageLookupByLibrary.simpleMessage(
       "Exclude selected apps from VPN",
@@ -272,7 +272,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "alwaysShowTitleBar": MessageLookupByLibrary.simpleMessage("Title Buttons"),
     "alwaysShowTitleBarDesc": MessageLookupByLibrary.simpleMessage(
-      "Always show the title bar buttons in the top-right corner",
+      "Always show top-right title bar buttons",
     ),
     "analyzeLogPrompt": m0,
     "app": MessageLookupByLibrary.simpleMessage("App"),
@@ -457,7 +457,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "connectionsActive": MessageLookupByLibrary.simpleMessage("Active"),
     "connectionsClosed": MessageLookupByLibrary.simpleMessage("Closed"),
     "connectionsDesc": MessageLookupByLibrary.simpleMessage(
-      "View active connections",
+      "View active and closed connections",
     ),
     "connectionsSort": MessageLookupByLibrary.simpleMessage("Connections Sort"),
     "connectivity": MessageLookupByLibrary.simpleMessage("Connectivity:"),
@@ -522,7 +522,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Default Nameserver",
     ),
     "defaultNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Used to resolve DNS servers",
+      "Resolve DNS servers",
     ),
     "defaultSort": MessageLookupByLibrary.simpleMessage("Default Sort"),
     "defaultText": MessageLookupByLibrary.simpleMessage("Default"),
@@ -558,14 +558,14 @@ class MessageLookup extends MessageLookupByLibrary {
       "Enable Dialer IP4P Conversion",
     ),
     "dialerIp4pConvertDesc": MessageLookupByLibrary.simpleMessage(
-      "Enable dialer IP4P address conversion feature",
+      "Enable dialer IP4P conversion",
     ),
     "direct": MessageLookupByLibrary.simpleMessage("Direct"),
     "directNameserver": MessageLookupByLibrary.simpleMessage(
       "Direct Nameserver",
     ),
     "directNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Used to resolve direct domains",
+      "Resolve direct domains",
     ),
     "directNameserverFollowPolicy": MessageLookupByLibrary.simpleMessage(
       "Direct DNS Follows Policy",
@@ -673,7 +673,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "enableOverride": MessageLookupByLibrary.simpleMessage("Enable Override"),
     "enableTraySpeed": MessageLookupByLibrary.simpleMessage("Tray Speed"),
     "enableTraySpeedDesc": MessageLookupByLibrary.simpleMessage(
-      "Display upload and download rates in the menu bar",
+      "Show network speed in menu bar",
     ),
     "enabled": MessageLookupByLibrary.simpleMessage("Enabled"),
     "endpointIndependentNat": MessageLookupByLibrary.simpleMessage(
@@ -689,7 +689,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "exclude": MessageLookupByLibrary.simpleMessage("Hide from Recents"),
     "excludeChina": MessageLookupByLibrary.simpleMessage("Exclude China"),
     "excludeChinaDesc": MessageLookupByLibrary.simpleMessage(
-      "Allow China QUIC traffic instead of blocking all",
+      "Allow China QUIC instead of blocking all",
     ),
     "excludeDesc": MessageLookupByLibrary.simpleMessage(
       "Hide app from recent tasks list",
@@ -827,13 +827,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "heapObjects": MessageLookupByLibrary.simpleMessage("Objects"),
     "highPriority": MessageLookupByLibrary.simpleMessage("High Priority"),
     "highPriorityDesc": MessageLookupByLibrary.simpleMessage(
-      "Increase priority of main process and core process",
+      "Elevate app & core process priority",
     ),
     "highRefreshRate": MessageLookupByLibrary.simpleMessage(
       "High Refresh Rate",
     ),
     "highRefreshRateDesc": MessageLookupByLibrary.simpleMessage(
-      "Enable highest refresh rate support",
+      "Enable max refresh rate",
     ),
     "host": MessageLookupByLibrary.simpleMessage("Host"),
     "hostsDesc": MessageLookupByLibrary.simpleMessage(
@@ -1117,7 +1117,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Loopback Protection",
     ),
     "loopbackProtectionDesc": MessageLookupByLibrary.simpleMessage(
-      "Block loopback traffic from network errors",
+      "Block loopback traffic from errors",
     ),
     "loose": MessageLookupByLibrary.simpleMessage("Loose"),
     "manualRefreshIp": MessageLookupByLibrary.simpleMessage("Refresh IP"),
@@ -1155,7 +1155,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "More Streaming Unlock Items",
     ),
     "mediaUnlockPinnedSettingsDesc": MessageLookupByLibrary.simpleMessage(
-      "Select up to 3 items to pin on the widget",
+      "Pin up to 3 items on widget",
     ),
     "mediaUnlockRefreshByCategory": MessageLookupByLibrary.simpleMessage(
       "Partially refresh based on current category",
@@ -1219,7 +1219,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "nameSort": MessageLookupByLibrary.simpleMessage("Sort by Name"),
     "nameserver": MessageLookupByLibrary.simpleMessage("Nameserver"),
     "nameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Used to resolve domains",
+      "Resolve domain names",
     ),
     "nameserverPolicy": MessageLookupByLibrary.simpleMessage(
       "Nameserver Policy",
@@ -1323,7 +1323,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "navBarHapticFeedbackDesc": MessageLookupByLibrary.simpleMessage(
       "Bottom navigation bar animation and haptic feedback",
     ),
-    "navConnections": MessageLookupByLibrary.simpleMessage("Active"),
+    "navConnections": MessageLookupByLibrary.simpleMessage("Connections"),
     "navTools": MessageLookupByLibrary.simpleMessage("More"),
     "network": MessageLookupByLibrary.simpleMessage("Network"),
     "networkDesc": MessageLookupByLibrary.simpleMessage(
@@ -1387,7 +1387,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "High Priority",
     ),
     "notificationHighPriorityDesc": MessageLookupByLibrary.simpleMessage(
-      "Adjust current notification bar to foreground high priority",
+      "Foreground high-priority notification",
     ),
     "notificationHighPriorityTip": MessageLookupByLibrary.simpleMessage(
       "High-priority notifications can alleviate background core keep-alive issues on some customized systems. If your VPN service is currently running normally, it is recommended to keep this option disabled. Are you sure you want to enable it?",
@@ -1565,7 +1565,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "proxyGroupsCount": MessageLookupByLibrary.simpleMessage("Proxy Groups"),
     "proxyNameserver": MessageLookupByLibrary.simpleMessage("Proxy Nameserver"),
     "proxyNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Used to resolve proxy nodes",
+      "Resolve proxy node domains",
     ),
     "proxyPort": MessageLookupByLibrary.simpleMessage("Proxy Port"),
     "proxyPortDesc": MessageLookupByLibrary.simpleMessage(
@@ -1587,13 +1587,13 @@ class MessageLookup extends MessageLookupByLibrary {
       "Disable QUIC ECN",
     ),
     "quicGoDisableEcnDesc": MessageLookupByLibrary.simpleMessage(
-      "Disable QUIC Explicit Congestion Notification",
+      "Disable QUIC ECN",
     ),
     "quicGoDisableGso": MessageLookupByLibrary.simpleMessage(
       "Disable QUIC GSO",
     ),
     "quicGoDisableGsoDesc": MessageLookupByLibrary.simpleMessage(
-      "Disable QUIC Generic Segmentation Offload",
+      "Disable QUIC GSO",
     ),
     "quicPortSniffer": MessageLookupByLibrary.simpleMessage(
       "QUIC Port Sniffing",
@@ -1666,9 +1666,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "resetTip": MessageLookupByLibrary.simpleMessage(
       "Are you sure you want to reset?",
     ),
-    "resources": MessageLookupByLibrary.simpleMessage("Resources"),
+    "resources": MessageLookupByLibrary.simpleMessage("External Resources"),
     "resourcesDesc": MessageLookupByLibrary.simpleMessage(
-      "External resource info",
+      "View external resources and rule sets",
     ),
     "respectRules": MessageLookupByLibrary.simpleMessage("Respect Rules"),
     "respectRulesDesc": MessageLookupByLibrary.simpleMessage(
@@ -1760,9 +1760,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "saveTip": MessageLookupByLibrary.simpleMessage(
       "Are you sure you want to save?",
     ),
-    "script": MessageLookupByLibrary.simpleMessage("Script"),
+    "script": MessageLookupByLibrary.simpleMessage("Override Script"),
     "scriptDesc": MessageLookupByLibrary.simpleMessage(
-      "Global override script config",
+      "Configure JavaScript override scripts",
+    ),
+    "scriptOtherOptions": MessageLookupByLibrary.simpleMessage(
+      "Other Settings",
     ),
     "scriptOtherOptions": MessageLookupByLibrary.simpleMessage(
       "Other Settings",
@@ -1796,13 +1799,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "showPanel": MessageLookupByLibrary.simpleMessage("Show Window"),
     "showStartSwitch": MessageLookupByLibrary.simpleMessage("Linkage Switch"),
     "showStartSwitchDesc": MessageLookupByLibrary.simpleMessage(
-      "Display independent switch button on the homepage",
+      "Show standalone switch on homepage",
     ),
     "shrink": MessageLookupByLibrary.simpleMessage("Compact"),
     "sidebarFlyout": MessageLookupByLibrary.simpleMessage("Hover Panel"),
     "sidebarFlyoutDelay": MessageLookupByLibrary.simpleMessage("Trigger Delay"),
     "sidebarFlyoutDesc": MessageLookupByLibrary.simpleMessage(
-      "Show the sidebar settings hover card",
+      "Show sidebar settings hover card",
     ),
     "sidebarFlyoutEntries": MessageLookupByLibrary.simpleMessage("Entries"),
     "sidebarFlyoutOutsideTools": MessageLookupByLibrary.simpleMessage(
@@ -1821,7 +1824,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Skip Local Authentication",
     ),
     "skipLocalAuthDesc": MessageLookupByLibrary.simpleMessage(
-      "Allow local machine to access proxy without credentials",
+      "Allow local access without credentials",
     ),
     "skipSrcAddress": MessageLookupByLibrary.simpleMessage("Skip Source IP"),
     "slow": MessageLookupByLibrary.simpleMessage("Slow"),
@@ -2062,7 +2065,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "trayEnhancement": MessageLookupByLibrary.simpleMessage("Tray Enhancement"),
     "trayEnhancementDesc": MessageLookupByLibrary.simpleMessage(
-      "Control proxy groups in system tray menu",
+      "Control proxy groups via tray menu",
     ),
     "trayIconInvert": MessageLookupByLibrary.simpleMessage("Invert Tray Icon"),
     "trayIconInvertDesc": MessageLookupByLibrary.simpleMessage(
@@ -2166,7 +2169,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "vpnDesc": MessageLookupByLibrary.simpleMessage("VPN-related settings"),
     "vpnEnableDesc": MessageLookupByLibrary.simpleMessage(
-      "Route system traffic via VpnService",
+      "Route traffic via VpnService",
     ),
     "vpnSystemProxyDesc": MessageLookupByLibrary.simpleMessage(
       "Attach HTTP proxy to VpnService",

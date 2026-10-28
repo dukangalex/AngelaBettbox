@@ -148,7 +148,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "تنها برنامه‌های انتخاب شده از VPN عبور کنند",
     ),
     "accessControlDesc": MessageLookupByLibrary.simpleMessage(
-      "تنظیم لیست سیاه/سفید دسترسی برنامه‌ها",
+      "لیست سفید و سیاه دسترسی برنامه‌ها",
     ),
     "accessControlNotAllowDesc": MessageLookupByLibrary.simpleMessage(
       "برنامه‌های انتخاب شده از VPN استثنا شوند",
@@ -269,7 +269,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "دکمه‌های عنوان",
     ),
     "alwaysShowTitleBarDesc": MessageLookupByLibrary.simpleMessage(
-      "نمایش همیشگی دکمه‌های نوار عنوان بالا سمت راست",
+      "نمایش همیشگی دکمه‌های نوار عنوان",
     ),
     "analyzeLogPrompt": m0,
     "app": MessageLookupByLibrary.simpleMessage("برنامه"),
@@ -458,7 +458,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "connectionsActive": MessageLookupByLibrary.simpleMessage("فعال"),
     "connectionsClosed": MessageLookupByLibrary.simpleMessage("بسته‌شده"),
     "connectionsDesc": MessageLookupByLibrary.simpleMessage(
-      "مشاهده اتصالات فعال شبکه",
+      "مشاهده اتصالات فعال و بسته‌شده",
     ),
     "connectionsSort": MessageLookupByLibrary.simpleMessage(
       "مرتب‌سازی اتصال‌ها",
@@ -523,7 +523,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "سرور نام پیش‌فرض",
     ),
     "defaultNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "برای تحلیل سرورهای DNS",
+      "تحلیل سرورهای DNS",
     ),
     "defaultSort": MessageLookupByLibrary.simpleMessage("مرتب‌سازی پیش‌فرض"),
     "defaultText": MessageLookupByLibrary.simpleMessage("پیش‌فرض"),
@@ -559,12 +559,12 @@ class MessageLookup extends MessageLookupByLibrary {
       "فعالسازی تبدیل IP4P",
     ),
     "dialerIp4pConvertDesc": MessageLookupByLibrary.simpleMessage(
-      "فعالسازی تبدیل آدرس IP4P شماره‌گیر",
+      "فعالسازی تبدیل IP4P شماره‌گیر",
     ),
     "direct": MessageLookupByLibrary.simpleMessage("مستقیم"),
     "directNameserver": MessageLookupByLibrary.simpleMessage("DNS مستقیم"),
     "directNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "برای تحلیل دامنه‌های خروجی مستقیم",
+      "تحلیل دامنه‌های اتصال مستقیم",
     ),
     "directNameserverFollowPolicy": MessageLookupByLibrary.simpleMessage(
       "DNS مستقیم از سیاست پیروی کند",
@@ -672,7 +672,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "enableOverride": MessageLookupByLibrary.simpleMessage("فعالسازی اورراید"),
     "enableTraySpeed": MessageLookupByLibrary.simpleMessage("نمایش سرعت شبکه"),
     "enableTraySpeedDesc": MessageLookupByLibrary.simpleMessage(
-      "نمایش سرعت آپلود و دانلود در نوار منو",
+      "نمایش سرعت در نوار منو",
     ),
     "enabled": MessageLookupByLibrary.simpleMessage("فعال"),
     "endpointIndependentNat": MessageLookupByLibrary.simpleMessage(
@@ -688,7 +688,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "exclude": MessageLookupByLibrary.simpleMessage("پنهان‌سازی از پس‌زمینه"),
     "excludeChina": MessageLookupByLibrary.simpleMessage("استثنای چین"),
     "excludeChinaDesc": MessageLookupByLibrary.simpleMessage(
-      "مجاز ساختن ترافیک QUIC چین به جای مسدودی کامل",
+      "مجاز ساختن QUIC چین به جای مسدودی کامل",
     ),
     "excludeDesc": MessageLookupByLibrary.simpleMessage(
       "پنهان کردن برنامه از لیست برنامه‌های اخیر",
@@ -834,7 +834,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "highRefreshRate": MessageLookupByLibrary.simpleMessage("نرخ نوسازی بالا"),
     "highRefreshRateDesc": MessageLookupByLibrary.simpleMessage(
-      "فعالسازی حداکثر نرخ نوسازی صفحه نمایش",
+      "فعالسازی حداکثر نرخ نوسازی",
     ),
     "host": MessageLookupByLibrary.simpleMessage("هاست"),
     "hostsDesc": MessageLookupByLibrary.simpleMessage(
@@ -1128,7 +1128,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "محافظت در برابر لوپ‌بک",
     ),
     "loopbackProtectionDesc": MessageLookupByLibrary.simpleMessage(
-      "مسدودسازی ترافیک لوپ‌بک ناشی از خطای شبکه",
+      "مسدودسازی لوپ‌بک ناشی از خطای شبکه",
     ),
     "loose": MessageLookupByLibrary.simpleMessage("باز"),
     "manualRefreshIp": MessageLookupByLibrary.simpleMessage("دریافت مجدد IP"),
@@ -1166,7 +1166,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "موارد بیشتر آنلاک استریم",
     ),
     "mediaUnlockPinnedSettingsDesc": MessageLookupByLibrary.simpleMessage(
-      "امکان انتخاب حداکثر ۳ مورد برای پین کردن در ویجت",
+      "پین کردن حداکثر ۳ مورد در ویجت",
     ),
     "mediaUnlockRefreshByCategory": MessageLookupByLibrary.simpleMessage(
       "تازه‌سازی جزئی بر اساس دسته‌بندی فعلی",
@@ -1195,7 +1195,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "مینیمایز هنگام خروج",
     ),
     "minimizeOnExitDesc": MessageLookupByLibrary.simpleMessage(
-      "تغییر رفتار پیش‌فرض بستن окно",
+      "تغییر رفتار پیش‌فرض بستن پنجره",
     ),
     "minutes": m30,
     "mixedPort": MessageLookupByLibrary.simpleMessage("پورت ترکیبی (Mixed)"),
@@ -1235,9 +1235,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "name": MessageLookupByLibrary.simpleMessage("نام"),
     "nameSort": MessageLookupByLibrary.simpleMessage("مرتب‌سازی بر اساس نام"),
     "nameserver": MessageLookupByLibrary.simpleMessage("سرور نام (Nameserver)"),
-    "nameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "برای تحلیل دامنه‌ها",
-    ),
+    "nameserverDesc": MessageLookupByLibrary.simpleMessage("تحلیل دامنه‌ها"),
     "nameserverPolicy": MessageLookupByLibrary.simpleMessage("سیاست سرور نام"),
     "nameserverPolicyDesc": MessageLookupByLibrary.simpleMessage(
       "تعیین سیاست DNS برای دامنه‌ها",
@@ -1404,7 +1402,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "اولویت بالا",
     ),
     "notificationHighPriorityDesc": MessageLookupByLibrary.simpleMessage(
-      "تنظیم نوار اعلان به اولویت بالا در پیش‌زمینه",
+      "اعلان با اولویت بالا در پیش‌زمینه",
     ),
     "notificationHighPriorityTip": MessageLookupByLibrary.simpleMessage(
       "اعلان‌های با اولویت بالا می‌توانند مشکلات زنده نگه داشتن پس‌زمینه را در برخی سیستم‌ها کاهش دهند. اگر سرویس شما به درستی کار می‌کند، پیشنهاد می‌شود خاموش بماند. آیا فعال شود؟",
@@ -1592,7 +1590,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "proxyGroupsCount": MessageLookupByLibrary.simpleMessage("گروه‌های پروکسی"),
     "proxyNameserver": MessageLookupByLibrary.simpleMessage("DNS پروکسی"),
     "proxyNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "برای تحلیل دامنه‌های نودهای پروکسی",
+      "تحلیل دامنه‌های پروکسی",
     ),
     "proxyPort": MessageLookupByLibrary.simpleMessage("پورت پروکسی"),
     "proxyPortDesc": MessageLookupByLibrary.simpleMessage(
@@ -1616,13 +1614,13 @@ class MessageLookup extends MessageLookupByLibrary {
       "غیرفعال‌سازی QUIC ECN",
     ),
     "quicGoDisableEcnDesc": MessageLookupByLibrary.simpleMessage(
-      "غیرفعال‌سازی ویژگی ECN در QUIC",
+      "غیرفعال‌سازی ECN در QUIC",
     ),
     "quicGoDisableGso": MessageLookupByLibrary.simpleMessage(
       "غیرفعال‌سازی QUIC GSO",
     ),
     "quicGoDisableGsoDesc": MessageLookupByLibrary.simpleMessage(
-      "غیرفعال‌سازی ویژگی GSO در QUIC",
+      "غیرفعال‌سازی GSO در QUIC",
     ),
     "quicPortSniffer": MessageLookupByLibrary.simpleMessage("اسنیف پورت QUIC"),
     "quickResponse": MessageLookupByLibrary.simpleMessage("پاسخ سریع"),
@@ -1683,10 +1681,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "replace": MessageLookupByLibrary.simpleMessage("جایگزینی"),
     "replaceAll": MessageLookupByLibrary.simpleMessage("جایگزینی همه"),
     "request": MessageLookupByLibrary.simpleMessage("درخواست"),
-    "requests": MessageLookupByLibrary.simpleMessage("درخواست‌ها"),
-    "requestsDesc": MessageLookupByLibrary.simpleMessage(
-      "مشاهده تاریخچه درخواست‌های اخیر",
-    ),
     "reset": MessageLookupByLibrary.simpleMessage("بازنشانی"),
     "resetIconCache": MessageLookupByLibrary.simpleMessage(
       "بازنشانی حافظه پنهان آیکون‌ها",
@@ -1697,9 +1691,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "resetTip": MessageLookupByLibrary.simpleMessage(
       "آیا از بازنشانی اطمینان دارید؟",
     ),
-    "resources": MessageLookupByLibrary.simpleMessage("منابع"),
+    "resources": MessageLookupByLibrary.simpleMessage("منابع خارجی"),
     "resourcesDesc": MessageLookupByLibrary.simpleMessage(
-      "اطلاعات منابع خارجی",
+      "مشاهده منابع خارجی یا مجموعه قوانین",
     ),
     "respectRules": MessageLookupByLibrary.simpleMessage("پیروی از قوانین"),
     "respectRulesDesc": MessageLookupByLibrary.simpleMessage(
@@ -1797,9 +1791,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "saveTip": MessageLookupByLibrary.simpleMessage(
       "آیا از ذخیره تغییرات اطمینان دارید؟",
     ),
-    "script": MessageLookupByLibrary.simpleMessage("اسکریپت"),
+    "script": MessageLookupByLibrary.simpleMessage("اسکریپت اورراید"),
     "scriptDesc": MessageLookupByLibrary.simpleMessage(
-      "تنظیمات اسکریپت اورراید سراسری",
+      "پیکربندی اسکریپت‌های اورراید JavaScript",
     ),
     "scriptOtherOptions": MessageLookupByLibrary.simpleMessage("تنظیمات دیگر"),
     "search": MessageLookupByLibrary.simpleMessage("جستجو"),
@@ -1833,13 +1827,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "showPanel": MessageLookupByLibrary.simpleMessage("نمایش پنجره"),
     "showStartSwitch": MessageLookupByLibrary.simpleMessage("دکمه کلید سوئیچ"),
     "showStartSwitchDesc": MessageLookupByLibrary.simpleMessage(
-      "نمایش دکمه مستقل روشن/خاموش در صفحه اصلی",
+      "دکمه مستقل در صفحه اصلی",
     ),
     "shrink": MessageLookupByLibrary.simpleMessage("فشرده"),
     "sidebarFlyout": MessageLookupByLibrary.simpleMessage("پنل شناور"),
     "sidebarFlyoutDelay": MessageLookupByLibrary.simpleMessage("تأخیر نمایش"),
     "sidebarFlyoutDesc": MessageLookupByLibrary.simpleMessage(
-      "نمایش کارت شناور تنظیمات نوار کناری",
+      "نمایش کارت تنظیمات هنگام هاور نوار کناری",
     ),
     "sidebarFlyoutEntries": MessageLookupByLibrary.simpleMessage("موارد نمایش"),
     "sidebarFlyoutOutsideTools": MessageLookupByLibrary.simpleMessage(
@@ -1856,7 +1850,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "رد شدن از احراز هویت محلی",
     ),
     "skipLocalAuthDesc": MessageLookupByLibrary.simpleMessage(
-      "اجازه دسترسی به پروکسی بدون اطلاعات کاربری از سیستم محلی",
+      "دسترسی بدون احراز هویت برای سیستم محلی",
     ),
     "skipSrcAddress": MessageLookupByLibrary.simpleMessage("IP مبدا مستثنی"),
     "slow": MessageLookupByLibrary.simpleMessage("کند"),
@@ -2095,7 +2089,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "trayEnhancement": MessageLookupByLibrary.simpleMessage("ارتقای منوی سینی"),
     "trayEnhancementDesc": MessageLookupByLibrary.simpleMessage(
-      "کنترل گروه‌های پروکسی در منوی سینی سیستم",
+      "کنترل گروه‌های پروکسی در منوی تسک‌بار",
     ),
     "trayIconInvert": MessageLookupByLibrary.simpleMessage(
       "معکوس‌سازی آیکون تسک‌بار",
@@ -2207,7 +2201,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "vpnDesc": MessageLookupByLibrary.simpleMessage("تنظیمات مربوط به VPN"),
     "vpnEnableDesc": MessageLookupByLibrary.simpleMessage(
-      "هدایت ترافیک سیستم از طریق VpnService",
+      "مسیریابی ترافیک با VpnService",
     ),
     "vpnSystemProxyDesc": MessageLookupByLibrary.simpleMessage(
       "افزودن پروکسی HTTP به VpnService",

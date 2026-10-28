@@ -1508,3 +1508,19 @@ proxy-groups:
   if c!=nil{c.Close()};if err==nil{t.Fatal("unsafe direct dial succeeded")};if hits.Load()!=0{t.Fatal("direct origin contacted")}
  }) }
 }
+
+func TestApplyPatchTunDNSMode(t *testing.T) {
+	rawCfg := parsePatchProfile(t, "tun:\n  dns-mode: native\n")
+	if _, err := applyPatch(rawCfg, patchParams(t, `{"general":{"tun":{"enable":true,"stack":"system"}}}`)); err != nil {
+		t.Fatal(err)
+	}
+	if rawCfg.Tun.DNSMode != "native" {
+		t.Errorf("profile dns-mode should be kept, got %q", rawCfg.Tun.DNSMode)
+	}
+	if _, err := applyPatch(rawCfg, patchParams(t, `{"general":{"tun":{"enable":true,"stack":"system","dns-mode":"hijack"}}}`)); err != nil {
+		t.Fatal(err)
+	}
+	if rawCfg.Tun.DNSMode != "hijack" {
+		t.Errorf("patched dns-mode should override, got %q", rawCfg.Tun.DNSMode)
+	}
+}

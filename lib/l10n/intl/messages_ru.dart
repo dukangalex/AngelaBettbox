@@ -153,7 +153,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Только выбранные приложения используют VPN",
     ),
     "accessControlDesc": MessageLookupByLibrary.simpleMessage(
-      "Настройка доступа приложений к прокси",
+      "Белый и чёрный списки приложений",
     ),
     "accessControlNotAllowDesc": MessageLookupByLibrary.simpleMessage(
       "Выбранные приложения исключены из VPN",
@@ -473,7 +473,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "connectionsActive": MessageLookupByLibrary.simpleMessage("Активные"),
     "connectionsClosed": MessageLookupByLibrary.simpleMessage("Закрытые"),
     "connectionsDesc": MessageLookupByLibrary.simpleMessage(
-      "Просмотр текущих соединений",
+      "Просмотр активных и закрытых соединений",
     ),
     "connectionsSort": MessageLookupByLibrary.simpleMessage(
       "Сортировка соединений",
@@ -538,7 +538,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "DNS по умолчанию",
     ),
     "defaultNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Используется для разрешения DNS-серверов",
+      "Разрешение DNS-серверов",
     ),
     "defaultSort": MessageLookupByLibrary.simpleMessage("По умолчанию"),
     "defaultText": MessageLookupByLibrary.simpleMessage("По умолчанию"),
@@ -576,14 +576,14 @@ class MessageLookup extends MessageLookupByLibrary {
       "Включить преобразование IP4P",
     ),
     "dialerIp4pConvertDesc": MessageLookupByLibrary.simpleMessage(
-      "Включить преобразование IP4P в диалере",
+      "Преобразование IP4P в диалере",
     ),
     "direct": MessageLookupByLibrary.simpleMessage("Напрямую"),
     "directNameserver": MessageLookupByLibrary.simpleMessage(
       "DNS для прямого подключения",
     ),
     "directNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Используется для разрешения доменов с прямым подключением",
+      "Разрешение прямых доменов",
     ),
     "directNameserverFollowPolicy": MessageLookupByLibrary.simpleMessage(
       "Прямой DNS учитывает политики DNS",
@@ -695,7 +695,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "enableTraySpeed": MessageLookupByLibrary.simpleMessage("Скорость в трее"),
     "enableTraySpeedDesc": MessageLookupByLibrary.simpleMessage(
-      "Отображение скорости отдачи и загрузки в строке меню",
+      "Показывать скорость в строке меню",
     ),
     "enabled": MessageLookupByLibrary.simpleMessage("Включено"),
     "endpointIndependentNat": MessageLookupByLibrary.simpleMessage(
@@ -711,7 +711,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "exclude": MessageLookupByLibrary.simpleMessage("Скрыть из недавних"),
     "excludeChina": MessageLookupByLibrary.simpleMessage("Исключить Китай"),
     "excludeChinaDesc": MessageLookupByLibrary.simpleMessage(
-      "Разрешить QUIC-трафик Китая вместо полной блокировки",
+      "Разрешить QUIC для Китая",
     ),
     "excludeDesc": MessageLookupByLibrary.simpleMessage(
       "Скрыть приложение из недавних задач",
@@ -859,13 +859,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "heapObjects": MessageLookupByLibrary.simpleMessage("Objects"),
     "highPriority": MessageLookupByLibrary.simpleMessage("Высокий приоритет"),
     "highPriorityDesc": MessageLookupByLibrary.simpleMessage(
-      "Повысить приоритет процесса приложения и ядра",
+      "Повысить приоритет приложения и ядра",
     ),
     "highRefreshRate": MessageLookupByLibrary.simpleMessage(
       "Высокая частота обновления",
     ),
     "highRefreshRateDesc": MessageLookupByLibrary.simpleMessage(
-      "Включить поддержку максимальной частоты обновления устройства",
+      "Максимальная частота обновления экрана",
     ),
     "host": MessageLookupByLibrary.simpleMessage("Хост"),
     "hostsDesc": MessageLookupByLibrary.simpleMessage(
@@ -1153,7 +1153,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Защита от закольцовки",
     ),
     "loopbackProtectionDesc": MessageLookupByLibrary.simpleMessage(
-      "Блокировать закольцованный трафик из-за ошибок сети",
+      "Блокировать петли трафика из-за ошибок",
     ),
     "loose": MessageLookupByLibrary.simpleMessage("Максимальная"),
     "manualRefreshIp": MessageLookupByLibrary.simpleMessage("Обновить IP"),
@@ -1193,7 +1193,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Больше платформ стриминга",
     ),
     "mediaUnlockPinnedSettingsDesc": MessageLookupByLibrary.simpleMessage(
-      "Можно выбрать до 3 элементов для закрепления в виджете",
+      "Закрепить до 3 элементов в виджете",
     ),
     "mediaUnlockRefreshByCategory": MessageLookupByLibrary.simpleMessage(
       "Частичное обновление по текущей категории",
@@ -1261,7 +1261,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "nameSort": MessageLookupByLibrary.simpleMessage("По имени"),
     "nameserver": MessageLookupByLibrary.simpleMessage("Основной DNS"),
     "nameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Используется для разрешения доменов",
+      "Разрешение доменов",
     ),
     "nameserverPolicy": MessageLookupByLibrary.simpleMessage("Политика DNS"),
     "nameserverPolicyDesc": MessageLookupByLibrary.simpleMessage(
@@ -1411,7 +1411,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "noProxyDesc": MessageLookupByLibrary.simpleMessage(
       "Создайте или добавьте профиль",
     ),
-    "noResolve": MessageLookupByLibrary.simpleMessage("Не разрешать IP"),
+    "noResolve": MessageLookupByLibrary.simpleMessage("Без разрешения IP"),
     "noStatusAvailable": MessageLookupByLibrary.simpleMessage(
       "Статус недоступен",
     ),
@@ -1433,7 +1433,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Высокий приоритет",
     ),
     "notificationHighPriorityDesc": MessageLookupByLibrary.simpleMessage(
-      "Установить высокий приоритет для панели уведомлений",
+      "Высокий приоритет уведомлений",
     ),
     "notificationHighPriorityTip": MessageLookupByLibrary.simpleMessage(
       "Уведомления с высоким приоритетом могут решить проблемы работы в фоне на некоторых кастомных прошивках. Если ваш VPN работает нормально, рекомендуется оставить выключенным. Включить?",
@@ -1621,7 +1621,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "proxyGroupsCount": MessageLookupByLibrary.simpleMessage("Группы"),
     "proxyNameserver": MessageLookupByLibrary.simpleMessage("DNS для прокси"),
     "proxyNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Используется для разрешения доменов прокси",
+      "Разрешение доменов прокси",
     ),
     "proxyPort": MessageLookupByLibrary.simpleMessage("Порт прокси"),
     "proxyPortDesc": MessageLookupByLibrary.simpleMessage(
@@ -1643,13 +1643,13 @@ class MessageLookup extends MessageLookupByLibrary {
       "Отключить ECN QUIC",
     ),
     "quicGoDisableEcnDesc": MessageLookupByLibrary.simpleMessage(
-      "Отключить Explicit Congestion Notification для QUIC",
+      "Отключить ECN для QUIC",
     ),
     "quicGoDisableGso": MessageLookupByLibrary.simpleMessage(
       "Отключить GSO QUIC",
     ),
     "quicGoDisableGsoDesc": MessageLookupByLibrary.simpleMessage(
-      "Отключить Generic Segmentation Offload для QUIC",
+      "Отключить GSO для QUIC",
     ),
     "quicPortSniffer": MessageLookupByLibrary.simpleMessage(
       "QUIC порты сниффера",
@@ -1712,10 +1712,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "replace": MessageLookupByLibrary.simpleMessage("Заменить"),
     "replaceAll": MessageLookupByLibrary.simpleMessage("Заменить все"),
     "request": MessageLookupByLibrary.simpleMessage("Запрос"),
-    "requests": MessageLookupByLibrary.simpleMessage("Запросы"),
-    "requestsDesc": MessageLookupByLibrary.simpleMessage(
-      "Просмотр недавних запросов",
-    ),
     "reset": MessageLookupByLibrary.simpleMessage("Сброс"),
     "resetIconCache": MessageLookupByLibrary.simpleMessage(
       "Сбросить кэш значков",
@@ -1724,9 +1720,9 @@ class MessageLookup extends MessageLookupByLibrary {
       "Сбросить локальный кэш значков? Это безопасно: приложение автоматически загрузит их заново по удалённым ссылкам.",
     ),
     "resetTip": MessageLookupByLibrary.simpleMessage("Сбросить настройки?"),
-    "resources": MessageLookupByLibrary.simpleMessage("Ресурсы"),
+    "resources": MessageLookupByLibrary.simpleMessage("Внешние ресурсы"),
     "resourcesDesc": MessageLookupByLibrary.simpleMessage(
-      "Управление внешними ресурсами",
+      "Просмотр внешних ресурсов и наборов правил",
     ),
     "respectRules": MessageLookupByLibrary.simpleMessage("Следовать правилам"),
     "respectRulesDesc": MessageLookupByLibrary.simpleMessage(
@@ -1822,9 +1818,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "save": MessageLookupByLibrary.simpleMessage("Сохранить"),
     "saveChanges": MessageLookupByLibrary.simpleMessage("Сохранить изменения?"),
     "saveTip": MessageLookupByLibrary.simpleMessage("Сохранить изменения?"),
-    "script": MessageLookupByLibrary.simpleMessage("Скрипт"),
+    "script": MessageLookupByLibrary.simpleMessage("Скрипт переопределения"),
     "scriptDesc": MessageLookupByLibrary.simpleMessage(
-      "Настройка глобального скрипта переопределения",
+      "Настройка скриптов переопределения на JavaScript",
+    ),
+    "scriptOtherOptions": MessageLookupByLibrary.simpleMessage(
+      "Другие настройки",
     ),
     "scriptOtherOptions": MessageLookupByLibrary.simpleMessage(
       "Другие настройки",
@@ -1858,7 +1857,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Тумблер запуска на главной",
     ),
     "showStartSwitchDesc": MessageLookupByLibrary.simpleMessage(
-      "Отображать отдельную кнопку переключения на главной странице",
+      "Отдельная кнопка на главной",
     ),
     "shrink": MessageLookupByLibrary.simpleMessage("Стандарт"),
     "sidebarFlyout": MessageLookupByLibrary.simpleMessage("Всплывающая панель"),
@@ -1866,7 +1865,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Задержка появления",
     ),
     "sidebarFlyoutDesc": MessageLookupByLibrary.simpleMessage(
-      "Показывать карточку настроек при наведении на боковую панель",
+      "Карточка настроек при наведении на панель",
     ),
     "sidebarFlyoutEntries": MessageLookupByLibrary.simpleMessage(
       "Пункты панели",
@@ -1887,7 +1886,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Пропустить локальную аутентификацию",
     ),
     "skipLocalAuthDesc": MessageLookupByLibrary.simpleMessage(
-      "Разрешить локальному устройству доступ к прокси без учетных данных",
+      "Доступ без пароля для локального устройства",
     ),
     "skipSrcAddress": MessageLookupByLibrary.simpleMessage(
       "Пропустить IP источника",
@@ -2140,7 +2139,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "trayEnhancement": MessageLookupByLibrary.simpleMessage("Улучшение трея"),
     "trayEnhancementDesc": MessageLookupByLibrary.simpleMessage(
-      "Управление группами прокси в меню системного трея",
+      "Управление группами прокси в трее",
     ),
     "trayIconInvert": MessageLookupByLibrary.simpleMessage(
       "Инвертировать значок трея",
@@ -2260,7 +2259,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "vpnDesc": MessageLookupByLibrary.simpleMessage("Настройки VPN"),
     "vpnEnableDesc": MessageLookupByLibrary.simpleMessage(
-      "Автоматическая маршрутизация всего трафика через VpnService",
+      "Маршрутизация через VpnService",
     ),
     "vpnSystemProxyDesc": MessageLookupByLibrary.simpleMessage(
       "Добавить HTTP-прокси к VPN",

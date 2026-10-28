@@ -116,9 +116,10 @@ func handleForceGc(forceFreeOSMemory bool) {
 	go func() {
 		log.Infoln("[APP] Request force GC, forceFreeOSMemory=%t", forceFreeOSMemory)
 		tryUnloadGeoData()
-		runtime.GC()
 		if forceFreeOSMemory {
 			debug.FreeOSMemory()
+		} else {
+			runtime.GC()
 		}
 	}()
 }
@@ -135,7 +136,6 @@ func handleShutdown() bool {
 		log.UnSubscribe(logSubscriber)
 		logSubscriber = nil
 	}
-	runtime.GC()
 	debug.FreeOSMemory()
 	isInit = false
 	return true
@@ -1240,7 +1240,7 @@ func init() {
 	}
 }
 
-const maxRequestHistory = 256
+const maxRequestHistory = 512
 
 func recordRequestHistory(info *statistic.TrackerInfo) {
 	requestHistoryLock.Lock()

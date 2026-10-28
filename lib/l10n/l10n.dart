@@ -130,9 +130,14 @@ class AppLocalizations {
     );
   }
 
-  /// `Resources`
+  /// `External Resources`
   String get resources {
-    return Intl.message('Resources', name: 'resources', desc: '', args: []);
+    return Intl.message(
+      'External Resources',
+      name: 'resources',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Sync All`
@@ -145,20 +150,20 @@ class AppLocalizations {
     return Intl.message('Sync Failed', name: 'syncFailed', desc: '', args: []);
   }
 
-  /// `External resource info`
+  /// `View external resources and rule sets`
   String get resourcesDesc {
     return Intl.message(
-      'External resource info',
+      'View external resources and rule sets',
       name: 'resourcesDesc',
       desc: '',
       args: [],
     );
   }
 
-  /// `Global override script config`
+  /// `Configure JavaScript override scripts`
   String get scriptDesc {
     return Intl.message(
-      'Global override script config',
+      'Configure JavaScript override scripts',
       name: 'scriptDesc',
       desc: '',
       args: [],
@@ -470,10 +475,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Block loopback traffic from network errors`
+  /// `Block loopback traffic from errors`
   String get loopbackProtectionDesc {
     return Intl.message(
-      'Block loopback traffic from network errors',
+      'Block loopback traffic from errors',
       name: 'loopbackProtectionDesc',
       desc: '',
       args: [],
@@ -510,10 +515,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Adjust current notification bar to foreground high priority`
+  /// `Foreground high-priority notification`
   String get notificationHighPriorityDesc {
     return Intl.message(
-      'Adjust current notification bar to foreground high priority',
+      'Foreground high-priority notification',
       name: 'notificationHighPriorityDesc',
       desc: '',
       args: [],
@@ -560,10 +565,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Always show the title bar buttons in the top-right corner`
+  /// `Always show top-right title bar buttons`
   String get alwaysShowTitleBarDesc {
     return Intl.message(
-      'Always show the title bar buttons in the top-right corner',
+      'Always show top-right title bar buttons',
       name: 'alwaysShowTitleBarDesc',
       desc: '',
       args: [],
@@ -600,10 +605,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Control proxy groups in system tray menu`
+  /// `Control proxy groups via tray menu`
   String get trayEnhancementDesc {
     return Intl.message(
-      'Control proxy groups in system tray menu',
+      'Control proxy groups via tray menu',
       name: 'trayEnhancementDesc',
       desc: '',
       args: [],
@@ -660,10 +665,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Display upload and download rates in the menu bar`
+  /// `Show network speed in menu bar`
   String get enableTraySpeedDesc {
     return Intl.message(
-      'Display upload and download rates in the menu bar',
+      'Show network speed in menu bar',
       name: 'enableTraySpeedDesc',
       desc: '',
       args: [],
@@ -680,10 +685,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Allow China QUIC traffic instead of blocking all`
+  /// `Allow China QUIC instead of blocking all`
   String get excludeChinaDesc {
     return Intl.message(
-      'Allow China QUIC traffic instead of blocking all',
+      'Allow China QUIC instead of blocking all',
       name: 'excludeChinaDesc',
       desc: '',
       args: [],
@@ -755,10 +760,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Increase priority of main process and core process`
+  /// `Elevate app & core process priority`
   String get highPriorityDesc {
     return Intl.message(
-      'Increase priority of main process and core process',
+      'Elevate app & core process priority',
       name: 'highPriorityDesc',
       desc: '',
       args: [],
@@ -1015,10 +1020,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Configure per-app access allowlist/blocklist`
+  /// `App allowlist and blocklist`
   String get accessControlDesc {
     return Intl.message(
-      'Configure per-app access allowlist/blocklist',
+      'App allowlist and blocklist',
       name: 'accessControlDesc',
       desc: '',
       args: [],
@@ -1700,10 +1705,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Display independent switch button on the homepage`
+  /// `Show standalone switch on homepage`
   String get showStartSwitchDesc {
     return Intl.message(
-      'Display independent switch button on the homepage',
+      'Show standalone switch on homepage',
       name: 'showStartSwitchDesc',
       desc: '',
       args: [],
@@ -1770,10 +1775,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Show the sidebar settings hover card`
+  /// `Show sidebar settings hover card`
   String get sidebarFlyoutDesc {
     return Intl.message(
-      'Show the sidebar settings hover card',
+      'Show sidebar settings hover card',
       name: 'sidebarFlyoutDesc',
       desc: '',
       args: [],
@@ -1975,6 +1980,76 @@ class AppLocalizations {
     return Intl.message(
       'Backup Successful',
       name: 'backupSuccess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Backup Password`
+  String get backupPassword {
+    return Intl.message(
+      'Backup Password',
+      name: 'backupPassword',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `AES-256 encrypted, leave blank for none`
+  String get backupPasswordDesc {
+    return Intl.message(
+      'AES-256 encrypted, leave blank for none',
+      name: 'backupPasswordDesc',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `This backup is encrypted, please enter the password`
+  String get backupPasswordRequired {
+    return Intl.message(
+      'This backup is encrypted, please enter the password',
+      name: 'backupPasswordRequired',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Incorrect backup password`
+  String get backupPasswordWrong {
+    return Intl.message(
+      'Incorrect backup password',
+      name: 'backupPasswordWrong',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Only English letters, digits and symbols are supported`
+  String get backupPasswordTip {
+    return Intl.message(
+      'Only English letters, digits and symbols are supported',
+      name: 'backupPasswordTip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Backup encrypted with AES-256`
+  String get backupEncryptedTip {
+    return Intl.message(
+      'Backup encrypted with AES-256',
+      name: 'backupEncryptedTip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Decrypted and restored with the current password`
+  String get recoveryDecryptedTip {
+    return Intl.message(
+      'Decrypted and restored with the current password',
+      name: 'recoveryDecryptedTip',
       desc: '',
       args: [],
     );
@@ -2310,21 +2385,6 @@ class AppLocalizations {
     );
   }
 
-  /// `Recent`
-  String get requests {
-    return Intl.message('Recent', name: 'requests', desc: '', args: []);
-  }
-
-  /// `View recent request logs`
-  String get requestsDesc {
-    return Intl.message(
-      'View recent request logs',
-      name: 'requestsDesc',
-      desc: '',
-      args: [],
-    );
-  }
-
   /// `Find Process`
   String get findProcessMode {
     return Intl.message(
@@ -2365,11 +2425,31 @@ class AppLocalizations {
     return Intl.message('Connections', name: 'connections', desc: '', args: []);
   }
 
-  /// `View active connections`
+  /// `View active and closed connections`
   String get connectionsDesc {
     return Intl.message(
-      'View active connections',
+      'View active and closed connections',
       name: 'connectionsDesc',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Active`
+  String get connectionsActive {
+    return Intl.message(
+      'Active',
+      name: 'connectionsActive',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Closed`
+  String get connectionsClosed {
+    return Intl.message(
+      'Closed',
+      name: 'connectionsClosed',
       desc: '',
       args: [],
     );
@@ -2950,6 +3030,41 @@ class AppLocalizations {
     );
   }
 
+  /// `Auto Backup`
+  String get autoBackup {
+    return Intl.message('Auto Backup', name: 'autoBackup', desc: '', args: []);
+  }
+
+  /// `Auto back up on profile changes`
+  String get autoBackupDesc {
+    return Intl.message(
+      'Auto back up on profile changes',
+      name: 'autoBackupDesc',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Auto backed up to WebDAV`
+  String get autoBackupSuccess {
+    return Intl.message(
+      'Auto backed up to WebDAV',
+      name: 'autoBackupSuccess',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Auto backup failed: {error}`
+  String autoBackupFailed(Object error) {
+    return Intl.message(
+      'Auto backup failed: $error',
+      name: 'autoBackupFailed',
+      desc: '',
+      args: [error],
+    );
+  }
+
   /// `Backup data locally`
   String get localBackupDesc {
     return Intl.message(
@@ -3190,10 +3305,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Route system traffic via VpnService`
+  /// `Route traffic via VpnService`
   String get vpnEnableDesc {
     return Intl.message(
-      'Route system traffic via VpnService',
+      'Route traffic via VpnService',
       name: 'vpnEnableDesc',
       desc: '',
       args: [],
@@ -3880,10 +3995,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Disable QUIC Generic Segmentation Offload`
+  /// `Disable QUIC GSO`
   String get quicGoDisableGsoDesc {
     return Intl.message(
-      'Disable QUIC Generic Segmentation Offload',
+      'Disable QUIC GSO',
       name: 'quicGoDisableGsoDesc',
       desc: '',
       args: [],
@@ -3900,10 +4015,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Disable QUIC Explicit Congestion Notification`
+  /// `Disable QUIC ECN`
   String get quicGoDisableEcnDesc {
     return Intl.message(
-      'Disable QUIC Explicit Congestion Notification',
+      'Disable QUIC ECN',
       name: 'quicGoDisableEcnDesc',
       desc: '',
       args: [],
@@ -3920,10 +4035,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Enable dialer IP4P address conversion feature`
+  /// `Enable dialer IP4P conversion`
   String get dialerIp4pConvertDesc {
     return Intl.message(
-      'Enable dialer IP4P address conversion feature',
+      'Enable dialer IP4P conversion',
       name: 'dialerIp4pConvertDesc',
       desc: '',
       args: [],
@@ -4065,10 +4180,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Used to resolve DNS servers`
+  /// `Resolve DNS servers`
   String get defaultNameserverDesc {
     return Intl.message(
-      'Used to resolve DNS servers',
+      'Resolve DNS servers',
       name: 'defaultNameserverDesc',
       desc: '',
       args: [],
@@ -4080,10 +4195,10 @@ class AppLocalizations {
     return Intl.message('Nameserver', name: 'nameserver', desc: '', args: []);
   }
 
-  /// `Used to resolve domains`
+  /// `Resolve domain names`
   String get nameserverDesc {
     return Intl.message(
-      'Used to resolve domains',
+      'Resolve domain names',
       name: 'nameserverDesc',
       desc: '',
       args: [],
@@ -4135,10 +4250,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Used to resolve proxy nodes`
+  /// `Resolve proxy node domains`
   String get proxyNameserverDesc {
     return Intl.message(
-      'Used to resolve proxy nodes',
+      'Resolve proxy node domains',
       name: 'proxyNameserverDesc',
       desc: '',
       args: [],
@@ -4155,10 +4270,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Used to resolve direct domains`
+  /// `Resolve direct domains`
   String get directNameserverDesc {
     return Intl.message(
-      'Used to resolve direct domains',
+      'Resolve direct domains',
       name: 'directNameserverDesc',
       desc: '',
       args: [],
@@ -4233,6 +4348,21 @@ class AppLocalizations {
   /// `Domain`
   String get domain {
     return Intl.message('Domain', name: 'domain', desc: '', args: []);
+  }
+
+  /// `Recent`
+  String get requests {
+    return Intl.message('Recent', name: 'requests', desc: '', args: []);
+  }
+
+  /// `View recent request logs`
+  String get requestsDesc {
+    return Intl.message(
+      'View recent request logs',
+      name: 'requestsDesc',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `Reset`
@@ -4725,9 +4855,14 @@ class AppLocalizations {
     );
   }
 
-  /// `Active`
+  /// `Connections`
   String get navConnections {
-    return Intl.message('Active', name: 'navConnections', desc: '', args: []);
+    return Intl.message(
+      'Connections',
+      name: 'navConnections',
+      desc: '',
+      args: [],
+    );
   }
 
   /// `More`
@@ -5305,6 +5440,26 @@ class AppLocalizations {
     );
   }
 
+  /// `Keep local items, merge backup by ID`
+  String get recoveryStrategyDesc_compatible {
+    return Intl.message(
+      'Keep local items, merge backup by ID',
+      name: 'recoveryStrategyDesc_compatible',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Clear local items and replace with backup`
+  String get recoveryStrategyDesc_override {
+    return Intl.message(
+      'Clear local items and replace with backup',
+      name: 'recoveryStrategyDesc_override',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Logs Test`
   String get logsTest {
     return Intl.message('Logs Test', name: 'logsTest', desc: '', args: []);
@@ -5380,9 +5535,9 @@ class AppLocalizations {
     return Intl.message('No $label', name: 'nullTip', desc: '', args: [label]);
   }
 
-  /// `Script`
+  /// `Override Script`
   String get script {
-    return Intl.message('Script', name: 'script', desc: '', args: []);
+    return Intl.message('Override Script', name: 'script', desc: '', args: []);
   }
 
   /// `Color`
@@ -5750,10 +5905,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Enable highest refresh rate support`
+  /// `Enable max refresh rate`
   String get highRefreshRateDesc {
     return Intl.message(
-      'Enable highest refresh rate support',
+      'Enable max refresh rate',
       name: 'highRefreshRateDesc',
       desc: '',
       args: [],
@@ -6295,10 +6450,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Select up to 3 items to pin on the widget`
+  /// `Pin up to 3 items on widget`
   String get mediaUnlockPinnedSettingsDesc {
     return Intl.message(
-      'Select up to 3 items to pin on the widget',
+      'Pin up to 3 items on widget',
       name: 'mediaUnlockPinnedSettingsDesc',
       desc: '',
       args: [],
@@ -6535,10 +6690,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Allow local machine to access proxy without credentials`
+  /// `Allow local access without credentials`
   String get skipLocalAuthDesc {
     return Intl.message(
-      'Allow local machine to access proxy without credentials',
+      'Allow local access without credentials',
       name: 'skipLocalAuthDesc',
       desc: '',
       args: [],
@@ -6765,151 +6920,6 @@ class AppLocalizations {
     return Intl.message(
       'Core authorization did not take effect: the running core lacks CAP_NET_ADMIN, TUN may fail',
       name: 'coreCapabilityNotEffective',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Backup Password`
-  String get backupPassword {
-    return Intl.message(
-      'Backup Password',
-      name: 'backupPassword',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `AES-256 encrypted, leave blank for none`
-  String get backupPasswordDesc {
-    return Intl.message(
-      'AES-256 encrypted, leave blank for none',
-      name: 'backupPasswordDesc',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `This backup is encrypted, please enter the password`
-  String get backupPasswordRequired {
-    return Intl.message(
-      'This backup is encrypted, please enter the password',
-      name: 'backupPasswordRequired',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Incorrect backup password`
-  String get backupPasswordWrong {
-    return Intl.message(
-      'Incorrect backup password',
-      name: 'backupPasswordWrong',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Only English letters, digits and symbols are supported`
-  String get backupPasswordTip {
-    return Intl.message(
-      'Only English letters, digits and symbols are supported',
-      name: 'backupPasswordTip',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Backup encrypted with AES-256`
-  String get backupEncryptedTip {
-    return Intl.message(
-      'Backup encrypted with AES-256',
-      name: 'backupEncryptedTip',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Decrypted and restored with the current password`
-  String get recoveryDecryptedTip {
-    return Intl.message(
-      'Decrypted and restored with the current password',
-      name: 'recoveryDecryptedTip',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Active`
-  String get connectionsActive {
-    return Intl.message(
-      'Active',
-      name: 'connectionsActive',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Closed`
-  String get connectionsClosed {
-    return Intl.message(
-      'Closed',
-      name: 'connectionsClosed',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Auto Backup`
-  String get autoBackup {
-    return Intl.message('Auto Backup', name: 'autoBackup', desc: '', args: []);
-  }
-
-  /// `Auto back up on profile changes`
-  String get autoBackupDesc {
-    return Intl.message(
-      'Auto back up on profile changes',
-      name: 'autoBackupDesc',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Auto backed up to WebDAV`
-  String get autoBackupSuccess {
-    return Intl.message(
-      'Auto backed up to WebDAV',
-      name: 'autoBackupSuccess',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Auto backup failed: {error}`
-  String autoBackupFailed(Object error) {
-    return Intl.message(
-      'Auto backup failed: $error',
-      name: 'autoBackupFailed',
-      desc: '',
-      args: [error],
-    );
-  }
-
-  /// `Keep local items, merge backup by ID`
-  String get recoveryStrategyDesc_compatible {
-    return Intl.message(
-      'Keep local items, merge backup by ID',
-      name: 'recoveryStrategyDesc_compatible',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `Clear local items and replace with backup`
-  String get recoveryStrategyDesc_override {
-    return Intl.message(
-      'Clear local items and replace with backup',
-      name: 'recoveryStrategyDesc_override',
       desc: '',
       args: [],
     );

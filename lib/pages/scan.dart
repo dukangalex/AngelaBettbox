@@ -9,7 +9,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class ScanPage extends StatefulWidget {
-  final bool Function(String)? accept;
+  final bool Function(String value)? accept;
 
   const ScanPage({super.key, this.accept});
 
@@ -49,7 +49,9 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     final rawValue = barcodeCapture.barcodes.first.rawValue?.trim();
     if (rawValue == null || rawValue.isEmpty) return;
     _handled = true;
-    if (!(widget.accept?.call(rawValue) ?? rawValue.toLowerCase().isUrl)) {
+    final accepted =
+        widget.accept?.call(rawValue) ?? rawValue.toLowerCase().isUrl;
+    if (!accepted) {
       Navigator.pop(context);
       return;
     }

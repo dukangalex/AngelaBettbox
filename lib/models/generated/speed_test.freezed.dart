@@ -1037,7 +1037,7 @@ as SpeedTestState,
 @override
 @pragma('vm:prefer-inline')
 $SpeedTestStateCopyWith<$Res> get result {
-
+  
   return $SpeedTestStateCopyWith<$Res>(_self.result, (value) {
     return _then(_self.copyWith(result: value));
   });
@@ -1252,7 +1252,7 @@ as SpeedTestState,
 @override
 @pragma('vm:prefer-inline')
 $SpeedTestStateCopyWith<$Res> get result {
-
+  
   return $SpeedTestStateCopyWith<$Res>(_self.result, (value) {
     return _then(_self.copyWith(result: value));
   });
@@ -1921,7 +1921,7 @@ as List<SpeedTestRecord>,
 @override
 @pragma('vm:prefer-inline')
 $SpeedTestSettingsCopyWith<$Res> get settings {
-
+  
   return $SpeedTestSettingsCopyWith<$Res>(_self.settings, (value) {
     return _then(_self.copyWith(settings: value));
   });
@@ -2140,7 +2140,7 @@ as List<SpeedTestRecord>,
 @override
 @pragma('vm:prefer-inline')
 $SpeedTestSettingsCopyWith<$Res> get settings {
-
+  
   return $SpeedTestSettingsCopyWith<$Res>(_self.settings, (value) {
     return _then(_self.copyWith(settings: value));
   });
