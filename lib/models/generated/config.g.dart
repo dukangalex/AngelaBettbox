@@ -186,7 +186,6 @@ const _$SidebarFlyoutDelayEnumMap = {
 };
 
 const _$MrsRawSourceEnumMap = {
-  MrsRawSource.metaRulesDat: 'bettRules',
   MrsRawSource.metaRulesDat: 'metaRulesDat',
 };
 
