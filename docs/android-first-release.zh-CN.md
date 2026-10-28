@@ -34,6 +34,6 @@
 
 ## 配置之后由开发流程完成
 
-Wabi 可以核查 secret 名称是否齐备（不能读取其值），构建正式 APK，使用 apksigner 核对实际证书和包元信息，完成回归及公开下载校验，再使用新稳定版本号/tag 发布。没有上述正式签名时，稳定构建会明确失败，不会自动用 debug 签名冒充正式版。独立 APK 手动流程也默认禁止 debug fallback，只有显式选择 debug_preview 时才允许测试预览。
+维护者可以核查 secret 名称是否齐备（不能读取其值），构建正式 APK，使用 apksigner 核对实际证书和包元信息，完成回归及公开下载校验，再使用新稳定版本号/tag 发布。没有上述正式签名时，稳定构建会明确失败，不会自动用 debug 签名冒充正式版。独立 APK 手动流程也默认禁止 debug fallback，只有显式选择 debug_preview 时才允许测试预览。
 
 正式版候选使用高于现有预览的 versionCode，发布前检查最终 APK 的 versionName/versionCode、包名、minSdk 和证书，并明确实机测试范围；不会仅把现有 prerelease 改为 stable。Windows/macOS 的代码签名不属于这份 Android 密钥配置。
