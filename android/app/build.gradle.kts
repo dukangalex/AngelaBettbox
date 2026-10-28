@@ -41,7 +41,6 @@ android {
     defaultConfig {
         applicationId = "com.appshub.bettbox"
         minSdk = 26
-        ndk { abiFilters += "arm64-v8a" }
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
