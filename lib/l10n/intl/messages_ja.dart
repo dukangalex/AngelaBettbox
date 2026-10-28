@@ -20,7 +20,7 @@ typedef String MessageIfAbsent(String messageStr, List<dynamic> args);
 class MessageLookup extends MessageLookupByLibrary {
   String get localeName => 'ja';
 
-  static String m0(log) => "Bettbox(Mihomo)のログを分析:${log}";
+  static String m0(log) => "Angela Mihomo(Mihomo)のログを分析:${log}";
 
   static String m1(error) => "自動バックアップに失敗しました：${error}";
 
@@ -442,7 +442,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "deleteTip": m5,
     "deleteTunnel": MessageLookupByLibrary.simpleMessage("転送削除"),
     "desc": MessageLookupByLibrary.simpleMessage(
-      "Bettboxは強力で柔軟なMihomoカーネルをベースに深く作り込まれ、より優れたクライアント体験を追求しています。私たちのビジョン：Connecting Open Source and AI, Accelerating Innovation",
+      "Angela Mihomoは強力で柔軟なMihomoカーネルをベースに深く作り込まれ、より優れたクライアント体験を追求しています。私たちのビジョン：Connecting Open Source and AI, Accelerating Innovation",
     ),
     "destination": MessageLookupByLibrary.simpleMessage("宛先アドレス"),
     "destinationGeoIP": MessageLookupByLibrary.simpleMessage("宛先GeoIP"),
@@ -786,7 +786,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "サーバーに接続できません",
     ),
     "iperfFirewallTip": MessageLookupByLibrary.simpleMessage(
-      "他のデバイスから接続できない場合は、システムのファイアウォールで Bettbox コアの受信接続を許可してください。",
+      "他のデバイスから接続できない場合は、システムのファイアウォールで Angela Mihomo コアの受信接続を許可してください。",
     ),
     "iperfLostPackets": m16,
     "iperfNoAddress": MessageLookupByLibrary.simpleMessage(
@@ -810,7 +810,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "iperfRunning": MessageLookupByLibrary.simpleMessage("テスト中"),
     "iperfScan": MessageLookupByLibrary.simpleMessage("スキャンして接続"),
     "iperfScanHint": MessageLookupByLibrary.simpleMessage(
-      "別のデバイスの Bettbox でスキャンするとワンタップで接続できます",
+      "別のデバイスの Angela Mihomo でスキャンするとワンタップで接続できます",
     ),
     "iperfScanInvalid": MessageLookupByLibrary.simpleMessage(
       "iPerf3 の接続用 QR コードではありません",

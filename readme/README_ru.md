@@ -1,3 +1,5 @@
+> ⚠️ **Angela Mihomo** — независимо поддерживаемый форк [Bettbox](https://github.com/appshubcc/Bettbox) (GPL-3.0) с расширенной поддержкой цепочек прокси. Загрузки: [Releases этого репозитория](https://github.com/dukangalex/AngelaMihomo/releases). Анонсы релизов: https://t.me/AngelaNexus . Текст ниже — оригинальное описание исходного проекта.
+
 <h4 align="right">
   <a href="../README.md">简体中文</a> | <a href="README_en.md">English</a> | <strong>Русский</strong> | <a href="README_fa.md">فارسی</a> | <a href="README_ja.md">日本語</a> | <a href="README_ko.md">한국어</a>
 </h4>

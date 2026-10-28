@@ -196,7 +196,7 @@ void main() {
     expect(uri.host, 'www.google.com');
     expect(uri.path, '/search');
     expect(uri.queryParameters, {
-      'q': '分析Bettbox(Mihomo)日志:Geodata Loader mode: memconservative',
+      'q': '分析Angela Mihomo(Mihomo)日志:Geodata Loader mode: memconservative',
       'udm': '50',
     });
   });

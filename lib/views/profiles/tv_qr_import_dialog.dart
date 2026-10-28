@@ -492,7 +492,7 @@ class _TvQrImportDialogState extends State<TvQrImportDialog> {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Bettbox</title>
+<title>Angela Mihomo</title>
 <style>
 :root {
   --bg-gradient: radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 50%),
@@ -845,7 +845,7 @@ textarea {
     <button type="button" class="lang-btn" id="lang-btn" onclick="toggleLang()">English</button>
   </div>
   <div class="header">
-    <h1>📺 Bettbox</h1>
+    <h1>📺 Angela Mihomo</h1>
     <p id="t-subtitle">推送配置至 Android TV 电视端</p>
   </div>
   <div class="tabs">
@@ -879,7 +879,7 @@ textarea {
 <script>
 const I18N = {
   zh: {
-    title: 'Bettbox 配置推送',
+    title: 'Angela Mihomo 配置推送',
     subtitle: '推送配置至 Android TV 电视端',
     tabUrl: '订阅链接',
     tabFile: '本地配置文件',
@@ -901,7 +901,7 @@ const I18N = {
     langToggle: 'English'
   },
   en: {
-    title: 'Bettbox Profile Push',
+    title: 'Angela Mihomo Profile Push',
     subtitle: 'Push profile to Android TV',
     tabUrl: 'Subscription URL',
     tabFile: 'Local File',

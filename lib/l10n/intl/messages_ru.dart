@@ -20,7 +20,7 @@ typedef String MessageIfAbsent(String messageStr, List<dynamic> args);
 class MessageLookup extends MessageLookupByLibrary {
   String get localeName => 'ru';
 
-  static String m0(log) => "Проанализируй лог Bettbox (Mihomo): ${log}";
+  static String m0(log) => "Проанализируй лог Angela Mihomo (Mihomo): ${log}";
 
   static String m1(error) => "Ошибка автоматического резервирования: ${error}";
 
@@ -555,7 +555,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Удалить перенаправление",
     ),
     "desc": MessageLookupByLibrary.simpleMessage(
-      "Bettbox глубоко проработан на базе мощного и гибкого ядра Mihomo и ориентирован на лучший клиентский опыт. Наше видение: Connecting Open Source and AI, Accelerating Innovation",
+      "Angela Mihomo глубоко проработан на базе мощного и гибкого ядра Mihomo и ориентирован на лучший клиентский опыт. Наше видение: Connecting Open Source and AI, Accelerating Innovation",
     ),
     "destination": MessageLookupByLibrary.simpleMessage("Адрес назначения"),
     "destinationGeoIP": MessageLookupByLibrary.simpleMessage(
@@ -985,7 +985,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Не удаётся связаться с сервером",
     ),
     "iperfFirewallTip": MessageLookupByLibrary.simpleMessage(
-      "Если другие устройства не могут подключиться, разрешите входящие подключения для ядра Bettbox в брандмауэре.",
+      "Если другие устройства не могут подключиться, разрешите входящие подключения для ядра Angela Mihomo в брандмауэре.",
     ),
     "iperfLostPackets": m16,
     "iperfNoAddress": MessageLookupByLibrary.simpleMessage(
@@ -1011,7 +1011,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Сканировать для подключения",
     ),
     "iperfScanHint": MessageLookupByLibrary.simpleMessage(
-      "Отсканируйте в Bettbox на другом устройстве, чтобы подключиться одним касанием",
+      "Отсканируйте в Angela Mihomo на другом устройстве, чтобы подключиться одним касанием",
     ),
     "iperfScanInvalid": MessageLookupByLibrary.simpleMessage(
       "Это не QR-код подключения iPerf3",

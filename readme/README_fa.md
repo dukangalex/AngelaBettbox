@@ -1,3 +1,5 @@
+> ⚠️ **Angela Mihomo** یک فورک مستقل از [Bettbox](https://github.com/appshubcc/Bettbox) (GPL-3.0) با پشتیبانی پیشرفته از پراکسی زنجیره‌ای است. دانلود: [Releases این مخزن](https://github.com/dukangalex/AngelaMihomo/releases). اطلاعیه‌های انتشار: https://t.me/AngelaNexus . متن زیر توضیحات اصلی پروژهٔ بالادستی است.
+
 <h4 align="right">
   <a href="../README.md">简体中文</a> | <a href="README_en.md">English</a> | <a href="README_ru.md">Русский</a> | <strong>فارسی</strong> | <a href="README_ja.md">日本語</a> | <a href="README_ko.md">한국어</a>
 </h4>
