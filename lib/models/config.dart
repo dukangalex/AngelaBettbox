@@ -229,8 +229,8 @@ abstract class AppSettingProps with _$AppSettingProps {
     List<SidebarFlyoutEntry> sidebarFlyoutEntries,
     @Default(<String>[]) List<String> toolboxTiles,
     @Default(false) bool mrsCopyRawLink,
-    @JsonKey(unknownEnumValue: MrsRawSource.bettRules)
-    @Default(MrsRawSource.bettRules)
+    @JsonKey(unknownEnumValue: MrsRawSource.metaRulesDat)
+    @Default(MrsRawSource.metaRulesDat)
     MrsRawSource mrsRawSource,
     @Default(true) bool mrsResolveDns,
     @Default(IperfOptions()) IperfOptions iperfOptions,
