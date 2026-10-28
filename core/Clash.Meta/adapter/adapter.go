@@ -278,8 +278,18 @@ func (p *Proxy) URLTest(ctx context.Context, url string, expectedStatus utils.In
 	}
 
 	satisfied = resp != nil && (expectedStatus == nil || expectedStatus.Check(uint16(resp.StatusCode)))
-	t = uint16(time.Since(start) / time.Millisecond)
+	t = successfulDelay(time.Since(start))
 	return
+}
+
+// successfulDelay is used only after a response was received. Zero denotes a
+// failed test in delay history, so successful sub-millisecond tests report 1ms.
+func successfulDelay(elapsed time.Duration) uint16 {
+	delay := uint16(elapsed / time.Millisecond)
+	if delay == 0 {
+		return 1
+	}
+	return delay
 }
 
 func NewProxy(adapter C.ProxyAdapter) *Proxy {

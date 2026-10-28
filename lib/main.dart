@@ -156,11 +156,17 @@ Future<void> _service(List<String> flags) async {
           clashLibHandler.stopListener();
           await vpn?.stop();
         },
-        onReconnectIpc: () {
+        onReconnectIpc: () async {
           commonPrint.log(
             'Service: reconnectIpc requested, re-establishing IPC',
           );
-          _handleMainIpc(clashLibHandler);
+          try {
+            await _handleMainIpc(clashLibHandler);
+          } catch (error, stackTrace) {
+            commonPrint.error(
+              'Service: failed to re-establish IPC: $error\n$stackTrace',
+            );
+          }
         },
       ),
     );
@@ -175,7 +181,7 @@ Future<void> _service(List<String> flags) async {
     );
 
     if (!quickStart && !bootStart) {
-      _handleMainIpc(clashLibHandler);
+      await _handleMainIpc(clashLibHandler);
       return;
     }
 
@@ -183,7 +189,7 @@ Future<void> _service(List<String> flags) async {
       commonPrint.log(
         'Silent boot detected, but autoRun is disabled. Staying idle.',
       );
-      _handleMainIpc(clashLibHandler);
+      await _handleMainIpc(clashLibHandler);
       return;
     }
 
@@ -231,7 +237,7 @@ Future<void> _service(List<String> flags) async {
           await vpn?.updateNotificationSpeed(profileName, '↑0B/s ↓0B/s');
         }
 
-        clashLibHandler.startListener();
+        await clashLibHandler.startListener();
       } catch (e) {
         commonPrint.error('Fatal error during service background start: $e');
         await vpn?.stop();
@@ -240,7 +246,7 @@ Future<void> _service(List<String> flags) async {
   }
 }
 
-void _handleMainIpc(ClashLibHandler clashLibHandler) {
+Future<void> _handleMainIpc(ClashLibHandler clashLibHandler) async {
   final sendPort = IsolateNameServer.lookupPortByName(mainIsolate);
   if (sendPort == null) {
     commonPrint.warn(
@@ -265,7 +271,11 @@ void _handleMainIpc(ClashLibHandler clashLibHandler) {
     _safeSend(sendPort, message);
   });
 
-  clashLibHandler.startListener();
+  try {
+    await clashLibHandler.startListener();
+  } catch (e) {
+    commonPrint.error('Service: proxy listener failed to start: $e');
+  }
 }
 
 void _safeSend(SendPort sendPort, dynamic message) {

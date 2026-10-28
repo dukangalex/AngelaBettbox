@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -137,5 +138,48 @@ rules:
 `
 	if out != want {
 		t.Fatalf("got:\n%s\nwant:\n%s", out, want)
+	}
+}
+
+// The runtime overlay must win over matching script rules without changing the
+// original subscription or erasing unrelated rules. ScriptedConfig is a
+// disposable generated intermediate that loadPatchedConfig removes after reading.
+func TestRuntimeConfigScriptedExplicitPriorityAndSourceUnchanged(t *testing.T) {
+	const source = `{"rules":["DOMAIN-SUFFIX,service.example,Proxy","GEOIP,CN,Proxy,no-resolve","IP-CIDR,8.8.8.8/32,Proxy,no-resolve","MATCH,Proxy"]}`
+	dir := t.TempDir()
+	path := filepath.Join(dir, "script.json")
+	profilePath := filepath.Join(dir, "profile.yaml")
+	const originalProfile = "rules:\n  - MATCH,DIRECT\n"
+	if err := os.WriteFile(profilePath, []byte(originalProfile), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(source), 0600); err != nil {
+		t.Fatal(err)
+	}
+	params := &SetupParams{ProfilePath: profilePath, ScriptedConfig: path, Patch: &PatchParams{
+		PrependRules:        []string{"GEOIP,CN,REJECT,no-resolve", "DOMAIN-SUFFIX,other.example,DIRECT"},
+		SystemExplicitRules: []string{"GEOSITE,geolocation-cn,DIRECT", "GEOIP,CN,DIRECT,no-resolve"},
+	}}
+	out, err := handleGetRuntimeConfig(params)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.UnmarshalRawConfig([]byte(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"DOMAIN-SUFFIX,other.example,DIRECT", "GEOSITE,geolocation-cn,DIRECT", "GEOIP,CN,DIRECT,no-resolve", "DOMAIN-SUFFIX,service.example,Proxy", "IP-CIDR,8.8.8.8/32,Proxy,no-resolve", "MATCH,Proxy"}
+	if !reflect.DeepEqual(cfg.Rule, want) {
+		t.Fatalf("rules = %#v; want %#v", cfg.Rule, want)
+	}
+	stored, err := os.ReadFile(profilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(stored) != originalProfile {
+		t.Fatal("original subscription was modified")
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("generated scripted config should be removed, got %v", err)
 	}
 }

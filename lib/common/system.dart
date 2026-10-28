@@ -17,6 +17,8 @@ import 'package:path/path.dart';
 import 'package:restart_app/restart_app.dart';
 import 'package:synchronized/synchronized.dart';
 
+import 'linux_system_dns.dart';
+
 class System {
   static System? _instance;
 
@@ -25,6 +27,26 @@ class System {
   factory System() {
     _instance ??= System._internal();
     return _instance!;
+  }
+
+  Future<String> get deviceName async {
+    try {
+      if (isAndroid) {
+        final info = await DeviceInfoPlugin().androidInfo;
+        return info.model.isNotEmpty ? info.model : info.device;
+      }
+      final host = Platform.localHostname;
+      return host.endsWith('.local')
+          ? host.substring(0, host.length - '.local'.length)
+          : host;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Future<void> updateDns(bool restore) async {
+    await macOS?.updateDns(restore);
+    await linux?.updateDns(restore);
   }
 
   bool get isDesktop => isWindows || isMacOS || isLinux;
@@ -457,17 +479,13 @@ class System {
       final executable = (appImage != null && appImage.isNotEmpty)
           ? appImage
           : Platform.resolvedExecutable;
-      await Process.start(
-        'sh',
-        [
-          '-c',
-          'while kill -0 \$1 2>/dev/null; do sleep 0.1; done; exec "\$2"',
-          '--',
-          '$pid',
-          executable,
-        ],
-        mode: ProcessStartMode.detached,
-      );
+      await Process.start('sh', [
+        '-c',
+        'while kill -0 \$1 2>/dev/null; do sleep 0.1; done; exec "\$2"',
+        '--',
+        '$pid',
+        executable,
+      ], mode: ProcessStartMode.detached);
       await globalState.appController.handleExit();
       return;
     }
@@ -983,3 +1001,12 @@ class MacOS {
 }
 
 final macOS = system.isMacOS ? MacOS() : null;
+
+final linux = system.isLinux
+    ? LinuxSystemDns(
+        backupFile: () async => File(
+          join(await appPath.homeDirPath, 'linux_system_dns_backup.json'),
+        ),
+        warn: (message) => commonPrint.warn(message),
+      )
+    : null;

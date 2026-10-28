@@ -162,9 +162,11 @@ class AndroidEnvironment {
     final bindgenArgsKey =
         'BINDGEN_EXTRA_CLANG_ARGS_${target.rust.replaceAll('-', '_')}';
 
+    final clangResourceDir = path.join(prebuiltPath, 'lib', 'clang', '19');
+
     return {
       if (libclangPath != null) 'LIBCLANG_PATH': libclangPath,
-      bindgenArgsKey: '"--sysroot=$sysrootPath" $targetArg',
+      bindgenArgsKey: '"--sysroot=$sysrootPath" -resource-dir=$clangResourceDir $targetArg',
       arKey: arValue,
       ccKey: ccValue,
       cfFlagsKey: cFlagsValue,

@@ -29,6 +29,28 @@ class _ChainValidator extends ClashHandlerInterface {
   }
 
   @override
+  Future<Result> getConfig(
+    String path, {
+    String? ageSecretKey,
+    List<String> disabledGroups = const [],
+  }) async {
+    return Result.success(<String, dynamic>{
+      'proxies': [
+        {'name': 'Entry', 'type': 'http', 'server': '127.0.0.1', 'port': 10001},
+        {'name': 'Exit', 'type': 'http', 'server': '127.0.0.1', 'port': 10002},
+      ],
+      'proxy-groups': [
+        {
+          'name': 'Group',
+          'type': 'select',
+          'proxies': ['Entry'],
+        },
+      ],
+      'rule': <String>[],
+    });
+  }
+
+  @override
   Future<bool> preload() async => true;
   @override
   void reStart() {}
@@ -44,6 +66,10 @@ void main() {
   final handler = _ChainValidator();
   const profile = Profile(
     id: 'chain-page',
+    autoUpdateDuration: Duration(hours: 1),
+  );
+  const exitProfile = Profile(
+    id: 'exit-profile',
     autoUpdateDuration: Duration(hours: 1),
   );
   setUpAll(() async {
@@ -67,7 +93,11 @@ void main() {
     handler.message = '';
     handler.received = null;
     ProfileChainStore.instance.byProfile.clear();
-    globalState.config = Config(themeProps: defaultThemeProps);
+    globalState.config = Config(
+      themeProps: defaultThemeProps,
+      profiles: [profile, exitProfile],
+      currentProfileId: profile.id,
+    );
     globalState.appState = AppState(
       brightness: Brightness.light,
       version: 0,
@@ -91,7 +121,7 @@ void main() {
       );
       await Future<void>.delayed(const Duration(milliseconds: 100));
     });
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
   }
 
   void enable(WidgetTester tester, bool value) {
@@ -108,7 +138,7 @@ void main() {
   ) async {
     await open(tester);
     enable(tester, true);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
     expect(
       find.text('Choose both an entry and an exit before enabling the chain.'),
       findsOneWidget,
@@ -119,7 +149,11 @@ void main() {
   testWidgets(
     'cycle validation error is visible and last saved choice survives',
     (tester) async {
-      final original = ProfileChain(entry: 'Entry', landing: 'Exit');
+      final original = ProfileChain(
+        entry: 'Entry',
+        landing: 'Exit',
+        landingProfileId: exitProfile.id,
+      );
       ProfileChainStore.instance.byProfile[profile.id] = original;
       handler.message = 'circular dialer-proxy fixture';
       await open(tester);
@@ -127,20 +161,21 @@ void main() {
         enable(tester, true);
         await Future<void>.delayed(const Duration(milliseconds: 30));
       });
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 100));
       expect(find.text('circular dialer-proxy fixture'), findsOneWidget);
       expect(ProfileChainStore.instance.of(profile.id), same(original));
-      expect(handler.received?.patch?['chain-policy'], {
-        'enabled': true,
-        'entry': 'Entry',
-        'landing': 'Exit',
-      });
+      final chainPolicy = handler.received?.patch?['chain-policy'] as Map?;
+      expect(chainPolicy?['enabled'], isTrue);
+      expect(chainPolicy?['entry'], 'Entry');
+      expect(chainPolicy?['landing'], 'Exit');
+      expect(chainPolicy?['entry-kind'], 'proxy');
+      expect(chainPolicy?['landing-kind'], 'proxy');
       handler.message = '';
       await tester.runAsync(() async {
         enable(tester, true);
         await Future<void>.delayed(const Duration(milliseconds: 30));
       });
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 100));
       expect(ProfileChainStore.instance.of(profile.id).enabled, isTrue);
       expect(find.text('circular dialer-proxy fixture'), findsNothing);
       final prefs = await SharedPreferences.getInstance();
@@ -148,23 +183,57 @@ void main() {
     },
   );
   testWidgets(
+    'new candidate is validated without rebuilding an invalid saved chain',
+    (tester) async {
+      final old = ProfileChain(
+        enabled: true,
+        entry: 'Entry',
+        landing: 'Removed',
+        landingProfileId: 'gone-profile',
+      );
+      final candidate = ProfileChain(
+        enabled: true,
+        entry: 'Entry',
+        landing: 'Exit',
+        landingProfileId: exitProfile.id,
+      );
+      ProfileChainStore.instance.byProfile[profile.id] = old;
+      SetupParams? setup;
+      await tester.runAsync(() async {
+        setup = await globalState.buildSetupParams(
+          patchConfig: globalState.config.patchClashConfig,
+          profile: profile,
+          chainOverride: candidate,
+        );
+      });
+      final policy = setup?.patch?['chain-policy'] as Map?;
+      expect(policy?['external-profile-id'], exitProfile.id);
+      expect(policy?['landing'], 'Exit');
+      expect(ProfileChainStore.instance.of(profile.id), same(old));
+    },
+  );
+
+  testWidgets(
     'removed nodes are explained and the chain can still be disabled',
     (tester) async {
       ProfileChainStore.instance.byProfile[profile.id] = ProfileChain(
         enabled: true,
         entry: 'Entry',
         landing: 'Removed',
+        landingProfileId: exitProfile.id,
       );
       await open(tester);
       expect(
-        find.textContaining('A selected node is unavailable.'),
+        find.textContaining(
+          'A selected proxy, group, or profile is unavailable.',
+        ),
         findsOneWidget,
       );
       await tester.runAsync(() async {
         enable(tester, false);
         await Future<void>.delayed(const Duration(milliseconds: 30));
       });
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 100));
       expect(ProfileChainStore.instance.of(profile.id).enabled, isFalse);
       expect(handler.received, isNull);
     },

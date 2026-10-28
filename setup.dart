@@ -184,6 +184,18 @@ class Build {
   }) async {
     final isLib = mode == Mode.lib;
 
+    // The vendored Mihomo tree carries no version of its own (its
+    // constant.Version is empty and its Makefile expects a git checkout),
+    // so pin the snapshot identity in core/CORE_VERSION and inject it.
+    // Update that file whenever the vendored core is synced.
+    final coreVersionFile = File(join(_coreDir, 'CORE_VERSION'));
+    final coreVersion = coreVersionFile.existsSync()
+        ? coreVersionFile.readAsStringSync().trim()
+        : '';
+    final coreVersionLdflag = coreVersion.isEmpty
+        ? ''
+        : ' -X "github.com/metacubex/mihomo/constant.Version=$coreVersion"';
+
     final items = buildItems.where((element) {
       return element.target == target &&
           (arch == null ? true : element.arch == arch);
@@ -237,7 +249,7 @@ class Build {
         'go',
         'build',
         '-trimpath',
-        '-ldflags=-w -s${item.target == Target.android && (item.arch == Arch.arm64 || item.arch == Arch.amd64) ? ' -extldflags "-Wl,-z,max-page-size=16384"' : ''}',
+        '-ldflags=-w -s$coreVersionLdflag${item.target == Target.android && (item.arch == Arch.arm64 || item.arch == Arch.amd64) ? ' -extldflags "-Wl,-z,max-page-size=16384"' : ''}',
         '-tags=$buildTags',
         if (isLib) '-buildmode=c-shared',
         '-o',

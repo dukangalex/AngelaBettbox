@@ -157,6 +157,18 @@ func checkTunName(tunName string) (ok bool) {
 }
 
 func New(options LC.Tun, tunnel C.Tunnel, additions ...inbound.Addition) (l *Listener, err error) {
+	// A positive FileDescriptor is detached from its platform owner. Keep it
+	// until tunNew returns a device that l.Close can own; close it on earlier
+	// validation/configuration errors. sing-tun v0.4.28 wraps caller FDs without
+	// consuming them on its error paths.
+	fdUnclaimed := options.FileDescriptor > 0 && runtime.GOOS != "windows"
+	defer func() {
+		if fdUnclaimed {
+			if closeErr := closeTunFD(options.FileDescriptor); closeErr != nil {
+				log.Warnln("[TUN] close unclaimed descriptor %d failed: %v", options.FileDescriptor, closeErr)
+			}
+		}
+	}()
 	if len(additions) == 0 {
 		additions = []inbound.Addition{
 			inbound.WithInName("DEFAULT-TUN"),
@@ -297,6 +309,12 @@ func New(options LC.Tun, tunnel C.Tunnel, additions ...inbound.Addition) (l *Lis
 		excludeMACAddress = append(excludeMACAddress, addr)
 	}
 
+	switch options.DNSMode {
+	case "", tun.DNSModeDisabled, tun.DNSModeNative, tun.DNSModeHijack:
+	default:
+		return nil, fmt.Errorf("invalid dns-mode: %s", options.DNSMode)
+	}
+
 	var dnsAdds []netip.AddrPort
 
 	for _, d := range options.DNSHijack {
@@ -413,6 +431,7 @@ func New(options LC.Tun, tunnel C.Tunnel, additions ...inbound.Addition) (l *Lis
 		GSO:                                   options.GSO,
 		Inet4Address:                          options.Inet4Address,
 		Inet6Address:                          options.Inet6Address,
+		DNSMode:                               options.DNSMode,
 		AutoRoute:                             options.AutoRoute,
 		IPRoute2TableIndex:                    tableIndex,
 		IPRoute2RuleIndex:                     ruleIndex,
@@ -499,6 +518,10 @@ func New(options LC.Tun, tunnel C.Tunnel, additions ...inbound.Addition) (l *Lis
 		err = E.Cause(err, "configure tun interface")
 		return
 	}
+	if tunIf == nil {
+		err = E.New("configure tun interface returned no device")
+		return
+	}
 
 	l.dnsServerIp = dnsServerIp
 	// after tun.New sing-tun has set DNS to TUN interface
@@ -519,6 +542,9 @@ func New(options LC.Tun, tunnel C.Tunnel, additions ...inbound.Addition) (l *Lis
 		EnforceBindInterface:   EnforceBindInterface,
 	}
 	l.tunIf = tunIf
+	// sing-tun.New has wrapped the Android FD in its Tun implementation. From
+	// here, Listener.Close owns it; don't let the construction guard close it.
+	fdUnclaimed = false
 	handler.tunIf = tunIf
 
 	tunStack, err := tun.NewStack(strings.ToLower(options.Stack.String()), stackOptions)
@@ -562,8 +588,8 @@ func New(options LC.Tun, tunnel C.Tunnel, additions ...inbound.Addition) (l *Lis
 	if options.FileDescriptor != 0 {
 		tunName = fmt.Sprintf("%s(fd=%d)", tunName, options.FileDescriptor)
 	}
-	l.addrStr = fmt.Sprintf("%s(%s,%s), mtu: %d, auto route: %v, auto redir: %v, ip stack: %s",
-		tunName, tunOptions.Inet4Address, tunOptions.Inet6Address, tunMTU, options.AutoRoute, options.AutoRedirect, options.Stack)
+	l.addrStr = fmt.Sprintf("%s(%s,%s), mtu: %d, auto route: %v, auto redir: %v, ip stack: %s, dns mode: %s",
+		tunName, tunOptions.Inet4Address, tunOptions.Inet6Address, tunMTU, options.AutoRoute, options.AutoRedirect, options.Stack, options.DNSMode)
 	return
 }
 

@@ -5,10 +5,21 @@
 #include "libmeta.h"
 
 extern "C"
-JNIEXPORT void JNICALL
-Java_com_appshub_bettbox_core_Core_startTun(JNIEnv *env, jobject, const jint fd, jobject cb) {
+JNIEXPORT jboolean JNICALL
+Java_com_appshub_bettbox_core_Core_startTun(JNIEnv *env, jobject, const jint fd, jobject cb, const jlong epoch) {
     const auto interface = new_global(cb);
-    startTUN(fd, interface);
+    return startTUN(fd, interface, epoch) ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_com_appshub_bettbox_core_Core_beginTunTransition(JNIEnv *, jobject) {
+    return beginTunTransition();
+}
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_appshub_bettbox_core_Core_stopTunEpoch(JNIEnv *, jobject, jlong epoch) {
+    return stopTunEpoch(epoch) ? JNI_TRUE : JNI_FALSE;
 }
 
 extern "C"
@@ -33,13 +44,13 @@ static void release_jni_object_impl(void *obj) {
     del_global(static_cast<jobject>(obj));
 }
 
-static void call_tun_interface_protect_impl(void *tun_interface, const int fd) {
-    if (tun_interface == nullptr) return;
+static int call_tun_interface_protect_impl(void *tun_interface, const int fd) {
+    if (tun_interface == nullptr || m_tun_interface_protect == nullptr) return 0;
     ATTACH_JNI();
-    env->CallVoidMethod(static_cast<jobject>(tun_interface),
-                        m_tun_interface_protect,
-                        fd);
-    jni_catch_exception(env);
+    const jboolean ok = env->CallBooleanMethod(static_cast<jobject>(tun_interface),
+                                               m_tun_interface_protect, fd);
+    if (jni_catch_exception(env)) return 0;
+    return ok == JNI_TRUE ? 1 : 0;
 }
 
 static const char *
@@ -78,7 +89,7 @@ JNI_OnLoad(JavaVM *vm, void *) {
 
     const auto c_tun_interface = find_class("com/appshub/bettbox/core/TunInterface");
 
-    m_tun_interface_protect = find_method(c_tun_interface, "protect", "(I)V");
+    m_tun_interface_protect = find_method(c_tun_interface, "protect", "(I)Z");
     m_tun_interface_resolve_process = find_method(c_tun_interface, "resolverProcess",
                                                   "(ILjava/lang/String;Ljava/lang/String;I)Ljava/lang/String;");
 

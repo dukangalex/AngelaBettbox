@@ -235,6 +235,16 @@ class AppPath {
     return join(tempDirectory, 'ip_cache.json');
   }
 
+  Future<String> get speedTestPath async {
+    final directory = await dataDir.future;
+    return join(directory.path, 'speed_test.json');
+  }
+
+  Future<String> get toolHistoryPath async {
+    final directory = await dataDir.future;
+    return join(directory.path, 'toolbox_history.json');
+  }
+
   Future<String> get helperAuthKeyPath async {
     final directory = await dataDir.future;
     return join(directory.path, 'helper_auth.key');

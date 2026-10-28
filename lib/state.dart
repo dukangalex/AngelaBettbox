@@ -27,6 +27,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'common/common.dart';
 import 'common/profile_chain.dart';
+import 'common/profile_chain_overlay.dart';
 import 'controller.dart';
 import 'models/models.dart';
 
@@ -69,6 +70,8 @@ class GlobalState {
   // ignore: deprecated_member_use
   CorePalette? corePalette;
   DateTime? startTime;
+  // Retained across failed/unknown channel results, even when UI time is cleared.
+  bool vpnTransitionUnconfirmed = false;
   UpdateTasks tasks = [];
   final navigatorKey = GlobalKey<NavigatorState>();
   final backgroundMode = ValueNotifier<bool>(false);
@@ -251,6 +254,9 @@ class GlobalState {
 
   bool get isAndroidTV => _isAndroidTV ?? false;
 
+  @visibleForTesting
+  set isAndroidTV(bool value) => _isAndroidTV = value;
+
   String get ua => config.patchClashConfig.globalUa ?? packageInfo.ua;
 
   Future<void> startUpdateTasks([UpdateTasks? tasks]) async {
@@ -408,15 +414,29 @@ class GlobalState {
     UpdateTasks? tasks,
     bool includeVpnService = true,
   ]) async {
-    startTime ??= DateTime.now();
+    // Even an early listener/channel exception must leave a cleanup obligation.
+    if (includeVpnService && service != null) vpnTransitionUnconfirmed = true;
     if (system.isAndroid && isService) {
-      await clashLibHandler?.startListener();
+      if (await clashLibHandler?.startListener() != true) {
+        throw StateError(
+          'Proxy listener failed to start; check the configured ports.',
+        );
+      }
     } else {
       await clashCore.startListener();
     }
-    if (includeVpnService) {
-      await service?.startVpn();
+    if (includeVpnService && service != null) {
+      vpnTransitionUnconfirmed = true;
+      if (await service!.startVpn() != true) {
+        startTime = null;
+        await clashCore.stopListener();
+        throw StateError(
+          'VPN start was not confirmed; no running state was recorded.',
+        );
+      }
     }
+    if (includeVpnService && service != null) vpnTransitionUnconfirmed = false;
+    startTime ??= DateTime.now();
     final prefs = await preferences.sharedPreferencesCompleter.future;
     await prefs?.setBool('is_vpn_running', true);
 
@@ -450,6 +470,7 @@ class GlobalState {
   }
 
   Future handleStop([bool includeVpnService = true]) async {
+    if (includeVpnService && service != null) vpnTransitionUnconfirmed = true;
     startTime = null;
     if (system.isAndroid && isService) {
       await clashLibHandler?.stopListener();
@@ -460,8 +481,15 @@ class GlobalState {
       stopUpdateTasks();
       return;
     }
-    await service?.stopVpn();
+    if (service != null) vpnTransitionUnconfirmed = true;
+    if (service != null && await service!.stopVpn() != true) {
+      stopUpdateTasks();
+      throw StateError(
+        'VPN destruction was not confirmed; configuration changes are blocked.',
+      );
+    }
     final prefs = await preferences.sharedPreferencesCompleter.future;
+    vpnTransitionUnconfirmed = false;
     await prefs?.setBool('is_vpn_running', false);
     if (system.isDesktop) {
       await prefs?.setBool('is_tun_running', false);
@@ -680,6 +708,7 @@ class GlobalState {
   Future<SetupParams> buildSetupParams({
     required ClashConfig patchConfig,
     Profile? profile,
+    ProfileChain? chainOverride,
   }) async {
     final targetProfile = profile ?? config.currentProfile;
     final params = SetupParams(
@@ -699,6 +728,7 @@ class GlobalState {
       patch: await buildPatchParams(
         patchConfig: patchConfig,
         profile: targetProfile,
+        chainOverride: chainOverride,
       ),
     );
   }
@@ -854,10 +884,56 @@ class GlobalState {
     );
   }
 
+  Future<Map<String, dynamic>> buildChainPolicyParams(
+    Profile profile,
+    ProfileChain chain,
+  ) async {
+    final policy = chain.toJson();
+    final landingProfileId = chain.resolvedLandingProfileId(profile.id);
+    if (!chain.enabled) return policy;
+    if (landingProfileId == profile.id) {
+      throw const FormatException(
+        'The chain exit must be selected from another profile.',
+      );
+    }
+    final sourceProfile = config.profiles.getProfile(landingProfileId);
+    if (sourceProfile == null) {
+      throw const FormatException(
+        'The selected exit profile is no longer available.',
+      );
+    }
+    final source = await getProfileConfig(landingProfileId, effective: true);
+    final activeConfig = await getProfileConfig(profile.id, effective: true);
+    policy.addAll(
+      ProfileChainOverlay.build(
+        profileId: sourceProfile.id,
+        source: source,
+        targetKind: chain.landingKind,
+        targetName: chain.landing,
+        reservedNames: {
+          for (final proxy in (activeConfig['proxies'] as List? ?? const []))
+            if (proxy is Map && proxy['name'] is String)
+              proxy['name'] as String,
+          for (final group
+              in (activeConfig['proxy-groups'] as List? ?? const []))
+            if (group is Map && group['name'] is String)
+              group['name'] as String,
+          for (final name
+              in (activeConfig['proxy-providers'] as Map? ?? const {}).keys)
+            name.toString(),
+        },
+        providersPath: await appPath.getProvidersDirPath(sourceProfile.id),
+      ),
+    );
+    return policy;
+  }
+
   Future<Map<String, dynamic>> buildPatchParams({
     required ClashConfig patchConfig,
     required Profile profile,
+    ProfileChain? chainOverride,
   }) async {
+    await SystemExplicitStore.instance.ensureLoaded();
     final fakeIpRangeV6 = patchConfig.dns.effectiveFakeIpRangeV6(
       ipv6Enabled: patchConfig.ipv6,
     );
@@ -983,32 +1059,25 @@ class GlobalState {
           config.vpnProps.excludeChina && !isRussian
               ? 'AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((GEOSITE,geolocation-cn),(GEOIP,CN,no-resolve)))))),REJECT'
               : 'AND,((NETWORK,UDP),(DST-PORT,443)),REJECT',
-        // AngelaBettbox fork: system explicit runtime policy.
-        // Ported from SystemExplicitStore.apply; the rules ride on
-        // prepend-rules which applyPatch already prepends, so no Go
-        // change is needed for these.
-        if (SystemExplicitStore.instance.value.privacy) ...[
-          'AND,((NETWORK,UDP),(DST-PORT,5353)),REJECT',
-          'AND,((NETWORK,UDP),(DST-PORT,5355)),REJECT',
-          'AND,((NETWORK,UDP),(DST-PORT,1900)),REJECT',
-        ],
-        if (SystemExplicitStore.instance.value.chinaDirect) ...[
-          'GEOSITE,geolocation-cn,DIRECT',
-          'GEOIP,CN,DIRECT,no-resolve',
-        ],
       ],
       // AngelaBettbox fork: the remaining SystemExplicitStore.apply /
       // ProfileChainStore.apply mutations are applied Go-side in
       // core/patch.go (the Dart full-config hook no longer exists).
       'drop-automatic-direct': SystemExplicitStore.instance.value.adapt,
-      'chain-policy': () {
-        final chain = ProfileChainStore.instance.byProfile[profile.id];
-        return {
-          'enabled': chain?.enabled ?? false,
-          'entry': chain?.entry ?? '',
-          'landing': chain?.landing ?? '',
-        };
-      }(),
+      // These explicit routes replace matching same-category profile/script
+      // rules; unrelated rules are preserved in their original order.
+      'system-explicit-rules': SystemExplicitStore.instance.value
+          .buildRuntimeRulesForMode(patchConfig.mode),
+      // The guard runs at TUN packet ingress, before DNS hijacking. Only the
+      // Android build exposes the switch; desktop behaviour stays unchanged.
+      'block-tun-udp':
+          system.isAndroid && SystemExplicitStore.instance.value.blockTunUdp,
+      'chain-policy': await buildChainPolicyParams(
+        profile,
+        chainOverride ??
+            ProfileChainStore.instance.byProfile[profile.id] ??
+            ProfileChain(),
+      ),
       'disabled-groups': scriptActive
           ? const []
           : [

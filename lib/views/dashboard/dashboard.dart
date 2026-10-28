@@ -257,6 +257,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> {
           .where(
             (item) =>
                 !children.contains(item.widget) &&
+                item != DashboardWidget.trafficUsage &&
                 item.platforms.contains(SupportPlatform.currentPlatform),
           )
           .map((item) => item.widget)

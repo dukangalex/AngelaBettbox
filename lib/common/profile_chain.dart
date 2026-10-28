@@ -2,29 +2,71 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum ProfileChainIssue { incomplete, sameNode, unavailable }
+enum ProfileChainIssue {
+  incomplete,
+  sameNode,
+  otherProfileRequired,
+  unavailable,
+}
+
+enum ChainTargetKind { proxy, group }
+
+String chainTargetKey(ChainTargetKind kind, String name) =>
+    '${kind.name}\u0000$name';
 
 class ProfileChain {
   bool enabled;
   String entry;
+  ChainTargetKind entryKind;
   String landing;
+  ChainTargetKind landingKind;
 
-  ProfileChain({this.enabled = false, this.entry = '', this.landing = ''});
+  /// Empty means the profile owning this chain (also the legacy v1 default).
+  String landingProfileId;
 
-  ProfileChain copyWith({bool? enabled, String? entry, String? landing}) =>
-      ProfileChain(
-        enabled: enabled ?? this.enabled,
-        entry: entry ?? this.entry,
-        landing: landing ?? this.landing,
-      );
+  ProfileChain({
+    this.enabled = false,
+    this.entry = '',
+    this.entryKind = ChainTargetKind.proxy,
+    this.landing = '',
+    this.landingKind = ChainTargetKind.proxy,
+    this.landingProfileId = '',
+  });
 
-  ProfileChainIssue? selectionIssue(Iterable<String> names) {
+  String resolvedLandingProfileId(String currentProfileId) =>
+      landingProfileId.isEmpty ? currentProfileId : landingProfileId;
+
+  ProfileChain copyWith({
+    bool? enabled,
+    String? entry,
+    ChainTargetKind? entryKind,
+    String? landing,
+    ChainTargetKind? landingKind,
+    String? landingProfileId,
+  }) => ProfileChain(
+    enabled: enabled ?? this.enabled,
+    entry: entry ?? this.entry,
+    entryKind: entryKind ?? this.entryKind,
+    landing: landing ?? this.landing,
+    landingKind: landingKind ?? this.landingKind,
+    landingProfileId: landingProfileId ?? this.landingProfileId,
+  );
+
+  ProfileChainIssue? selectionIssue({
+    required String currentProfileId,
+    required Set<String> entryTargets,
+    required Set<String> landingTargets,
+  }) {
     if (!enabled) return null;
     if (entry.trim().isEmpty || landing.trim().isEmpty) {
       return ProfileChainIssue.incomplete;
     }
-    if (entry == landing) return ProfileChainIssue.sameNode;
-    if (!names.contains(entry) || !names.contains(landing)) {
+    final landingSource = resolvedLandingProfileId(currentProfileId);
+    if (landingSource == currentProfileId) {
+      return ProfileChainIssue.otherProfileRequired;
+    }
+    if (!entryTargets.contains(chainTargetKey(entryKind, entry)) ||
+        !landingTargets.contains(chainTargetKey(landingKind, landing))) {
       return ProfileChainIssue.unavailable;
     }
     return null;
@@ -33,14 +75,27 @@ class ProfileChain {
   Map<String, dynamic> toJson() => {
     'enabled': enabled,
     'entry': entry,
+    'entry-kind': entryKind.name,
     'landing': landing,
+    'landing-kind': landingKind.name,
+    if (landingProfileId.isNotEmpty) 'landing-profile-id': landingProfileId,
   };
 
   factory ProfileChain.fromJson(Map<String, dynamic> json) {
+    ChainTargetKind parseKind(Object? value) {
+      for (final kind in ChainTargetKind.values) {
+        if (kind.name == value) return kind;
+      }
+      return ChainTargetKind.proxy;
+    }
+
     return ProfileChain(
       enabled: json['enabled'] == true,
       entry: (json['entry'] ?? '').toString(),
+      entryKind: parseKind(json['entry-kind']),
       landing: (json['landing'] ?? '').toString(),
+      landingKind: parseKind(json['landing-kind']),
+      landingProfileId: (json['landing-profile-id'] ?? '').toString(),
     );
   }
 }

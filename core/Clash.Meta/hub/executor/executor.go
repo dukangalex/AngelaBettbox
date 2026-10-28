@@ -82,6 +82,16 @@ func ParseWithBytes(buf []byte) (*config.Config, error) {
 
 // ApplyConfig dispatch configure to all parts without ExternalController
 func ApplyConfig(cfg *config.Config, force bool) {
+	applyConfig(cfg, force, false)
+}
+
+// ApplyConfigWithListeners is for non-embedded full controller reloads. The
+// embedding app manages listeners and Android TUN separately.
+func ApplyConfigWithListeners(cfg *config.Config, force bool) {
+	applyConfig(cfg, force, true)
+}
+
+func applyConfig(cfg *config.Config, force, manageListeners bool) {
 	mux.Lock()
 	defer mux.Unlock()
 	log.SetLevel(cfg.General.LogLevel)
@@ -104,8 +114,10 @@ func ApplyConfig(cfg *config.Config, force bool) {
 	updateGeneral(cfg.General, true)
 	updateDNS(cfg.DNS, cfg.General.IPv6)
 	updateNTP(cfg.NTP) // initialize NTP after DNS because an NTP server may be a hostname.
-	// updateListeners(cfg.General, cfg.Listeners, force)
-	// updateTun(cfg.General) // tun should not care "force"
+	if manageListeners {
+		updateListeners(cfg.General, cfg.Listeners, force)
+		updateTun(cfg.General) // tun should not care "force"
+	}
 	updateIPTables(cfg)
 	updateTunnels(cfg.Tunnels)
 

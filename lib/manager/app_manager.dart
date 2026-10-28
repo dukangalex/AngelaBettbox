@@ -88,7 +88,7 @@ class _AppStateManagerState extends ConsumerState<AppStateManager>
         return;
       }
       final shouldSet = next.a == true && next.b == true;
-      await macOS?.updateDns(!shouldSet);
+      await system.updateDns(!shouldSet);
     });
     ref.listenManual(currentBrightnessProvider, (prev, next) {
       if (prev == next) {

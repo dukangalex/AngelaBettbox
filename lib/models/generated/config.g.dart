@@ -82,6 +82,28 @@ _AppSettingProps _$AppSettingPropsFromJson(
   sidebarFlyoutEntries: json['sidebarFlyoutEntries'] == null
       ? defaultSidebarFlyoutEntries
       : sidebarFlyoutEntriesSafeFromJson(json['sidebarFlyoutEntries'] as List?),
+  toolboxTiles:
+      (json['toolboxTiles'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
+  mrsCopyRawLink: json['mrsCopyRawLink'] as bool? ?? false,
+  mrsRawSource:
+      $enumDecodeNullable(
+        _$MrsRawSourceEnumMap,
+        json['mrsRawSource'],
+        unknownValue: MrsRawSource.bettRules,
+      ) ??
+      MrsRawSource.bettRules,
+  mrsResolveDns: json['mrsResolveDns'] as bool? ?? true,
+  iperfOptions: json['iperfOptions'] == null
+      ? const IperfOptions()
+      : IperfOptions.fromJson(json['iperfOptions'] as Map<String, dynamic>),
+  localPingOptions: json['localPingOptions'] == null
+      ? const LocalPingOptions()
+      : LocalPingOptions.fromJson(
+          json['localPingOptions'] as Map<String, dynamic>,
+        ),
   dashboardTitle: json['dashboardTitle'] as String?,
 );
 
@@ -138,6 +160,12 @@ Map<String, dynamic> _$AppSettingPropsToJson(_AppSettingProps instance) =>
       'sidebarFlyoutEntries': instance.sidebarFlyoutEntries
           .map((e) => _$SidebarFlyoutEntryEnumMap[e]!)
           .toList(),
+      'toolboxTiles': instance.toolboxTiles,
+      'mrsCopyRawLink': instance.mrsCopyRawLink,
+      'mrsRawSource': _$MrsRawSourceEnumMap[instance.mrsRawSource]!,
+      'mrsResolveDns': instance.mrsResolveDns,
+      'iperfOptions': instance.iperfOptions,
+      'localPingOptions': instance.localPingOptions,
       'dashboardTitle': instance.dashboardTitle,
     };
 
@@ -155,6 +183,11 @@ const _$SidebarFlyoutDelayEnumMap = {
   SidebarFlyoutDelay.fast: 'fast',
   SidebarFlyoutDelay.standard: 'standard',
   SidebarFlyoutDelay.slow: 'slow',
+};
+
+const _$MrsRawSourceEnumMap = {
+  MrsRawSource.bettRules: 'bettRules',
+  MrsRawSource.metaRulesDat: 'metaRulesDat',
 };
 
 const _$DashboardWidgetEnumMap = {

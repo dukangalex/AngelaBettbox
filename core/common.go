@@ -115,12 +115,12 @@ func sideUpdateExternalProvider(p cp.Provider, bytes []byte) error {
 	}
 }
 
-func updateListeners() {
+func updateListeners() error {
 	if !isRunning {
-		return
+		return nil
 	}
 	if currentConfig == nil {
-		return
+		return errors.New("listener start failed: no active configuration")
 	}
 	listeners := currentConfig.Listeners
 	general := currentConfig.General
@@ -134,13 +134,14 @@ func updateListeners() {
 	listener.ReCreateSocks(general.SocksPort, tunnel.Tunnel)
 	listener.ReCreateRedir(general.RedirPort, tunnel.Tunnel)
 	listener.ReCreateTProxy(general.TProxyPort, tunnel.Tunnel)
-	listener.ReCreateMixed(general.MixedPort, tunnel.Tunnel)
+	mixedErr := listener.ReCreateMixed(general.MixedPort, tunnel.Tunnel)
 	listener.ReCreateShadowSocks(general.ShadowSocksConfig, tunnel.Tunnel)
 	listener.ReCreateVmess(general.VmessConfig, tunnel.Tunnel)
 	listener.ReCreateTuic(general.TuicServer, tunnel.Tunnel)
 	if !features.Android {
 		listener.ReCreateTun(general.Tun, tunnel.Tunnel)
 	}
+	return mixedErr
 }
 
 func stopListeners() {
