@@ -368,17 +368,17 @@ class Build {
   static const List<AssetDownloadItem> assetDownloadItems = [
     AssetDownloadItem(
       url:
-          'https://github.com/appshubcc/bett-rules/releases/download/latest/geosite.dat',
+          'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat',
       fileName: 'GeoSite.dat',
     ),
     AssetDownloadItem(
       url:
-          'https://github.com/appshubcc/bett-rules/releases/download/latest/geoip.metadb',
+          'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb',
       fileName: 'geoip.metadb',
     ),
     AssetDownloadItem(
       url:
-          'https://github.com/appshubcc/bett-rules/releases/download/latest/GeoLite2-ASN-lite.mmdb',
+          'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb',
       fileName: 'ASN.mmdb',
     ),
     AssetDownloadItem(

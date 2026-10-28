@@ -83,39 +83,29 @@ _AppSettingProps _$AppSettingPropsFromJson(
   sidebarFlyoutEntries: json['sidebarFlyoutEntries'] == null
       ? defaultSidebarFlyoutEntries
       : sidebarFlyoutEntriesSafeFromJson(json['sidebarFlyoutEntries'] as List?),
-  toolboxTiles: (json['toolboxTiles'] as List<dynamic>)
-      .map((e) => e as String)
-      .toList(),
-  mrsCopyRawLink: json['mrsCopyRawLink'] as bool,
-  mrsRawSource: $enumDecode(
-    _$MrsRawSourceEnumMap,
-    json['mrsRawSource'],
-    unknownValue: MrsRawSource.bettRules,
-  ),
-  mrsResolveDns: json['mrsResolveDns'] as bool,
-  iperfOptions: IperfOptions.fromJson(
-    json['iperfOptions'] as Map<String, dynamic>,
-  ),
-  localPingOptions: LocalPingOptions.fromJson(
-    json['localPingOptions'] as Map<String, dynamic>,
-  ),
   dashboardTitle: json['dashboardTitle'] as String?,
-  toolboxTiles: (json['toolboxTiles'] as List<dynamic>)
-      .map((e) => e as String)
-      .toList(),
-  mrsCopyRawLink: json['mrsCopyRawLink'] as bool,
-  mrsRawSource: $enumDecode(
-    _$MrsRawSourceEnumMap,
-    json['mrsRawSource'],
-    unknownValue: MrsRawSource.bettRules,
-  ),
-  mrsResolveDns: json['mrsResolveDns'] as bool,
-  iperfOptions: IperfOptions.fromJson(
-    json['iperfOptions'] as Map<String, dynamic>,
-  ),
-  localPingOptions: LocalPingOptions.fromJson(
-    json['localPingOptions'] as Map<String, dynamic>,
-  ),
+  toolboxTiles:
+      (json['toolboxTiles'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
+  mrsCopyRawLink: json['mrsCopyRawLink'] as bool? ?? false,
+  mrsRawSource:
+      $enumDecodeNullable(
+        _$MrsRawSourceEnumMap,
+        json['mrsRawSource'],
+        unknownValue: MrsRawSource.metaRulesDat,
+      ) ??
+      MrsRawSource.metaRulesDat,
+  mrsResolveDns: json['mrsResolveDns'] as bool? ?? true,
+  iperfOptions: json['iperfOptions'] == null
+      ? const IperfOptions()
+      : IperfOptions.fromJson(json['iperfOptions'] as Map<String, dynamic>),
+  localPingOptions: json['localPingOptions'] == null
+      ? const LocalPingOptions()
+      : LocalPingOptions.fromJson(
+          json['localPingOptions'] as Map<String, dynamic>,
+        ),
   mobileDashboardSizes:
       (json['mobileDashboardSizes'] as Map<String, dynamic>?)?.map(
         (k, e) => MapEntry(k, e as String),
@@ -209,10 +199,7 @@ const _$SidebarFlyoutDelayEnumMap = {
   SidebarFlyoutDelay.slow: 'slow',
 };
 
-const _$MrsRawSourceEnumMap = {
-  MrsRawSource.bettRules: 'bettRules',
-  MrsRawSource.metaRulesDat: 'metaRulesDat',
-};
+const _$MrsRawSourceEnumMap = {MrsRawSource.metaRulesDat: 'metaRulesDat'};
 
 const _$DashboardWidgetEnumMap = {
   DashboardWidget.networkSpeed: 'networkSpeed',

@@ -229,20 +229,11 @@ abstract class AppSettingProps with _$AppSettingProps {
     @Default(defaultSidebarFlyoutEntries)
     @JsonKey(fromJson: sidebarFlyoutEntriesSafeFromJson)
     List<SidebarFlyoutEntry> sidebarFlyoutEntries,
-    @Default(<String>[]) List<String> toolboxTiles,
-    @Default(false) bool mrsCopyRawLink,
-    @JsonKey(unknownEnumValue: MrsRawSource.bettRules)
-    @Default(MrsRawSource.bettRules)
-    MrsRawSource mrsRawSource,
-    @Default(true) bool mrsResolveDns,
-    @Default(IperfOptions()) IperfOptions iperfOptions,
-    @Default(LocalPingOptions()) LocalPingOptions localPingOptions,
-
     String? dashboardTitle,
     @Default(<String>[]) List<String> toolboxTiles,
     @Default(false) bool mrsCopyRawLink,
-    @JsonKey(unknownEnumValue: MrsRawSource.bettRules)
-    @Default(MrsRawSource.bettRules)
+    @JsonKey(unknownEnumValue: MrsRawSource.metaRulesDat)
+    @Default(MrsRawSource.metaRulesDat)
     MrsRawSource mrsRawSource,
     @Default(true) bool mrsResolveDns,
     @Default(IperfOptions()) IperfOptions iperfOptions,
