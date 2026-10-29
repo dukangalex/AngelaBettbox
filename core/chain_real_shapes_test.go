@@ -15,14 +15,14 @@ import (
 
 func rsExitGroup() ([]map[string]any, []map[string]any) {
 	groups := []map[string]any{{
-		"name":    "[AngelaMihomo chain 2] 自动选择",
+		"name":    "[chain 2] 自动选择",
 		"type":    "url-test",
-		"proxies": []any{"[AngelaMihomo chain 2] exit-1", "[AngelaMihomo chain 2] exit-2"},
+		"proxies": []any{"[chain 2] exit-1", "[chain 2] exit-2"},
 		"url":     "http://127.0.0.1:1",
 	}}
 	proxies := []map[string]any{
-		{"name": "[AngelaMihomo chain 2] exit-1", "type": "http", "server": "127.0.0.1", "port": 1},
-		{"name": "[AngelaMihomo chain 2] exit-2", "type": "http", "server": "127.0.0.1", "port": 1},
+		{"name": "[chain 2] exit-1", "type": "http", "server": "127.0.0.1", "port": 1},
+		{"name": "[chain 2] exit-2", "type": "http", "server": "127.0.0.1", "port": 1},
 	}
 	return groups, proxies
 }
@@ -30,8 +30,8 @@ func rsExitGroup() ([]map[string]any, []map[string]any) {
 func rsParams(entry string, groups []map[string]any, proxies []map[string]any) *PatchParams {
 	return &PatchParams{ChainPolicy: &PatchChainPolicy{
 		Enabled: true, Entry: entry, EntryKind: "group",
-		Landing: "[AngelaMihomo chain 2] 自动选择", LandingKind: "group",
-		ExternalProfile: "2", ExternalTarget: "[AngelaMihomo chain 2] 自动选择",
+		Landing: "[chain 2] 自动选择", LandingKind: "group",
+		ExternalProfile: "2", ExternalTarget: "[chain 2] 自动选择",
 		ExternalKind: "group", ExternalGroups: groups, ExternalProxies: proxies,
 	}}
 }
@@ -86,11 +86,11 @@ proxy-groups:
   - {name: Main, type: select, proxies: [自动选择, DIRECT]}
 rules: ['MATCH,Main']
 `, strings.Join(lines, "\n"), strings.Join(members, ", ")))
-	proxies := []map[string]any{{"name": "[AngelaMihomo chain 2] exit", "type": "http", "server": "127.0.0.1", "port": 1}}
+	proxies := []map[string]any{{"name": "[chain 2] exit", "type": "http", "server": "127.0.0.1", "port": 1}}
 	params := &PatchParams{ChainPolicy: &PatchChainPolicy{
 		Enabled: true, Entry: "自动选择", EntryKind: "group",
-		Landing: "[AngelaMihomo chain 2] exit", LandingKind: "proxy",
-		ExternalProfile: "2", ExternalTarget: "[AngelaMihomo chain 2] exit",
+		Landing: "[chain 2] exit", LandingKind: "proxy",
+		ExternalProfile: "2", ExternalTarget: "[chain 2] exit",
 		ExternalKind: "proxy", ExternalProxies: proxies,
 	}}
 	if _, err := applyPatch(raw, params); err != nil {

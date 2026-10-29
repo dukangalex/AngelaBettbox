@@ -1385,7 +1385,7 @@ func TestExternalProfileProviderGroupTwoHopConnect(t *testing.T) {
 		Enabled: true, Entry: "EntryGroup", EntryKind: "group", Landing: "ExitGroup", LandingKind: "group",
 		ExternalProfile: "other", ExternalTarget: "[other] ExitGroup", ExternalKind: "group",
 		ExternalProviders: map[string]map[string]any{
-			"[other] provider": {"type": "inline", "payload": []map[string]any{proxyConfig("Exit", exit)}, "override": map[string]any{"override-expr": []any{`.name = "[AngelaMihomo chain other/provider] " + .name`}}},
+			"[other] provider": {"type": "inline", "payload": []map[string]any{proxyConfig("Exit", exit)}, "override": map[string]any{"override-expr": []any{`.name = "[chain other/provider] " + .name`}}},
 		},
 		ExternalGroups: []map[string]any{
 			{"name": "[other] ExitGroup", "type": "select", "use": []any{"[other] provider"}, "empty-fallback": "REJECT", "exclude-type": "Direct|Compatible|Pass"},

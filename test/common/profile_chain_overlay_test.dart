@@ -26,11 +26,11 @@ void main() {
     };
     final before = jsonEncode(source);
     final overlay = ProfileChainOverlay.build(
-      profileId: 'source-profile',
+      profileId: 'profile-1793192612',
       source: source,
       targetKind: ChainTargetKind.group,
       targetName: 'Outer',
-      reservedNames: {'[AngelaMihomo chain source-profile] Node A'},
+      reservedNames: {'[chain 192612] Node A'},
     );
     expect(
       jsonEncode(source),
@@ -42,13 +42,13 @@ void main() {
     expect(groups, hasLength(2));
     expect(proxies, hasLength(2));
     expect(overlay['external-target-kind'], 'group');
-    expect(overlay['external-profile-id'], 'source-profile');
+    expect(overlay['external-profile-id'], 'profile-1793192612');
     final names = {
       ...proxies.map((node) => node['name']),
       ...groups.map((group) => group['name']),
     };
     expect(names, hasLength(4));
-    expect(names, isNot(contains('[AngelaMihomo chain source-profile] Node A')));
+    expect(names, isNot(contains('[chain 192612] Node A')));
     final outer = groups.singleWhere(
       (g) => g['name'] == overlay['external-target'],
     );

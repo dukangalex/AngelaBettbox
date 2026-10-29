@@ -8,6 +8,13 @@ import 'package:bett_box/common/profile_chain.dart';
 class ProfileChainOverlay {
   const ProfileChainOverlay._();
 
+  /// Short source marker embedded in generated names. Profile ids are
+  /// timestamp-like and long; the last 6 characters keep generated group
+  /// names readable while staying distinct per source profile.
+  static String _nameToken(String profileId) => profileId.length > 6
+      ? profileId.substring(profileId.length - 6)
+      : profileId;
+
   static Map<String, dynamic> build({
     required String profileId,
     required Map<String, dynamic> source,
@@ -43,7 +50,7 @@ class ProfileChainOverlay {
       );
     }
 
-    final prefix = '[AngelaMihomo chain $profileId] ';
+    final prefix = '[chain ${_nameToken(profileId)}] ';
     final used = <String>{...allNames, ...providerNames, ...reservedNames};
     final renamed = <String, String>{};
     String mapped(String kind, String original) =>
@@ -127,7 +134,7 @@ class ProfileChainOverlay {
           'Provider "$name" has an unsupported override-expr value.',
         );
       }
-      final providerPrefix = '[AngelaMihomo chain $profileId/$name] ';
+      final providerPrefix = '[chain ${_nameToken(profileId)}/$name] ';
       expressions.add('.name = ${jsonEncode(providerPrefix)} + .name');
       overrideMap['override-expr'] = expressions;
       copied['override'] = overrideMap;
