@@ -21,7 +21,7 @@
    python3 tools/configure-android-signing.py /private/path/bettbox-release.p12
    ```
 
-   脚本不会生成密钥；会隐蔽询问密码、检查 keystore/alias，并在你输入 `UPLOAD` 后通过当前 `gh` 登录向 `dukangalex/AngelaBettbox` 配置四项 Actions secrets：`KEYSTORE`（整个文件的 base64）、`KEY_ALIAS`、`STORE_PASSWORD`、`KEY_PASSWORD`。不会将秘密写入脚本或输出到终端。若中途失败，部分 secret 可能已保存；使用同一密钥重新运行即可补齐，不要换密钥。
+   脚本不会生成密钥；会隐蔽询问密码、检查 keystore/alias，并在你输入 `UPLOAD` 后通过当前 `gh` 登录向 `dukangalex/AngelaMihomo` 配置四项 Actions secrets：`KEYSTORE`（整个文件的 base64）、`KEY_ALIAS`、`STORE_PASSWORD`、`KEY_PASSWORD`。不会将秘密写入脚本或输出到终端。若中途失败，部分 secret 可能已保存；使用同一密钥重新运行即可补齐，不要换密钥。
 
    也可以自行到仓库 Settings → Secrets and variables → Actions → New repository secret 配置同名四项。不要把 base64 或密码粘贴进聊天、Issue 或 PR。辅助脚本可避免复制 base64 和平台命令差异。
 4. 查看公开证书指纹（不是私钥）：

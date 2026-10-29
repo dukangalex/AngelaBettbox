@@ -591,6 +591,39 @@ abstract class Config with _$Config {
       }
     } catch (_) {}
 
+    // Migrate stored geo data URLs that still point at the legacy
+    // upstream mirror to the official MetaCubeX/meta-rules-dat source.
+    // Only exact legacy defaults are rewritten; custom URLs are kept.
+    try {
+      const legacyGeoUrls = {
+        'mmdb':
+            'https://github.com/appshubcc/bett-rules/releases/download/latest/geoip.metadb',
+        'asn':
+            'https://github.com/appshubcc/bett-rules/releases/download/latest/GeoLite2-ASN.mmdb',
+        'geosite':
+            'https://github.com/appshubcc/bett-rules/releases/download/latest/geosite.dat',
+      };
+      const officialGeoUrls = {
+        'mmdb':
+            'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb',
+        'asn':
+            'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb',
+        'geosite':
+            'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat',
+      };
+      final patchConfig = json['patchClashConfig'];
+      if (patchConfig is Map) {
+        final geoXUrl = patchConfig['geox-url'];
+        if (geoXUrl is Map) {
+          for (final key in legacyGeoUrls.keys) {
+            if (geoXUrl[key] == legacyGeoUrls[key]) {
+              geoXUrl[key] = officialGeoUrls[key];
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
     return Config.fromJson(json);
   }
 }

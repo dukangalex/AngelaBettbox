@@ -29,7 +29,7 @@ if (releaseTaskRequested && !isRelease && !allowDebugPreview) {
 }
 
 android {
-    namespace = "com.appshub.bettbox"
+    namespace = "app.angelabettbox"
     compileSdk = 36
     ndkVersion = "28.2.13676358"
 

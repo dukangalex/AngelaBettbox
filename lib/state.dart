@@ -1105,7 +1105,7 @@ class GlobalState {
               ? 'AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((GEOSITE,geolocation-cn),(GEOIP,CN,no-resolve)))))),REJECT'
               : 'AND,((NETWORK,UDP),(DST-PORT,443)),REJECT',
       ],
-      // AngelaBettbox fork: the remaining SystemExplicitStore.apply /
+      // AngelaMihomo fork: the remaining SystemExplicitStore.apply /
       // ProfileChainStore.apply mutations are applied Go-side in
       // core/patch.go (the Dart full-config hook no longer exists).
       'drop-automatic-direct': SystemExplicitStore.instance.value.adapt,

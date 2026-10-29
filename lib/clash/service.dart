@@ -61,7 +61,7 @@ class ClashService extends ClashHandlerInterface {
 
   String _newSocketPath() {
     final random = Random().nextInt(10000);
-    return p.join(Directory.systemTemp.path, 'Bettbox_$random.sock');
+    return p.join(Directory.systemTemp.path, 'AngelaMihomo_$random.sock');
   }
 
   Future<void> _rebindTransport() async {

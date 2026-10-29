@@ -34,7 +34,7 @@ class Request {
         client.autoUncompress = false;
         client.findProxy = (Uri uri) {
           client.userAgent = globalState.ua;
-          return BettboxHttpOverrides.handleFindProxy(uri);
+          return AngelaHttpOverrides.handleFindProxy(uri);
         };
         return client;
       },

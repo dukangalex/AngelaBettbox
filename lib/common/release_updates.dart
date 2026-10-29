@@ -76,6 +76,9 @@ class ReleaseUpdates {
     if (assetSuffix.isEmpty) return page;
     final version = tag.replaceFirst(RegExp(r'^v'), '');
     final names = {
+      'AngelaMihomo-$version-$assetSuffix',
+      // Legacy asset names from before the rebrand, kept so update
+      // checks can still deep-link downloads of older releases.
       'Bettbox-$version-$assetSuffix',
       'AngelaBettbox-$version-$assetSuffix',
     };

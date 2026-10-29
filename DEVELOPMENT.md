@@ -1,6 +1,6 @@
-# AngelaBettbox 开发与回归验证
+# AngelaMihomo 开发与回归验证
 
-本仓库是 Bettbox 的 Flutter / Go Mihomo 客户端分支，不是服务端或网页应用。
+本仓库是 AngelaMihomo（Flutter / Go Mihomo 客户端），不是服务端或网页应用。
 先在独立分支开发；以下命令只构建和测试，不执行发布、签名或生产部署。
 
 ## 环境与初始化
@@ -69,9 +69,9 @@ flutter build linux --release --no-pub
 flutter test test/common/version_test.dart test/common/release_updates_test.dart
 ```
 
-- 更新来源固定为本 fork `dukangalex/AngelaBettbox`，不向上游安装包跳转。
+- 更新来源固定为本 fork `dukangalex/AngelaMihomo`，不向上游安装包跳转。
 - 先读取 GitHub 最新正式 Release 的元信息与实际资产；API 受限时回退到同仓库的正式版本跳转地址。请求有连接、发送和接收超时，不把预发布当成正式版。
-- 下载按钮只选择对应版本、对应平台后缀的唯一实际资产（兼容现有 `Bettbox-` 及 `AngelaBettbox-` 名称）。没有匹配、匹配不唯一、API 回退或只有 debug-preview 时打开该版本页面，不猜测下载地址或换架构。
+- 下载按钮只选择对应版本、对应平台后缀的唯一实际资产（现行 `AngelaMihomo-` 名称（兼容旧版 `Bettbox-`、`AngelaBettbox-` 名称））。没有匹配、匹配不唯一、API 回退或只有 debug-preview 时打开该版本页面，不猜测下载地址或换架构。
 - 同一 fork 修订号的正式版本高于其预览版本：`chain.2 > chain.2-pre.1`；修订号和预览序号继续按数字比较。
 - 测试使用注入的 HTTP adapter，不访问真实订阅、不启动 TUN，也不创建 Release。公开正式 Release 不存在时，不应误报上游有更新。
 

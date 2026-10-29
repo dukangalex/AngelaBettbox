@@ -17,6 +17,7 @@ class Window {
       protocol.register('clashmeta');
       protocol.register('flclash');
       protocol.register('bettbox');
+      protocol.register('angelamihomo');
     }
     await windowManager.ensureInitialized();
     if (system.isMacOS && !globalState.config.appSetting.keepDockIcon) {

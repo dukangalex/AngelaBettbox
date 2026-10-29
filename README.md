@@ -9,14 +9,14 @@
 
 ## 关于本项目
 
-**Angela Mihomo 是基于 Bettbox 的独立维护分支（fork）。** 原项目 [Bettbox](https://github.com/appshubcc/Bettbox) 由 appshubcc 开发维护（起源于 [FlClash](https://github.com/chen08209/FlClash)），基于 [Mihomo](https://github.com/MetaCubeX/mihomo) 内核，遵循 GPL-3.0 开源协议。本分支在原项目基础上增强链式代理能力并独立发布（曾用名 AngelaBettbox，2026-10-28 更名为 Angela Mihomo），**与原项目无隶属关系**；原项目的社区、赞助与服务推荐渠道均归原项目所有，本分支不沿用。
+**Angela Mihomo** 是一款基于 [Mihomo](https://github.com/MetaCubeX/mihomo) 内核的跨平台代理客户端，专注链式代理、系统级防泄漏与开箱即用体验，遵循 GPL-3.0 开源协议，独立开发与发布。
 
-本分支相对上游的增强与差异：
+本项目的特色：
 
 * **链式代理增强**：入口与出口均可选用策略组作为跳点；出口可跨配置选择（节点或策略组）；入口组为空时自动加固为拒绝直连，避免链式失效时流量绕行直连。
-* **独立包名**：Android 包名为 `app.angelabettbox`，可与上游原版并存安装，互不影响；更名后包名保持不变，已安装版本可直接覆盖升级。
-* **版本与内核跟进**：版本号跟随上游 Bettbox 版本，内核基线与上游所带 Mihomo 版本对齐（当前为 Mihomo v1.19.33）。
-* 其余功能与界面与上游保持一致，后续增强会在 Release 说明中逐版列明。
+* **独立包名**：Android 包名为 `app.angelabettbox`，可与其他同类客户端并存安装，互不影响；包名保持稳定，已安装版本可直接覆盖升级。
+* **版本与内核跟进**：内核基线与 Mihomo 官方版本对齐（当前为 Mihomo v1.19.33），内置规则数据源采用 MetaCubeX 官方源。
+* **系统显式防泄漏**：WebRTC 拦截、中国公共 DNS 直连、广告拦截等一整套显式规则，与链式代理统一联动，开箱即生效。
 
 <p align="center">
   <img src="snapshots/home.png" alt="Angela Mihomo" />
@@ -27,7 +27,7 @@
 版本发布与更新通知见 Telegram 频道：https://t.me/AngelaNexus
 
 ---
-## 🚀 核心特性（继承自原项目）
+## 🚀 核心特性
 
 * **开箱即用**：完善的权限引导与舒适的 TUN / VPN 体验，预置大量合理优化策略，安装即达最佳可用状态。
 * **轻量畅快**：深度调优系统与渲染管线，前台交互动画高帧率简洁丝滑，移动端低能耗，桌面端低资源占用。
@@ -55,7 +55,7 @@
   * **Android TV:** 完整大屏适配，可选 ARMv7 32位版本
   * **鸿蒙 NEXT:** 可配合 [[卓易通]](https://harmonyos.cool/android-app) 稳定使用
 
-**从上游原版迁移（Android）**：自 v1.19.7-chain.1 起本分支使用独立包名，可直接与原版并存安装；如需迁移数据，请先在原版中导出备份，再在本分支中导入恢复。
+**从其他版本迁移（Android）**：自 v1.19.7-chain.1 起本应用使用独立包名，可直接与其他版本并存安装；如需迁移数据，请先在原应用中导出备份，再在本应用中导入恢复。
 
 ---
 ## 💡 常见问题
@@ -72,7 +72,7 @@
 
 3. **macOS 首次安装指南**：
    - 根据平台 (Intel / Apple Silicon) 下载并打开 `.dmg` 安装包，将 Angela Mihomo 图标拖入 Applications 文件夹。
-   - **避开系统安全拦截**（本分支未购买 Apple 商业开发者证书）：
+   - **避开系统安全拦截**（本项目未购买 Apple 商业开发者证书）：
      - **推荐**：在“访达 - 应用程序”中，**右键点击 Angela Mihomo 图标选择“打开”**，在系统弹窗中确认点击“打开”即可。
      - **备选**：若被阻止，可前往系统“设置 -> 隐私与安全性”，找到 Angela Mihomo 点击“仍要打开”。
    - 首次开启 TUN 模式时，系统会提示密码授权，请输入密码允许创建虚拟网络接口。
@@ -84,7 +84,7 @@
 ---
 ## 💻 开发构建与 UI 适配
 
-本分支的环境准备、回归测试和 Linux 构建说明见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+本项目的环境准备、回归测试和 Linux 构建说明见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
 以 Windows 平台构建为例：
 
@@ -126,4 +126,4 @@ const Compatible_With_Bettbox = {
 ---
 ## 📄 开源协议
 
-本项目采用 [GPL-3.0 License](LICENSE) 开源协议。本分支的全部修改同样以 GPL-3.0 发布，完整源码即本仓库。
+本项目采用 [GPL-3.0 License](LICENSE) 开源协议发布，完整源码即本仓库。

@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Bettbox Dev",
+      "name": "AngelaMihomo Dev",
       "request": "launch",
       "type": "dart",
       "flutterMode": "debug",

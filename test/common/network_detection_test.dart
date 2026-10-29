@@ -54,7 +54,7 @@ void main() {
   }
 
   setUpAll(() async {
-    HttpOverrides.global = BettboxHttpOverrides();
+    HttpOverrides.global = AngelaHttpOverrides();
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {
       if (request.method != 'GET') {

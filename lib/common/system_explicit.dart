@@ -238,7 +238,7 @@ class SystemExplicitStore {
   /// common/explicit_policy.dart for reference.
 
   String notificationLabel(String profileLabel) {
-    if (value.privacy) return 'Bettbox';
+    if (value.privacy) return 'Angela Mihomo';
     return profileLabel;
   }
 }

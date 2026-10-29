@@ -28,7 +28,7 @@
         tools:ignore="ProtectedPermissions" />
 
     <application
-        android:name=".BettboxApplication"
+        android:name=".AngelaMihomoApplication"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher_light"
         android:roundIcon="@mipmap/ic_launcher_round_light"
@@ -37,7 +37,7 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:enableOnBackInvokedCallback="false">
         <activity
-            android:name="com.appshub.bettbox.MainActivity"
+            android:name="app.angelabettbox.MainActivity"
             android:icon="@mipmap/ic_launcher_light"
             android:roundIcon="@mipmap/ic_launcher_round_light"
             android:alwaysRetainTaskState="true"
@@ -73,17 +73,18 @@
                 <data android:scheme="clashmeta" android:host="install-config" />
                 <data android:scheme="flclash" android:host="install-config" />
                 <data android:scheme="bettbox" android:host="install-config" />
+                <data android:scheme="angelamihomo" android:host="install-config" />
             </intent-filter>
         </activity>
 
         <!-- Light icon alias (kept for legacy user compatibility) -->
         <activity-alias
-            android:name="com.appshub.bettbox.MainActivityLight"
+            android:name="app.angelabettbox.MainActivityLight"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_light"
             android:roundIcon="@mipmap/ic_launcher_round_light"
-            android:targetActivity="com.appshub.bettbox.MainActivity">
+            android:targetActivity="app.angelabettbox.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -102,17 +103,18 @@
                 <data android:scheme="clashmeta" android:host="install-config" />
                 <data android:scheme="flclash" android:host="install-config" />
                 <data android:scheme="bettbox" android:host="install-config" />
+                <data android:scheme="angelamihomo" android:host="install-config" />
             </intent-filter>
         </activity-alias>
 
         <!-- Dark icon alias — disabled by default -->
         <activity-alias
-            android:name="com.appshub.bettbox.MainActivityDark"
+            android:name="app.angelabettbox.MainActivityDark"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher"
             android:roundIcon="@mipmap/ic_launcher_round"
-            android:targetActivity="com.appshub.bettbox.MainActivity">
+            android:targetActivity="app.angelabettbox.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -133,6 +135,7 @@
                 <data android:scheme="clashmeta" android:host="install-config" />
                 <data android:scheme="flclash" android:host="install-config" />
                 <data android:scheme="bettbox" android:host="install-config" />
+                <data android:scheme="angelamihomo" android:host="install-config" />
             </intent-filter>
         </activity-alias>
 
@@ -149,7 +152,7 @@
         </activity>
 
         <service
-            android:name=".services.BettboxTileService"
+            android:name=".services.AngelaMihomoTileService"
             android:exported="true"
             android:icon="@drawable/ic_tile"
             android:label="Angela Mihomo"
@@ -176,7 +179,7 @@
         </provider>
 
         <service
-            android:name=".services.BettboxVpnService"
+            android:name=".services.AngelaMihomoVpnService"
             android:exported="false"
             android:foregroundServiceType="specialUse"
             android:permission="android.permission.BIND_VPN_SERVICE">
@@ -188,7 +191,7 @@
         </service>
 
         <service
-            android:name=".services.BettboxService"
+            android:name=".services.AngelaMihomoService"
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Proxy" />

@@ -153,6 +153,13 @@ void main() {
       endsWith('/Bettbox-1.19.6-chain.2-$suffix'),
     );
   });
+  test('accepts current AngelaMihomo build names', () {
+    final data = release(name: 'AngelaMihomo-1.19.6-chain.2-$suffix');
+    expect(
+      updates.downloadUrl(data, assetSuffix: suffix),
+      endsWith('/AngelaMihomo-1.19.6-chain.2-$suffix'),
+    );
+  });
   test(
     'missing platform, missing assets or empty suffix opens exact release page',
     () {

@@ -2077,7 +2077,7 @@ class AppController {
       final tempDir = Directory.systemTemp;
       final tempZipPath = join(
         tempDir.path,
-        'bettbox_backup_${DateTime.now().millisecondsSinceEpoch}.zip',
+        'angelamihomo_backup_${DateTime.now().millisecondsSinceEpoch}.zip',
       );
       final encoder = ZipFileEncoder(
         password: password.isEmpty ? null : password,
@@ -2086,7 +2086,7 @@ class AppController {
 
       // Add marker file
       final markerData = json.encode({
-        'app': 'Bettbox',
+        'app': 'AngelaMihomo',
         'version': '1.0',
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
@@ -2094,11 +2094,11 @@ class AppController {
       final tempMarkerFile = File(
         join(
           tempDir.path,
-          'bettbox_marker_${DateTime.now().millisecondsSinceEpoch}.tmp',
+          'angelamihomo_marker_${DateTime.now().millisecondsSinceEpoch}.tmp',
         ),
       );
       await tempMarkerFile.writeAsBytes(markerBytes);
-      await encoder.addFile(tempMarkerFile, '.bettbox_marker');
+      await encoder.addFile(tempMarkerFile, '.angelamihomo_marker');
       await tempMarkerFile.delete();
 
       // Add config file
@@ -2409,14 +2409,16 @@ class AppController {
 
     final homeDirPath = await appPath.homeDirPath;
 
-    // Check for Bettbox marker
-    final hasBettboxMarker = archive.files.any(
-      (file) => file.name == '.bettbox_marker',
+    // Check for the current-format marker (the legacy name is accepted so
+    // backups written by older builds still restore).
+    final hasCurrentMarker = archive.files.any(
+      (file) =>
+          file.name == '.angelamihomo_marker' || file.name == '.bettbox_marker',
     );
 
-    if (hasBettboxMarker) {
-      // Bettbox backup
-      await _recoveryBettboxBackup(archive, recoveryOption, homeDirPath);
+    if (hasCurrentMarker) {
+      // Current backup format
+      await _recoveryCurrentBackup(archive, recoveryOption, homeDirPath);
       return null;
     } else {
       // Legacy backup
@@ -2424,8 +2426,8 @@ class AppController {
     }
   }
 
-  /// Restore Bettbox
-  Future<void> _recoveryBettboxBackup(
+  /// Restore a current-format backup
+  Future<void> _recoveryCurrentBackup(
     Archive archive,
     RecoveryOption recoveryOption,
     String homeDirPath,
@@ -2435,7 +2437,10 @@ class AppController {
         .where((item) => item.name == 'config.json')
         .toList();
     final profiles = archive.files.where(
-      (item) => item.name != 'config.json' && item.name != '.bettbox_marker',
+      (item) =>
+          item.name != 'config.json' &&
+          item.name != '.angelamihomo_marker' &&
+          item.name != '.bettbox_marker',
     );
 
     // Find config.json

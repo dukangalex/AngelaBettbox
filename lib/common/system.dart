@@ -159,7 +159,7 @@ class System {
           appPath.corePath,
         ]);
         if (removeResult.exitCode == 0) {
-          commonPrint.log('Cleared quarantine attribute from BettboxCore');
+          commonPrint.log('Cleared quarantine attribute from AngelaMihomoCore');
         } else {
           quarantineCleared = false;
           commonPrint.warn(
@@ -177,7 +177,7 @@ class System {
       if (result.exitCode != 0) {
         globalState.showNotifier(
           !quarantineCleared
-              ? 'Failed to authorize BettboxCore. Try: xattr -dr com.apple.quarantine /Applications/Bettbox.app'
+              ? 'Failed to authorize AngelaMihomoCore. Try: xattr -dr com.apple.quarantine /Applications/AngelaMihomo.app'
               : appLocalizations.tunEnableRequireAdmin,
         );
         return AuthorizeCode.error;
@@ -999,7 +999,7 @@ class MacOS {
 
   Future<void> _setDns() async {
     // Restore a previous managed value first so repeated enable operations never
-    // overwrite the real system DNS backup with Bettbox's own hijack DNS.
+    // overwrite the real system DNS backup with AngelaMihomo's own hijack DNS.
     if (!await _restoreDns()) return;
 
     final serviceName = await defaultServiceName;
