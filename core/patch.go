@@ -944,6 +944,38 @@ func patchDropAutomaticDirect(raw *config.RawConfig) {
 
 const explicitChainGroup = "链式落地"
 
+// floorChainHealthCheck raises aggressive health-check parameters on the
+// runtime copy of a chain entry group. Every check of a chained path
+// traverses two hops, so parameters tuned for direct access (short
+// interval, small tolerance, short timeout, eager checking) make the
+// selection flap and drop users' connections. Floors mirror the exit-side
+// overlay and the proven converter chain parameters (3-minute interval,
+// 100 ms tolerance); more generous source values are left untouched.
+func floorChainHealthCheck(group map[string]any) {
+	floor := func(key string, minimum float64) {
+		var value float64
+		switch v := group[key].(type) {
+		case int:
+			value = float64(v)
+		case int64:
+			value = float64(v)
+		case float64:
+			value = v
+		default:
+			return
+		}
+		if value < minimum {
+			group[key] = int(minimum)
+		}
+	}
+	floor("interval", 180)
+	floor("tolerance", 100)
+	floor("timeout", 5000)
+	if lazy, ok := group["lazy"].(bool); ok && !lazy {
+		group["lazy"] = true
+	}
+}
+
 // patchChainPolicy uses dialer-proxy, including for subscription nodes. Mihomo
 // removed relay groups. Provider overrides run after name transforms, so match
 // the displayed node name and leave every other node and override untouched.
@@ -1447,6 +1479,7 @@ func hardenChainEntryGroup(raw *config.RawConfig, entry string) error {
 			return fmt.Errorf("entry group %q is unavailable", name)
 		}
 		group["empty-fallback"] = "REJECT"
+		floorChainHealthCheck(group)
 		// GroupBase treats exclude-type as a pipe-delimited list, not a regexp.
 		if len(anyStrings(group["use"])) > 0 {
 			old, _ := group["exclude-type"].(string)

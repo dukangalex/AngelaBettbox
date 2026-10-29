@@ -56,6 +56,91 @@ void main() {
     expect(outer['empty-fallback'], 'REJECT');
   });
 
+  test('floors aggressive health-check parameters on imported copies', () {
+    final source = <String, dynamic>{
+      'proxies': [
+        {'name': 'Node A', 'type': 'http', 'server': 'a.example', 'port': 80},
+      ],
+      'proxy-groups': [
+        {
+          'name': 'Fast',
+          'type': 'url-test',
+          'url': 'http://www.gstatic.com/generate_204',
+          'interval': 60,
+          'tolerance': 20,
+          'timeout': 2000,
+          'lazy': false,
+          'proxies': ['Node A'],
+        },
+        {
+          'name': 'Calm',
+          'type': 'url-test',
+          'url': 'http://www.gstatic.com/generate_204',
+          'interval': 600,
+          'tolerance': 150,
+          'proxies': ['Node A'],
+        },
+      ],
+      'proxy-providers': {
+        'prov': {
+          'type': 'http',
+          'url': 'https://example.com/prov',
+          'health-check': {
+            'enable': true,
+            'url': 'http://www.gstatic.com/generate_204',
+            'interval': 30,
+            'timeout': 1000,
+            'lazy': false,
+          },
+        },
+      },
+    };
+    final fast = ProfileChainOverlay.build(
+      profileId: 'p1',
+      source: source,
+      targetKind: ChainTargetKind.group,
+      targetName: 'Fast',
+    );
+    final fastGroup = (fast['external-groups'] as List).cast<Map>().single;
+    expect(fastGroup['interval'], 180);
+    expect(fastGroup['tolerance'], 100);
+    expect(fastGroup['timeout'], 5000);
+    expect(fastGroup['lazy'], isTrue);
+
+    final calm = ProfileChainOverlay.build(
+      profileId: 'p1',
+      source: source,
+      targetKind: ChainTargetKind.group,
+      targetName: 'Calm',
+    );
+    final calmGroup = (calm['external-groups'] as List).cast<Map>().single;
+    expect(calmGroup['interval'], 600, reason: 'generous values stay');
+    expect(calmGroup['tolerance'], 150);
+    expect(calmGroup.containsKey('timeout'), isFalse);
+
+    final withProvider = ProfileChainOverlay.build(
+      profileId: 'p1',
+      source: <String, dynamic>{
+        'proxy-groups': [
+          {
+            'name': 'Pool',
+            'type': 'select',
+            'use': ['prov'],
+          },
+        ],
+        'proxy-providers': source['proxy-providers'],
+      },
+      targetKind: ChainTargetKind.group,
+      targetName: 'Pool',
+    );
+    final providers = (withProvider['external-providers'] as Map).values
+        .cast<Map>();
+    final healthCheck = providers.single['health-check'] as Map;
+    expect(healthCheck['interval'], 180);
+    expect(healthCheck['timeout'], 5000);
+    expect(healthCheck['lazy'], isTrue);
+  });
+
   test('imports unfiltered provider-backed group and prefixes provider', () {
     final source = <String, dynamic>{
       'proxy-providers': {
