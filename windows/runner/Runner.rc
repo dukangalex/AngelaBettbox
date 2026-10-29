@@ -73,15 +73,15 @@ IDI_APP_ICON            ICON                    "resources\\app_icon.ico"
 #endif
 
 #ifdef BETTBOX_DEV
-#define APP_FILE_DESCRIPTION "Bettbox Dev"
+#define APP_FILE_DESCRIPTION "AngelaMihomo Dev"
 #define APP_INTERNAL_NAME "bettbox_dev"
-#define APP_ORIGINAL_FILENAME "Bettbox.exe"
-#define APP_PRODUCT_NAME "Bettbox Dev"
+#define APP_ORIGINAL_FILENAME "AngelaMihomo.exe"
+#define APP_PRODUCT_NAME "AngelaMihomo Dev"
 #else
-#define APP_FILE_DESCRIPTION "Bettbox"
+#define APP_FILE_DESCRIPTION "AngelaMihomo"
 #define APP_INTERNAL_NAME "bettbox"
-#define APP_ORIGINAL_FILENAME "Bettbox.exe"
-#define APP_PRODUCT_NAME "Bettbox"
+#define APP_ORIGINAL_FILENAME "AngelaMihomo.exe"
+#define APP_PRODUCT_NAME "AngelaMihomo"
 #endif
 
 VS_VERSION_INFO VERSIONINFO

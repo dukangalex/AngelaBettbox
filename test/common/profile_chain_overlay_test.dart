@@ -30,7 +30,7 @@ void main() {
       source: source,
       targetKind: ChainTargetKind.group,
       targetName: 'Outer',
-      reservedNames: {'[BettBox chain source-profile] Node A'},
+      reservedNames: {'[AngelaMihomo chain source-profile] Node A'},
     );
     expect(
       jsonEncode(source),
@@ -48,7 +48,7 @@ void main() {
       ...groups.map((group) => group['name']),
     };
     expect(names, hasLength(4));
-    expect(names, isNot(contains('[BettBox chain source-profile] Node A')));
+    expect(names, isNot(contains('[AngelaMihomo chain source-profile] Node A')));
     final outer = groups.singleWhere(
       (g) => g['name'] == overlay['external-target'],
     );

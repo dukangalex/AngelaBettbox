@@ -4,7 +4,11 @@ class AppIdentity {
   static const isDev = _useDevIdentity;
 
   // Internal plumbing name (executables, core, service, data dir). Display brand is displayName.
-  static const productName = 'Bettbox';
+  static const productName = 'AngelaMihomo';
+
+  // Pre-rebrand plumbing name, kept only so backups, stored secrets and
+  // other legacy artifacts produced by older builds stay readable.
+  static const legacyProductName = 'Bettbox';
   static const devSuffix = 'Dev';
   static const packageId = 'app.angelabettbox';
 

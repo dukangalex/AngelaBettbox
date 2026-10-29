@@ -15,7 +15,7 @@ use windows_service::{
     service_dispatcher, Result,
 };
 
-const DEFAULT_SERVICE_NAME: &str = "BettboxHelperService";
+const DEFAULT_SERVICE_NAME: &str = "AngelaMihomoHelperService";
 
 const SERVICE_TYPE: ServiceType = ServiceType::OWN_PROCESS;
 

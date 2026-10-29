@@ -97,7 +97,7 @@ class Build {
     BuildItem(target: Target.android, arch: Arch.amd64, archName: 'x86_64'),
   ];
 
-  static String get appName => 'Bettbox';
+  static String get appName => 'AngelaMihomo';
 
   static String get coreName => '${identityName}Core';
 
@@ -579,7 +579,7 @@ class BuildCommand extends Command {
   }
 
   Future<void> _setLinuxCoreSetuid() async {
-    final coreFile = File('libclash/linux/BettboxCore');
+    final coreFile = File('libclash/linux/AngelaMihomoCore');
     if (!coreFile.existsSync()) return;
     try {
       await Process.run('chmod', ['0755', coreFile.path]);
@@ -682,16 +682,16 @@ class BuildCommand extends Command {
   }
 
   DateTime _windowsSourcesLastModified() {
-    final sources = <FileSystemEntity>[
-      File(join(current, 'setup.dart')),
-    ];
+    final sources = <FileSystemEntity>[File(join(current, 'setup.dart'))];
 
     final helperDir = Directory(Build._servicesDir);
     if (helperDir.existsSync()) {
-      sources.addAll(helperDir.listSync(recursive: true).where((entity) {
-        return entity is File &&
-            !isWithin(join(Build._servicesDir, 'target'), entity.path);
-      }));
+      sources.addAll(
+        helperDir.listSync(recursive: true).where((entity) {
+          return entity is File &&
+              !isWithin(join(Build._servicesDir, 'target'), entity.path);
+        }),
+      );
     }
 
     final coreDir = Directory(Build._coreDir);
@@ -921,7 +921,8 @@ class AutoBuildCommand extends Command {
   AutoBuildCommand() {
     argParser.addOption(
       'device-id',
-      help: 'Target Flutter device ID (e.g. from \${command:flutter.getSelectedDeviceId})',
+      help:
+          'Target Flutter device ID (e.g. from \${command:flutter.getSelectedDeviceId})',
     );
     argParser.addOption(
       'arch',
@@ -980,7 +981,9 @@ class AutoBuildCommand extends Command {
     } else if (rawDeviceId == 'chrome' ||
         rawDeviceId == 'edge' ||
         rawDeviceId == 'web-server') {
-      print('Web device "$rawDeviceId" does not require core binary. Skipping.');
+      print(
+        'Web device "$rawDeviceId" does not require core binary. Skipping.',
+      );
       return;
     } else if (rawDeviceId.isEmpty) {
       if (Platform.isWindows) {
@@ -994,26 +997,25 @@ class AutoBuildCommand extends Command {
       }
       archName ??= 'auto';
     } else {
-      final res = await Process.run(
-        'flutter',
-        ['devices', '--machine'],
-        runInShell: true,
-      );
+      final res = await Process.run('flutter', [
+        'devices',
+        '--machine',
+      ], runInShell: true);
       if (res.exitCode != 0) {
         throw 'Failed to execute "flutter devices --machine": ${res.stderr}';
       }
       final jsonList = jsonDecode(res.stdout.toString()) as List<dynamic>;
       final device = jsonList.cast<Map<String, dynamic>?>().firstWhere(
-            (d) => d?['id'] == rawDeviceId,
-            orElse: () => null,
-          );
+        (d) => d?['id'] == rawDeviceId,
+        orElse: () => null,
+      );
 
       if (device == null) {
         throw 'Device "$rawDeviceId" not found in flutter devices list.';
       }
 
-      final targetPlatform =
-          (device['targetPlatform'] as String? ?? '').toLowerCase();
+      final targetPlatform = (device['targetPlatform'] as String? ?? '')
+          .toLowerCase();
       if (targetPlatform.startsWith('android')) {
         target = Target.android;
         if (archName == null) {

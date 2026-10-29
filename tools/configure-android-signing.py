@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import subprocess
 
-REPO = 'dukangalex/AngelaBettbox'
+REPO = 'dukangalex/AngelaMihomo'
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

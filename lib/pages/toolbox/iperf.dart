@@ -27,7 +27,7 @@ String buildIperfLink({
   required int port,
   required String name,
 }) => Uri(
-  scheme: 'bettbox',
+  scheme: 'angelamihomo',
   host: 'iperf',
   queryParameters: {
     'addr': hosts.join(','),
@@ -38,7 +38,9 @@ String buildIperfLink({
 
 IperfTarget? parseIperfLink(String value) {
   final uri = Uri.tryParse(value.trim());
-  if (uri == null || uri.scheme != 'bettbox' || uri.host != 'iperf') {
+  if (uri == null ||
+      (uri.scheme != 'angelamihomo' && uri.scheme != 'bettbox') ||
+      uri.host != 'iperf') {
     return null;
   }
   final hosts = (uri.queryParameters['addr'] ?? '')

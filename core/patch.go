@@ -64,7 +64,7 @@ type PatchParams struct {
 	SystemExplicitRules []string        `json:"system-explicit-rules"`
 	DisabledGroups      []string        `json:"disabled-groups"`
 	SelectGlobal        bool            `json:"select-global"`
-	// AngelaBettbox fork: runtime policy ported from the fork's
+	// AngelaMihomo fork: runtime policy ported from the fork's
 	// SystemExplicitStore.apply / ProfileChainStore.apply, which used to
 	// mutate the Dart-assembled full config before the Go patch pipeline
 	// existed.
@@ -172,13 +172,13 @@ func applyPatch(raw *config.RawConfig, params *PatchParams) (string, error) {
 	}
 	patchProxyGroups(raw, params)
 
-	// AngelaBettbox fork: drop DIRECT/REJECT from automatic groups so a
+	// AngelaMihomo fork: drop DIRECT/REJECT from automatic groups so a
 	// dead node cannot fall through to direct (was dropAutomaticDirect in
 	// the fork's explicit_policy.dart).
 	if params.DropAutomaticDirect {
 		patchDropAutomaticDirect(raw)
 	}
-	// AngelaBettbox fork: per-profile chain proxy (was applyChainPolicy in
+	// AngelaMihomo fork: per-profile chain proxy (was applyChainPolicy in
 	// the fork's explicit_policy.dart).
 	if err := patchChainPolicy(raw, params.ChainPolicy); err != nil {
 		return "", fmt.Errorf("patch chain: %w", err)

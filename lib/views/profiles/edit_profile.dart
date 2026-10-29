@@ -34,6 +34,7 @@ class EditProfileViewState extends State<EditProfileView> {
   late TextEditingController urlController;
   late TextEditingController autoUpdateDurationController;
   late bool autoUpdate;
+  late bool useScriptOverride;
   late TextEditingController ageSecretKeyController;
   FocusNode? urlFocusNode;
   bool _obscureAgeSecretKey = true;
@@ -50,6 +51,7 @@ class EditProfileViewState extends State<EditProfileView> {
     labelController = TextEditingController(text: widget.profile.label);
     urlController = TextEditingController(text: widget.profile.url);
     autoUpdate = widget.isNew ? false : widget.profile.autoUpdate;
+    useScriptOverride = widget.profile.useScriptOverride;
     autoUpdateDurationController = TextEditingController(
       text: widget.profile.autoUpdateDuration.inMinutes.toString(),
     );
@@ -90,6 +92,7 @@ class EditProfileViewState extends State<EditProfileView> {
       autoUpdateDuration: Duration(
         minutes: int.parse(autoUpdateDurationController.text),
       ),
+      useScriptOverride: useScriptOverride,
     );
     if (widget.isNew) {
       final ref = appController.ref;
@@ -394,6 +397,24 @@ class EditProfileViewState extends State<EditProfileView> {
               },
             ),
           ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: CommonCard(
+            type: CommonCardType.filled,
+            radius: 16,
+            child: ListItem.switchItem(
+              title: Text(appLocalizations.useGlobalScriptOverride),
+              delegate: SwitchDelegate<bool>(
+                value: useScriptOverride,
+                onChanged: (value) {
+                  setState(() {
+                    useScriptOverride = value;
+                  });
+                },
+              ),
+            ),
+          ),
+        ),
       ],
       if (!widget.isNew)
         ValueListenableBuilder<FileInfo?>(

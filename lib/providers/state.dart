@@ -282,22 +282,9 @@ DashboardState dashboardState(Ref ref) {
     ),
   );
   final viewWidth = ref.watch(viewWidthProvider);
-  // Legacy layouts may contain separate usage and speed tiles. Render one
-  // combined tile without mutating the persisted user layout.
-  final combined = <DashboardWidget>[];
-  var hasTraffic = false;
-  for (final item in dashboardWidgets) {
-    if (item == DashboardWidget.trafficUsage ||
-        item == DashboardWidget.networkSpeed) {
-      if (!hasTraffic) combined.add(DashboardWidget.networkSpeed);
-      hasTraffic = true;
-    } else {
-      combined.add(item);
-    }
-  }
-  final widgets = combined.contains(DashboardWidget.startButton)
-      ? combined
-      : [...combined, DashboardWidget.startButton];
+  final widgets = dashboardWidgets.contains(DashboardWidget.startButton)
+      ? dashboardWidgets
+      : [...dashboardWidgets, DashboardWidget.startButton];
   return DashboardState(dashboardWidgets: widgets, viewWidth: viewWidth);
 }
 

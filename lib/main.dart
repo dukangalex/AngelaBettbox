@@ -92,7 +92,7 @@ Future<void> _runApp() async {
   if (system.isWindows) {
     clipboardExt.init();
   }
-  HttpOverrides.global = BettboxHttpOverrides();
+  HttpOverrides.global = AngelaHttpOverrides();
   runApp(ProviderScope(retry: (_, _) => null, child: const Application()));
 }
 
@@ -232,7 +232,7 @@ Future<void> _service(List<String> flags) async {
               .firstOrNull;
           await SystemExplicitStore.instance.ensureLoaded();
           final profileName = SystemExplicitStore.instance.notificationLabel(
-            profile?.label ?? 'Bettbox',
+            profile?.label ?? 'Angela Mihomo',
           );
           await vpn?.updateNotificationSpeed(profileName, '↑0B/s ↓0B/s');
         }

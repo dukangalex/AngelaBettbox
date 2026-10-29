@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:bett_box/state.dart';
 
-class BettboxHttpOverrides extends HttpOverrides {
+class AngelaHttpOverrides extends HttpOverrides {
   static bool _isLoopback(String host) {
     if (host.isEmpty || host.toLowerCase() == 'localhost') return true;
     return InternetAddress.tryParse(host)?.isLoopback ?? false;

@@ -1277,7 +1277,7 @@ class Utils {
 
   String encryptSecret(String raw) {
     if (raw.isEmpty) return raw;
-    const salt = 'Bettbox';
+    const salt = 'AngelaMihomo';
     final step1 = base64.encode(utf8.encode(raw));
     final step2 = base64.encode(utf8.encode('$salt:$step1'));
     return 'ENC~$step2';
@@ -1286,12 +1286,16 @@ class Utils {
   String decryptSecret(String text) {
     if (!text.startsWith('ENC~')) return text;
     try {
-      const salt = 'Bettbox';
+      // The legacy salt is still accepted so secrets stored by older
+      // builds keep decrypting; new writes use the current salt.
+      const salts = ['AngelaMihomo', 'Bettbox'];
       final cipher = text.substring(4);
       final salted = utf8.decode(base64.decode(cipher));
-      if (salted.startsWith('$salt:')) {
-        final step1 = salted.substring(salt.length + 1);
-        return utf8.decode(base64.decode(step1));
+      for (final salt in salts) {
+        if (salted.startsWith('$salt:')) {
+          final step1 = salted.substring(salt.length + 1);
+          return utf8.decode(base64.decode(step1));
+        }
       }
       return text;
     } catch (_) {

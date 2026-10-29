@@ -88,8 +88,10 @@ var
 begin
   PowerShellScript := 
     '$ErrorActionPreference = ''SilentlyContinue'';' + #13#10 +
-    'Write-Host "Cleaning old Wintun/Bettbox/LiClash network adapters...";' + #13#10 +
+    'Write-Host "Cleaning old Wintun/AngelaMihomo/Bettbox/LiClash network adapters...";' + #13#10 +
     '$adapters = Get-NetAdapter | Where-Object {' + #13#10 +
+    '$_.InterfaceDescription -like "*AngelaMihomo*" -or' + #13#10 +
+    '  $_.Name -like "*AngelaMihomo*" -or' + #13#10 +
     '$_.InterfaceDescription -like "*Bettbox*" -or' + #13#10 +
     '  $_.Name -like "*Bettbox*"' + #13#10 +
     '};' + #13#10 +
@@ -149,9 +151,9 @@ begin
   if (PipeName = '') or (Pos('{' + '{', PipeName) > 0) then
   begin
     if Pos('Dev', ServiceName) > 0 then
-      PipeName := '\\.\pipe\BettboxDev.Helper'
+      PipeName := '\\.\pipe\AngelaMihomoDev.Helper'
     else
-      PipeName := '\\.\pipe\Bettbox.Helper';
+      PipeName := '\\.\pipe\AngelaMihomo.Helper';
   end;
   HelperPath := ExpandConstant('{app}\{{HELPER_EXECUTABLE_NAME}}');
   
@@ -216,9 +218,10 @@ var
   RegistryKeys: TArrayOfString;
   i: Integer;
 begin
-  SetArrayLength(RegistryKeys, 2);
-  RegistryKeys[0] := 'Software\com.appshub.bettbox';
-  RegistryKeys[1] := 'Software\com.appshub\Bettbox';
+  SetArrayLength(RegistryKeys, 3);
+  RegistryKeys[0] := 'Software\AngelaMihomo';
+  RegistryKeys[1] := 'Software\com.appshub.bettbox';
+  RegistryKeys[2] := 'Software\com.appshub\Bettbox';
   
   for i := 0 to GetArrayLength(RegistryKeys)-1 do
   begin
@@ -234,9 +237,10 @@ var
 begin
   AppDataPath := ExpandConstant('{userappdata}');
   
-  SetArrayLength(UserDataPaths, 2);
-  UserDataPaths[0] := AppDataPath + '\com.appshub.bettbox';
-  UserDataPaths[1] := AppDataPath + '\com.appshub\Bettbox';
+  SetArrayLength(UserDataPaths, 3);
+  UserDataPaths[0] := AppDataPath + '\AngelaMihomo';
+  UserDataPaths[1] := AppDataPath + '\com.appshub.bettbox';
+  UserDataPaths[2] := AppDataPath + '\com.appshub\Bettbox';
   
   for i := 0 to GetArrayLength(UserDataPaths)-1 do
   begin

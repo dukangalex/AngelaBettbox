@@ -14,7 +14,7 @@ CERT = b'FAKE-PUBLIC-CERTIFICATE'
 DIGEST = hashlib.sha256(CERT).hexdigest()
 
 class ReleaseVerifierTest(unittest.TestCase):
-    def run_verifier(self, digest=DIGEST, dn='CN=AngelaBettbox', signer_count=1):
+    def run_verifier(self, digest=DIGEST, dn='CN=AngelaMihomo', signer_count=1):
         text = f'Verifies\nNumber of signers: {signer_count}\nSigner #1 certificate DN: {dn}\nSigner #1 certificate SHA-256 digest: {digest}\n'
         if signer_count > 1:
             text += f'Signer #2 certificate SHA-256 digest: {DIGEST}\n'

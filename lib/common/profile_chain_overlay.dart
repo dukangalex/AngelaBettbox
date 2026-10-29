@@ -43,7 +43,7 @@ class ProfileChainOverlay {
       );
     }
 
-    final prefix = '[BettBox chain $profileId] ';
+    final prefix = '[AngelaMihomo chain $profileId] ';
     final used = <String>{...allNames, ...providerNames, ...reservedNames};
     final renamed = <String, String>{};
     String mapped(String kind, String original) =>
@@ -127,7 +127,7 @@ class ProfileChainOverlay {
           'Provider "$name" has an unsupported override-expr value.',
         );
       }
-      final providerPrefix = '[BettBox chain $profileId/$name] ';
+      final providerPrefix = '[AngelaMihomo chain $profileId/$name] ';
       expressions.add('.name = ${jsonEncode(providerPrefix)} + .name');
       overrideMap['override-expr'] = expressions;
       copied['override'] = overrideMap;

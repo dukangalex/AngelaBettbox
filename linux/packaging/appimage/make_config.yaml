@@ -1,20 +1,20 @@
-display_name: Bettbox
+display_name: Angela Mihomo
 
 icon: ./assets/images/icon.png
 
 keywords:
-  - Bettbox
+  - AngelaMihomo
   - Clash
   - ClashMeta
   - Proxy
 
-generic_name: Bettbox
+generic_name: Angela Mihomo
 
 categories:
   - Network
 
 startup_notify: true
-startup_wm_class: com.appshub.bettbox
+startup_wm_class: app.angelabettbox
 
 include: []
 extra_files:
