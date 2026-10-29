@@ -16,13 +16,14 @@ class ProfileChainOverlay {
       : profileId;
 
   /// Health checks of the imported exit graph run through the entry, so a
-  /// check costs two hops and is far flakier than the direct checks the
-  /// source profile was tuned for. Aggressive source parameters (short
-  /// interval, small tolerance, short timeout, eager checking) make the
-  /// exit selection flap and users feel random disconnects. Floor the
-  /// parameters on the imported runtime copy only; the saved source
-  /// profile is never modified. Floors mirror the chain parameters proven
-  /// in the subscription converter: 3-minute interval, 100 ms tolerance.
+  /// check costs two hops. The parameters are aligned with the
+  /// subscription converter's chain parameters (2026-10-29 alignment,
+  /// user directive) on the imported runtime copy only; the saved source
+  /// profile is never modified: a 60-second interval floor so a dead hop
+  /// is detected within about a minute, a 100 ms tolerance floor and a
+  /// 5000 ms timeout floor because two-hop checks jitter far too much
+  /// for tighter switching, and lazy checking forced off so checks keep
+  /// running in the background.
   static void _floorHealthCheck(Map<String, dynamic> node) {
     void floor(String key, num minimum) {
       final value = node[key];
@@ -32,11 +33,11 @@ class ProfileChainOverlay {
       }
     }
 
-    floor('interval', 180);
+    floor('interval', 60);
     floor('tolerance', 100);
     floor('timeout', 5000);
-    if (node['lazy'] == false) {
-      node['lazy'] = true;
+    if (node['lazy'] == true) {
+      node['lazy'] = false;
     }
   }
 

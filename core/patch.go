@@ -944,13 +944,14 @@ func patchDropAutomaticDirect(raw *config.RawConfig) {
 
 const explicitChainGroup = "链式落地"
 
-// floorChainHealthCheck raises aggressive health-check parameters on the
-// runtime copy of a chain entry group. Every check of a chained path
-// traverses two hops, so parameters tuned for direct access (short
-// interval, small tolerance, short timeout, eager checking) make the
-// selection flap and drop users' connections. Floors mirror the exit-side
-// overlay and the proven converter chain parameters (3-minute interval,
-// 100 ms tolerance); more generous source values are left untouched.
+// floorChainHealthCheck aligns health-check parameters on the runtime
+// copy of a chain entry group with the subscription converter's chain
+// parameters (2026-10-29 alignment, user directive): a 60-second
+// interval floor so a dead hop is detected within about a minute, a
+// 100 ms tolerance floor and a 5000 ms timeout floor because two-hop
+// checks jitter far too much for tighter switching, and lazy checking
+// forced off so checks keep running in the background. More generous
+// source values are left untouched.
 func floorChainHealthCheck(group map[string]any) {
 	floor := func(key string, minimum float64) {
 		var value float64
@@ -968,11 +969,11 @@ func floorChainHealthCheck(group map[string]any) {
 			group[key] = int(minimum)
 		}
 	}
-	floor("interval", 180)
+	floor("interval", 60)
 	floor("tolerance", 100)
 	floor("timeout", 5000)
-	if lazy, ok := group["lazy"].(bool); ok && !lazy {
-		group["lazy"] = true
+	if lazy, ok := group["lazy"].(bool); ok && lazy {
+		group["lazy"] = false
 	}
 }
 

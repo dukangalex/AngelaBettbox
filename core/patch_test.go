@@ -1598,7 +1598,7 @@ proxy-groups:
 		t.Fatal(err)
 	}
 	fast := findGroup(raw.ProxyGroup, "Fast")
-	if fast["interval"] != 180 || fast["tolerance"] != 100 || fast["timeout"] != 5000 || fast["lazy"] != true {
+	if fast["interval"] != 60 || fast["tolerance"] != 100 || fast["timeout"] != 5000 || fast["lazy"] != false {
 		t.Fatalf("aggressive entry parameters were not floored: %v", fast)
 	}
 	calm := findGroup(raw.ProxyGroup, "Calm")
