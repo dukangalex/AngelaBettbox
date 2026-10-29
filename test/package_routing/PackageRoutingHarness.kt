@@ -1,4 +1,4 @@
-package com.appshub.bettbox.services
+package app.angelabettbox.services
 
 fun main() {
     val ids = mapOf("one" to 100, "alias" to 100, "two" to 200, "three" to 300, "self" to 999)
