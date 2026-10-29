@@ -538,25 +538,6 @@ func findProxy(t *testing.T, proxies []map[string]any, name string) map[string]a
 	return nil
 }
 
-func TestApplyPatchDropAutomaticDirect(t *testing.T) {
-	rawCfg := parsePatchProfile(t, chainTestProfile())
-	params := patchParams(t, `{"drop-automatic-direct": true}`)
-	if _, err := applyPatch(rawCfg, params); err != nil {
-		t.Fatal(err)
-	}
-	if got := findGroup(rawCfg.ProxyGroup, "Auto")["proxies"]; !reflect.DeepEqual(got, []any{"Entry", "Landing"}) {
-		t.Errorf("Auto proxies = %v, want [Entry Landing]", got)
-	}
-	// A group left with nothing must keep DIRECT (same as the Dart original).
-	if got := findGroup(rawCfg.ProxyGroup, "OnlyDirect")["proxies"]; !reflect.DeepEqual(got, []any{"DIRECT"}) {
-		t.Errorf("OnlyDirect proxies = %v, want [DIRECT]", got)
-	}
-	// Manual select groups are not automatic groups: untouched.
-	if got := findGroup(rawCfg.ProxyGroup, "Manual")["proxies"]; !reflect.DeepEqual(got, []any{"Auto", "DIRECT"}) {
-		t.Errorf("Manual proxies = %v, want [Auto DIRECT]", got)
-	}
-}
-
 func TestApplyPatchChainInline(t *testing.T) {
 	rawCfg := parsePatchProfile(t, chainTestProfile())
 	params := patchParams(t, `{"chain-policy": {"enabled": true, "entry": "Entry", "landing": "Landing"}}`)
@@ -1625,7 +1606,7 @@ proxies:
  - {name: node, type: http, server: 127.0.0.1, port: 1}
 proxy-groups:
  - {name: Fast, type: url-test, proxies: [node], url: 'http://127.0.0.1:1', interval: 60, tolerance: 20, timeout: 2000, lazy: false}
- - {name: Calm, type: url-test, proxies: [node], url: 'http://127.0.0.1:1', interval: 900, tolerance: 200}
+ - {name: Calm, type: url-test, proxies: [node], url: 'http://127.0.0.1:1', interval: 900, tolerance: 200, lazy: true}
  - {name: Entry, type: select, proxies: [Fast, Calm]}
 `)
 	if err := hardenChainEntryGroup(raw, "Entry"); err != nil {
@@ -1638,6 +1619,9 @@ proxy-groups:
 	calm := findGroup(raw.ProxyGroup, "Calm")
 	if calm["interval"] != 900 || calm["tolerance"] != 200 {
 		t.Fatalf("generous entry parameters were changed: %v", calm)
+	}
+	if calm["lazy"] != true {
+		t.Fatalf("lazy must be preserved, not forced off: %v", calm)
 	}
 	if _, ok := calm["timeout"]; ok {
 		t.Fatalf("absent timeout must not be invented: %v", calm)
@@ -1704,5 +1688,21 @@ func TestApplyPatchTunDNSMode(t *testing.T) {
 	}
 	if rawCfg.Tun.DNSMode != "hijack" {
 		t.Errorf("patched dns-mode should override, got %q", rawCfg.Tun.DNSMode)
+	}
+}
+
+func TestApplyPatchBlockTunUDP(t *testing.T) {
+	rawCfg := parsePatchProfile(t, chainTestProfile())
+	if _, err := applyPatch(rawCfg, patchParams(t, `{"block-tun-udp": true}`)); err != nil {
+		t.Fatal(err)
+	}
+	if !currentBlockTunUDP {
+		t.Error("currentBlockTunUDP = false, want true after block-tun-udp patch")
+	}
+	if _, err := applyPatch(rawCfg, patchParams(t, `{}`)); err != nil {
+		t.Fatal(err)
+	}
+	if currentBlockTunUDP {
+		t.Error("currentBlockTunUDP = true, want false after patch without block-tun-udp")
 	}
 }

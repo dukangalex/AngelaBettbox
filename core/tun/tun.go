@@ -25,7 +25,7 @@ type Props struct {
 	Dns6     string `json:"dns6"`
 }
 
-func Start(fd int, device string, stack constant.TUNStack, dnsMode string, disableIcmpForwarding bool, mtu uint32, ipv6Enabled bool, congestionController string) (*sing_tun.Listener, error) {
+func Start(fd int, device string, stack constant.TUNStack, dnsMode string, disableIcmpForwarding bool, mtu uint32, ipv6Enabled bool, congestionController string, blockUDP bool) (*sing_tun.Listener, error) {
 	fdUnclaimed := fd > 0
 	defer func() {
 		if fdUnclaimed {
@@ -79,7 +79,11 @@ func Start(fd int, device string, stack constant.TUNStack, dnsMode string, disab
 	// Ownership moves to sing_tun.New, which closes the descriptor until a
 	// Listener has adopted it, then delegates closure to Listener.Close.
 	fdUnclaimed = false
-	listener, err := sing_tun.New(options, tunnel.Tunnel)
+	var handler constant.Tunnel = tunnel.Tunnel
+	if blockUDP {
+		handler = udpBlockTunnel{handler}
+	}
+	listener, err := sing_tun.New(options, handler)
 
 	if err != nil {
 		log.Errorln("startTUN error:", err)
