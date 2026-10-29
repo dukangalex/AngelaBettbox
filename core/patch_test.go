@@ -1066,6 +1066,50 @@ func TestSystemExplicitPatchKeepsSourceSafetyBlocks(t *testing.T) {
 	}
 }
 
+func TestSystemExplicitNewCategoriesReplaceHomologousRules(t *testing.T) {
+	rules := []string{
+		"DOMAIN-KEYWORD,stun,Proxy",
+		"DOMAIN-SUFFIX,stun.l.google.com,DIRECT",
+		"GEOSITE,category-ads-all,Proxy",
+		"IP-CIDR,114.114.114.114/32,Proxy,no-resolve",
+		"DOMAIN-SUFFIX,alidns.com,Proxy",
+		"AND,((NETWORK,UDP),(DST-PORT,3478-3480)),Proxy",
+		"DOMAIN-SUFFIX,service.example,Proxy",
+		"MATCH,Proxy",
+	}
+	additions := []string{
+		"GEOSITE,category-ads-all,REJECT",
+		"DOMAIN-KEYWORD,stun,REJECT",
+		"DOMAIN-KEYWORD,turn,REJECT",
+		"DOMAIN-SUFFIX,stun.l.google.com,REJECT",
+		"AND,((NETWORK,UDP),(DST-PORT,3478-3480)),REJECT",
+		"AND,((NETWORK,UDP),(DST-PORT,5349-5355)),REJECT",
+		"AND,((NETWORK,UDP),(DST-PORT,19302-19305)),REJECT",
+		"IP-CIDR,114.114.114.114/32,DIRECT,no-resolve",
+		"DOMAIN-SUFFIX,alidns.com,DIRECT",
+	}
+	got := replaceExplicitRuleCategories(rules, additions)
+	want := append(append([]string{}, additions...),
+		"DOMAIN-SUFFIX,service.example,Proxy",
+		"MATCH,Proxy",
+	)
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("rules after explicit priority:\n got: %#v\nwant: %#v", got, want)
+	}
+	for rule, category := range map[string]string{
+		"DOMAIN-KEYWORD,turn,Proxy":                    "webrtc-domain",
+		"DOMAIN,stun.l.google.com,Proxy":               "webrtc-domain",
+		"GEOSITE,category-ads-all,REJECT":              "ads",
+		"IP-CIDR6,2404:c2c0:85d8:901::8/128,DIRECT":    "china-public-dns-ip",
+		"DOMAIN-SUFFIX,onedns.net,DIRECT":              "china-public-dns-domain",
+		"AND,((NETWORK,UDP),(DST-PORT,19302-19305)),X": "webrtc-common-ports",
+	} {
+		if got := explicitRuleCategory(rule); got != category {
+			t.Fatalf("explicitRuleCategory(%q) = %q, want %q", rule, got, category)
+		}
+	}
+}
+
 func TestApplyPatchAppChainReplacesOnlySelectedNativeChain(t *testing.T) {
 	raw := parsePatchProfile(t, `
 proxies:
@@ -1250,6 +1294,47 @@ func TestSystemExplicitKeepsBuiltinLoopbackProtection(t *testing.T) {
 	want := []string{safety, "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve", "MATCH,DIRECT"}
 	if !reflect.DeepEqual(raw.Rule, want) {
 		t.Fatalf("rules = %#v, want %#v", raw.Rule, want)
+	}
+}
+
+func TestQuicBlockAndChinaDirectCoexistWithoutDuplication(t *testing.T) {
+	raw := parsePatchProfile(t, `rules:
+  - GEOSITE,geolocation-cn,Proxy
+  - GEOIP,CN,Proxy,no-resolve
+  - DOMAIN-SUFFIX,service.example,Proxy
+  - MATCH,Proxy
+`)
+	quic := "AND,((NETWORK,UDP),(DST-PORT,443),(NOT,((OR,((GEOSITE,geolocation-cn),(GEOIP,CN,no-resolve)))))),REJECT"
+	params := &PatchParams{
+		PrependRules: []string{quic},
+		SystemExplicitRules: []string{
+			"GEOSITE,geolocation-cn,DIRECT",
+			"GEOIP,CN,DIRECT,no-resolve",
+		},
+	}
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	counts := map[string]int{}
+	for _, rule := range raw.Rule {
+		counts[rule]++
+	}
+	for _, rule := range []string{
+		quic,
+		"GEOSITE,geolocation-cn,DIRECT",
+		"GEOIP,CN,DIRECT,no-resolve",
+	} {
+		if counts[rule] != 1 {
+			t.Fatalf("rule %q appears %d times in %#v", rule, counts[rule], raw.Rule)
+		}
+	}
+	for _, rule := range []string{
+		"GEOSITE,geolocation-cn,Proxy",
+		"GEOIP,CN,Proxy,no-resolve",
+	} {
+		if counts[rule] != 0 {
+			t.Fatalf("superseded profile rule %q survived in %#v", rule, raw.Rule)
+		}
 	}
 }
 
@@ -1450,9 +1535,9 @@ func TestProviderEntryUsesOnlyOriginalProfileProviders(t *testing.T) {
 // Reproduce the reported latest-build error with a normal filtered url-test
 // entry. The subscription need not include chain-specific safety directives.
 func TestChainEntryCompatibilityHardenedInProductionPatch(t *testing.T) {
- for _, typ := range []string{"select", "url-test", "fallback", "load-balance"} {
-  t.Run(typ, func(t *testing.T) {
-   raw := parsePatchProfile(t, `
+	for _, typ := range []string{"select", "url-test", "fallback", "load-balance"} {
+		t.Run(typ, func(t *testing.T) {
+			raw := parsePatchProfile(t, `
 proxies:
  - {name: entry-node, type: http, server: 127.0.0.1, port: 1}
 proxy-groups:
@@ -1460,51 +1545,104 @@ proxy-groups:
  - {name: Main, type: select, proxies: [entry-node]}
 rules: ['MATCH,Main']
 `)
-   params := &PatchParams{ChainPolicy:&PatchChainPolicy{Enabled:true, Entry:"自动选择",EntryKind:"group",Landing:"[ext] ♻️ 自动选择",LandingKind:"group",ExternalProfile:"synthetic",ExternalTarget:"[ext] ♻️ 自动选择",ExternalKind:"group",ExternalProxies:[]map[string]any{{"name":"[ext] exit","type":"http","server":"127.0.0.1","port":1}},ExternalGroups:[]map[string]any{{"name":"[ext] ♻️ 自动选择","type":"select","proxies":[]any{"[ext] exit"},"empty-fallback":"REJECT"}}}}
-   if _,err:=applyPatch(raw,params);err!=nil{t.Fatal(err)}
-   if findGroup(raw.ProxyGroup,"自动选择")["empty-fallback"]!="REJECT"{t.Fatal("entry not fail-closed")}
-   if findGroup(raw.ProxyGroup,"Main")["empty-fallback"]!=nil{t.Fatal("unrelated selector was hardened")}
-   parseChainConfig(t,raw)
-  })
- }
+			params := &PatchParams{ChainPolicy: &PatchChainPolicy{Enabled: true, Entry: "自动选择", EntryKind: "group", Landing: "[ext] ♻️ 自动选择", LandingKind: "group", ExternalProfile: "synthetic", ExternalTarget: "[ext] ♻️ 自动选择", ExternalKind: "group", ExternalProxies: []map[string]any{{"name": "[ext] exit", "type": "http", "server": "127.0.0.1", "port": 1}}, ExternalGroups: []map[string]any{{"name": "[ext] ♻️ 自动选择", "type": "select", "proxies": []any{"[ext] exit"}, "empty-fallback": "REJECT"}}}}
+			if _, err := applyPatch(raw, params); err != nil {
+				t.Fatal(err)
+			}
+			if findGroup(raw.ProxyGroup, "自动选择")["empty-fallback"] != "REJECT" {
+				t.Fatal("entry not fail-closed")
+			}
+			if findGroup(raw.ProxyGroup, "Main")["empty-fallback"] != nil {
+				t.Fatal("unrelated selector was hardened")
+			}
+			parseChainConfig(t, raw)
+		})
+	}
 }
 
 func TestChainEntryCompatibilityProviderAndNested(t *testing.T) {
- raw:=parsePatchProfile(t, `
+	raw := parsePatchProfile(t, `
 proxy-providers:
  remote: {type: inline, payload: [{name: node, type: http, server: 127.0.0.1, port: 1}]}
 proxy-groups:
  - {name: Inner, type: url-test, use: [remote], exclude-type: Shadowsocks, url: 'http://127.0.0.1:1', interval: 86400}
  - {name: 自动选择, type: select, proxies: [Inner]}
 `)
- if err:=hardenChainEntryGroup(raw,"自动选择");err!=nil{t.Fatal(err)}
- if err:=validateChainEntryGroup(raw,"自动选择");err!=nil{t.Fatal(err)}
- if got:=findGroup(raw.ProxyGroup,"Inner")["exclude-type"];got!="Shadowsocks|Direct|Compatible|Pass"{t.Fatalf("lost user filter %v",got)}
- for _,name:=range []string{"Inner","自动选择"}{if findGroup(raw.ProxyGroup,name)["empty-fallback"]!="REJECT"{t.Fatal(name)}}
- parseChainConfig(t,raw)
+	if err := hardenChainEntryGroup(raw, "自动选择"); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateChainEntryGroup(raw, "自动选择"); err != nil {
+		t.Fatal(err)
+	}
+	if got := findGroup(raw.ProxyGroup, "Inner")["exclude-type"]; got != "Shadowsocks|Direct|Compatible|Pass" {
+		t.Fatalf("lost user filter %v", got)
+	}
+	for _, name := range []string{"Inner", "自动选择"} {
+		if findGroup(raw.ProxyGroup, name)["empty-fallback"] != "REJECT" {
+			t.Fatal(name)
+		}
+	}
+	parseChainConfig(t, raw)
 }
 
 // Exercise the real Mihomo group's dialing, not just map fields. A reachable
 // destination must not be reached when filtering empties the entry, or its
 // chosen proxy fails. A default COMPATIBLE fallback would dial the listener.
 func TestChainEntryCompatibilityNeverDialsDirectOnEmptyOrFailure(t *testing.T) {
- for _,filtered:=range []bool{true,false} { t.Run(fmt.Sprint(filtered),func(t *testing.T){
-  var hits atomic.Int32
-  target:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){hits.Add(1);w.WriteHeader(200)}));defer target.Close()
-  raw:=parsePatchProfile(t, `
+	for _, filtered := range []bool{true, false} {
+		t.Run(fmt.Sprint(filtered), func(t *testing.T) {
+			var hits atomic.Int32
+			target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { hits.Add(1); w.WriteHeader(200) }))
+			defer target.Close()
+			raw := parsePatchProfile(t, `
 proxies:
  - {name: dead-node, type: http, server: 127.0.0.1, port: 1}
 proxy-groups:
  - {name: 自动选择, type: select, proxies: [dead-node]}
 `)
-  if filtered {findGroup(raw.ProxyGroup,"自动选择")["filter"]="^does-not-match$"}
-  if err:=hardenChainEntryGroup(raw,"自动选择");err!=nil{t.Fatal(err)}
-  if err:=validateChainEntryGroup(raw,"自动选择");err!=nil{t.Fatal(err)}
-  parsed:=parseChainConfig(t,raw)
-  oldP,oldProviders:=tunnel.Proxies(),tunnel.Providers();tunnel.UpdateProxies(parsed.Proxies,parsed.Providers);defer tunnel.UpdateProxies(oldP,oldProviders)
-  host,port,_:=net.SplitHostPort(target.Listener.Addr().String());n,_:=strconv.Atoi(port)
-  ctx,cancel:=context.WithTimeout(context.Background(),time.Second);defer cancel()
-  c,err:=parsed.Proxies["自动选择"].DialContext(ctx,&constant.Metadata{NetWork:constant.TCP,DstIP:netip.MustParseAddr(host),DstPort:uint16(n)})
-  if c!=nil{c.Close()};if err==nil{t.Fatal("unsafe direct dial succeeded")};if hits.Load()!=0{t.Fatal("direct origin contacted")}
- }) }
+			if filtered {
+				findGroup(raw.ProxyGroup, "自动选择")["filter"] = "^does-not-match$"
+			}
+			if err := hardenChainEntryGroup(raw, "自动选择"); err != nil {
+				t.Fatal(err)
+			}
+			if err := validateChainEntryGroup(raw, "自动选择"); err != nil {
+				t.Fatal(err)
+			}
+			parsed := parseChainConfig(t, raw)
+			oldP, oldProviders := tunnel.Proxies(), tunnel.Providers()
+			tunnel.UpdateProxies(parsed.Proxies, parsed.Providers)
+			defer tunnel.UpdateProxies(oldP, oldProviders)
+			host, port, _ := net.SplitHostPort(target.Listener.Addr().String())
+			n, _ := strconv.Atoi(port)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			c, err := parsed.Proxies["自动选择"].DialContext(ctx, &constant.Metadata{NetWork: constant.TCP, DstIP: netip.MustParseAddr(host), DstPort: uint16(n)})
+			if c != nil {
+				c.Close()
+			}
+			if err == nil {
+				t.Fatal("unsafe direct dial succeeded")
+			}
+			if hits.Load() != 0 {
+				t.Fatal("direct origin contacted")
+			}
+		})
+	}
+}
+
+func TestApplyPatchTunDNSMode(t *testing.T) {
+	rawCfg := parsePatchProfile(t, "tun:\n  dns-mode: native\n")
+	if _, err := applyPatch(rawCfg, patchParams(t, `{"general":{"tun":{"enable":true,"stack":"system"}}}`)); err != nil {
+		t.Fatal(err)
+	}
+	if rawCfg.Tun.DNSMode != "native" {
+		t.Errorf("profile dns-mode should be kept, got %q", rawCfg.Tun.DNSMode)
+	}
+	if _, err := applyPatch(rawCfg, patchParams(t, `{"general":{"tun":{"enable":true,"stack":"system","dns-mode":"hijack"}}}`)); err != nil {
+		t.Fatal(err)
+	}
+	if rawCfg.Tun.DNSMode != "hijack" {
+		t.Errorf("patched dns-mode should override, got %q", rawCfg.Tun.DNSMode)
+	}
 }

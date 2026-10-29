@@ -126,9 +126,11 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m50(provider) => "切換到 ${provider}";
 
-  static String m51(label) => "${label}必須為 URL";
+  static String m51(error) => "无法确认设置已应用到当前配置：${error}";
 
-  static String m52(count) => "${Intl.plural(count, other: '年')}";
+  static String m52(label) => "${label}必須為 URL";
+
+  static String m53(count) => "${Intl.plural(count, other: '年')}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -300,6 +302,46 @@ class MessageLookup extends MessageLookupByLibrary {
     "categoryGaming": MessageLookupByLibrary.simpleMessage("遊戲中心"),
     "categorySocial": MessageLookupByLibrary.simpleMessage("社群平台"),
     "categoryStreaming": MessageLookupByLibrary.simpleMessage("串流媒體"),
+    "chainAttention": MessageLookupByLibrary.simpleMessage("链式设置未就绪"),
+    "chainChooseOtherProfile": MessageLookupByLibrary.simpleMessage("请选择其它配置"),
+    "chainChooseTarget": MessageLookupByLibrary.simpleMessage("选择节点或策略组"),
+    "chainEnable": MessageLookupByLibrary.simpleMessage("启用"),
+    "chainEnableDesc": MessageLookupByLibrary.simpleMessage(
+      "入口来自当前配置；出口可选其他配置的节点或策略组。开启后请在策略组中选择“链式落地”，只有走该选项的流量才经过链路；不改订阅原文。",
+    ),
+    "chainEntry": MessageLookupByLibrary.simpleMessage("入口"),
+    "chainExit": MessageLookupByLibrary.simpleMessage("出口"),
+    "chainExitProfile": MessageLookupByLibrary.simpleMessage("出口配置"),
+    "chainIssueIncomplete": MessageLookupByLibrary.simpleMessage(
+      "请先选择入口和出口，再启用链式代理。",
+    ),
+    "chainIssueOtherProfile": MessageLookupByLibrary.simpleMessage(
+      "出口必须来自当前配置以外的另一份配置，请重新选择。",
+    ),
+    "chainIssueSameNode": MessageLookupByLibrary.simpleMessage(
+      "入口和出口不能是同一个节点或策略组。",
+    ),
+    "chainIssueUnavailable": MessageLookupByLibrary.simpleMessage(
+      "所选节点、策略组或配置已不可用，请重新选择。",
+    ),
+    "chainNoEntry": MessageLookupByLibrary.simpleMessage("当前配置没有可选项"),
+    "chainNoEntryDesc": MessageLookupByLibrary.simpleMessage("当前配置没有可用节点或策略组。"),
+    "chainNoExitChoices": MessageLookupByLibrary.simpleMessage("出口配置没有可选项"),
+    "chainNoExitChoicesDesc": MessageLookupByLibrary.simpleMessage(
+      "所选配置中没有可用节点或策略组。",
+    ),
+    "chainNoExits": MessageLookupByLibrary.simpleMessage("这份配置没有可选出口。"),
+    "chainNoOtherProfiles": MessageLookupByLibrary.simpleMessage("没有其它配置"),
+    "chainNoOtherProfilesDesc": MessageLookupByLibrary.simpleMessage(
+      "出口必须来自其它配置；先添加另一份配置后再选择。",
+    ),
+    "chainNotInProfile": MessageLookupByLibrary.simpleMessage("当前配置中已不存在"),
+    "chainNotInSelectedProfile": MessageLookupByLibrary.simpleMessage(
+      "所选配置中已不存在",
+    ),
+    "chainTargetGroup": MessageLookupByLibrary.simpleMessage("策略组"),
+    "chainTargetProxy": MessageLookupByLibrary.simpleMessage("节点"),
+    "chainTitle": MessageLookupByLibrary.simpleMessage("链式代理"),
     "chasingDots": MessageLookupByLibrary.simpleMessage("雙星追逐"),
     "checkError": MessageLookupByLibrary.simpleMessage("檢測失敗"),
     "checkFailed": MessageLookupByLibrary.simpleMessage("Timeout"),
@@ -341,7 +383,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "connections": MessageLookupByLibrary.simpleMessage("連線"),
     "connectionsActive": MessageLookupByLibrary.simpleMessage("活動"),
     "connectionsClosed": MessageLookupByLibrary.simpleMessage("已關閉"),
-    "connectionsDesc": MessageLookupByLibrary.simpleMessage("查看目前連線資料"),
+    "connectionsDesc": MessageLookupByLibrary.simpleMessage("查看活動和已關閉的連線"),
     "connectionsSort": MessageLookupByLibrary.simpleMessage("連接排序"),
     "connectivity": MessageLookupByLibrary.simpleMessage("連通性："),
     "contactMe": MessageLookupByLibrary.simpleMessage("聯絡我"),
@@ -1237,16 +1279,14 @@ class MessageLookup extends MessageLookupByLibrary {
     "replace": MessageLookupByLibrary.simpleMessage("替換"),
     "replaceAll": MessageLookupByLibrary.simpleMessage("全部替換"),
     "request": MessageLookupByLibrary.simpleMessage("請求"),
-    "requests": MessageLookupByLibrary.simpleMessage("請求"),
-    "requestsDesc": MessageLookupByLibrary.simpleMessage("查看最近請求記錄"),
     "reset": MessageLookupByLibrary.simpleMessage("重設"),
     "resetIconCache": MessageLookupByLibrary.simpleMessage("重置圖示快取"),
     "resetIconCacheDesc": MessageLookupByLibrary.simpleMessage(
       "是否重置本機圖示快取？這個操作是安全的，因為應用會再次從遠端連結自動取得。",
     ),
     "resetTip": MessageLookupByLibrary.simpleMessage("確定要重設嗎？"),
-    "resources": MessageLookupByLibrary.simpleMessage("資源"),
-    "resourcesDesc": MessageLookupByLibrary.simpleMessage("外部資源相關資訊"),
+    "resources": MessageLookupByLibrary.simpleMessage("外部資源"),
+    "resourcesDesc": MessageLookupByLibrary.simpleMessage("查看外部資源或規則集合"),
     "respectRules": MessageLookupByLibrary.simpleMessage("遵守規則"),
     "respectRulesDesc": MessageLookupByLibrary.simpleMessage("DNS 連線跟隨 Rules"),
     "restart": MessageLookupByLibrary.simpleMessage("重啟"),
@@ -1307,8 +1347,8 @@ class MessageLookup extends MessageLookupByLibrary {
     "save": MessageLookupByLibrary.simpleMessage("儲存"),
     "saveChanges": MessageLookupByLibrary.simpleMessage("是否儲存更改？"),
     "saveTip": MessageLookupByLibrary.simpleMessage("確定要儲存嗎？"),
-    "script": MessageLookupByLibrary.simpleMessage("指令碼"),
-    "scriptDesc": MessageLookupByLibrary.simpleMessage("配置全局覆寫腳本"),
+    "script": MessageLookupByLibrary.simpleMessage("覆寫腳本"),
+    "scriptDesc": MessageLookupByLibrary.simpleMessage("配置 JavaScript 覆寫腳本"),
     "scriptOtherOptions": MessageLookupByLibrary.simpleMessage("其他設定"),
     "search": MessageLookupByLibrary.simpleMessage("搜尋"),
     "seconds": MessageLookupByLibrary.simpleMessage("秒"),
@@ -1482,6 +1522,81 @@ class MessageLookup extends MessageLookupByLibrary {
     "system": MessageLookupByLibrary.simpleMessage("系統"),
     "systemApp": MessageLookupByLibrary.simpleMessage("系統應用程式"),
     "systemDns": MessageLookupByLibrary.simpleMessage("DNS"),
+    "systemExplicitAdapt": MessageLookupByLibrary.simpleMessage("自适应通路"),
+    "systemExplicitAdaptDesc": MessageLookupByLibrary.simpleMessage(
+      "发出数据却收不到回包时会立刻复查。只切换正在走流量的手动组。连续两次、并且换过探测地址仍测不通，才换节点，并放开旧节点上卡住的连接。自动测速组不再把直连当作失败后的退路。不改订阅。",
+    ),
+    "systemExplicitApplyState": MessageLookupByLibrary.simpleMessage(
+      "设置应用状态待确认",
+    ),
+    "systemExplicitApplyUnconfirmed": m51,
+    "systemExplicitBlockAds": MessageLookupByLibrary.simpleMessage("广告拦截"),
+    "systemExplicitBlockAdsDesc": MessageLookupByLibrary.simpleMessage(
+      "默认关闭。按 Mihomo 的 GEOSITE category-ads-all 分类阻断广告域名；仅替换配置中同类广告规则，其它规则保留。",
+    ),
+    "systemExplicitBlockTunUdp": MessageLookupByLibrary.simpleMessage(
+      "阻断 VPN 内全部 UDP",
+    ),
+    "systemExplicitBlockTunUdpDesc": MessageLookupByLibrary.simpleMessage(
+      "默认关闭。仅阻断进入本应用 TUN 的 IPv4/IPv6 UDP，包括 UDP DNS，不受路由模式影响；可能影响通话、视频、QUIC、游戏和 DNS。TCP/TLS、伪装流量与 VPN 之外不受此项保护；未启动 VPN 时不生效。",
+    ),
+    "systemExplicitBlockWebRtc": MessageLookupByLibrary.simpleMessage(
+      "阻断 WebRTC/STUN/TURN",
+    ),
+    "systemExplicitBlockWebRtcDesc": MessageLookupByLibrary.simpleMessage(
+      "默认关闭。按域名阻断含 stun/turn 的主机名与 Google STUN，并阻断 UDP 3478-3480、5349-5355、19302-19305；可能影响语音/视频，伪装流量不在覆盖内，不能保证阻断所有 WebRTC。",
+    ),
+    "systemExplicitChinaDirect": MessageLookupByLibrary.simpleMessage(
+      "中国 IP 和域名直连",
+    ),
+    "systemExplicitChinaDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "按 Mihomo 的 GEOIP/GEOSITE 中国规则直连；仅替换配置中同类中国 IP/域名规则，其它规则保留。",
+    ),
+    "systemExplicitChinaDnsDirect": MessageLookupByLibrary.simpleMessage(
+      "中国公共 DNS 直连（隐私例外）",
+    ),
+    "systemExplicitChinaDnsDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "默认关闭。仅列出的中国公共 DNS IP/域名走直连，可能暴露 DNS 查询给本地网络/运营商；中国直连也可能覆盖这些地址，即使本项关闭。",
+    ),
+    "systemExplicitInactive": MessageLookupByLibrary.simpleMessage("当前路由选项未生效"),
+    "systemExplicitInactiveDesc": MessageLookupByLibrary.simpleMessage(
+      "当前模式绕过这些规则，已保存的选择将在规则模式恢复；隐私通知隐藏仍保留。",
+    ),
+    "systemExplicitIntro": MessageLookupByLibrary.simpleMessage(
+      "写在脚本和配置之后，不改订阅原文。全局或直连模式会暂停规则选项，切回规则模式时恢复已保存的选择。",
+    ),
+    "systemExplicitLanDirect": MessageLookupByLibrary.simpleMessage(
+      "局域网 IP 和域名直连",
+    ),
+    "systemExplicitLanDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "仅匹配私网/本机/链路本地网段及 .local、.lan、home.arpa；直连流量不经过代理。",
+    ),
+    "systemExplicitLastSwitch": MessageLookupByLibrary.simpleMessage("最近一次切换"),
+    "systemExplicitLimits": MessageLookupByLibrary.simpleMessage(
+      "DNS 与 VPN 断开保护范围",
+    ),
+    "systemExplicitLimitsDesc": MessageLookupByLibrary.simpleMessage(
+      "DNS 仅在流量经过本应用 TUN 且被 DNS 劫持/核心处理时受控；系统绕过 VPN、应用排除项及应用自行加密的 DoH/DoT 不在通用保证内。断开保护需在 Android 系统 VPN 设置中启用“始终开启”和“阻止未使用 VPN 的连接”（若系统提供）；本应用不能代替系统锁定。",
+    ),
+    "systemExplicitNoneYet": MessageLookupByLibrary.simpleMessage("还没有切换"),
+    "systemExplicitPrivacy": MessageLookupByLibrary.simpleMessage("防隐私"),
+    "systemExplicitPrivacyDesc": MessageLookupByLibrary.simpleMessage(
+      "通知不显示配置名，并阻断局域网发现。",
+    ),
+    "systemExplicitRuleModeDesc": MessageLookupByLibrary.simpleMessage(
+      "此选项需要规则模式。切换后会恢复已保存的系统显式路由选项。",
+    ),
+    "systemExplicitRuleModeNotApplied": MessageLookupByLibrary.simpleMessage(
+      "未切换到规则模式，选项未启用。",
+    ),
+    "systemExplicitRuleModeTitle": MessageLookupByLibrary.simpleMessage(
+      "切换到规则模式？",
+    ),
+    "systemExplicitSubtitle": MessageLookupByLibrary.simpleMessage(
+      "自适应通路、防隐私、中国直连",
+    ),
+    "systemExplicitSwitch": MessageLookupByLibrary.simpleMessage("切换"),
+    "systemExplicitTitle": MessageLookupByLibrary.simpleMessage("系统显式"),
     "systemFont": MessageLookupByLibrary.simpleMessage("系統字體"),
     "systemProxy": MessageLookupByLibrary.simpleMessage("系統代理"),
     "systemProxyDesc": MessageLookupByLibrary.simpleMessage("設定系統代理"),
@@ -1585,7 +1700,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "upload": MessageLookupByLibrary.simpleMessage("上傳"),
     "url": MessageLookupByLibrary.simpleMessage("URL"),
     "urlDesc": MessageLookupByLibrary.simpleMessage("透過 URL 獲取設定檔"),
-    "urlTip": m51,
+    "urlTip": m52,
     "useGlobalScriptOverride": MessageLookupByLibrary.simpleMessage(
       "使用全域指令碼覆寫",
     ),
@@ -1624,6 +1739,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "xattrUnsupportedFallback": MessageLookupByLibrary.simpleMessage(
       "檔案系統不支援檔案能力（xattr），已回退到 setuid",
     ),
-    "years": m52,
+    "years": m53,
   };
 }

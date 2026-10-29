@@ -30,7 +30,6 @@ void showIpDetailDialog(
 
 class _IpDetailDialog extends StatefulWidget {
   final String ip;
-
   final IpInfo? preloaded;
 
   const _IpDetailDialog({required this.ip, this.preloaded});
@@ -48,12 +47,13 @@ class _IpDetailDialogState extends State<_IpDetailDialog> {
   @override
   void initState() {
     super.initState();
-    if (widget.preloaded != null) {
-      _ipInfo = widget.preloaded;
+    final preloaded = widget.preloaded;
+    if (preloaded != null) {
+      _ipInfo = preloaded;
       _isLoading = false;
-    } else {
-      _fetchIpDetail();
+      return;
     }
+    _fetchIpDetail();
   }
 
   Future<void> _fetchIpDetail() async {

@@ -74,6 +74,7 @@ type tunSchema struct {
 	Enable                bool               `yaml:"enable" json:"enable"`
 	Device                *string            `yaml:"device" json:"device"`
 	Stack                 *constant.TUNStack `yaml:"stack" json:"stack"`
+	DNSMode               *string            `yaml:"dns-mode" json:"dns-mode,omitempty"`
 	DNSHijack             *[]string          `yaml:"dns-hijack" json:"dns-hijack"`
 	AutoRoute             *bool              `yaml:"auto-route" json:"auto-route"`
 	AutoRedirect          *bool              `yaml:"auto-redirect" json:"auto-redirect,omitempty"`

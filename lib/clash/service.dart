@@ -163,7 +163,7 @@ class ClashService extends ClashHandlerInterface {
 
     await _destroySocket();
 
-    if (system.isWindows && !kDebugMode) {
+    if (_usesHelper) {
       await helperClient.stopCore().catchError((_) => false);
     }
 
@@ -194,7 +194,7 @@ class ClashService extends ClashHandlerInterface {
     final environment = Map<String, String>.from(Platform.environment);
     environment['SAFE_PATHS'] = homeDirPath;
 
-    if (system.isWindows && !kDebugMode) {
+    if (_usesHelper) {
       final serviceOk = AppIdentity.isDev
           ? (await windows?.isHelperHealthy() ?? false)
           : (await windows?.registerService() ?? false);
@@ -254,9 +254,7 @@ class ClashService extends ClashHandlerInterface {
     }
     if (!connected) throw const CoreDisconnectedException();
     isStarting = false;
-    if (system.isWindows &&
-        !kDebugMode &&
-        globalState.config.appSetting.enableHighPriority) {
+    if (_usesHelper && globalState.config.appSetting.enableHighPriority) {
       unawaited(
         helperClient
             .setProcessPriority('${AppIdentity.coreExecutableName}.exe', true)
@@ -267,6 +265,8 @@ class ClashService extends ClashHandlerInterface {
       );
     }
   }
+
+  bool get _usesHelper => windows?.usesHelper ?? false;
 
   Duration get _coreReadyTimeout {
     if (kDebugMode || AppIdentity.isDev) {
@@ -428,7 +428,7 @@ class ClashService extends ClashHandlerInterface {
   @override
   shutdown() async {
     _isDestroying = true;
-    if (system.isWindows && !kDebugMode) {
+    if (_usesHelper) {
       await helperClient.stopCore();
     }
     await _destroySocket();

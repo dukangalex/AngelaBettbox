@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bett_box/common/common.dart';
 import 'package:bett_box/controller.dart';
 import 'package:bett_box/enum/enum.dart';
+import 'package:bett_box/l10n/l10n.dart';
 import 'package:bett_box/models/models.dart';
 import 'package:bett_box/providers/providers.dart';
 import 'package:bett_box/state.dart';
@@ -19,6 +20,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async {
     SharedPreferences.setMockInitialValues({});
+    await AppLocalizations.load(const Locale('en'));
     await SystemExplicitStore.instance.ensureLoaded();
   });
   setUp(() {

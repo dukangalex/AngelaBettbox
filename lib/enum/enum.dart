@@ -109,6 +109,8 @@ enum ProxiesSortType { none, delay, name }
 
 enum TunStack { gvisor, system, mixed, mips }
 
+enum TunDnsMode { disabled, native, hijack }
+
 enum CongestionController { cubic, reno, bbr, bbr3 }
 
 enum AccessControlMode { acceptSelected, rejectSelected }
@@ -297,8 +299,6 @@ enum ActionMethod {
   startLocalPing,
   cancelLocalPing,
 
-
-
   ///Android,
   setState,
   startTun,
@@ -369,7 +369,6 @@ enum FunctionTag {
   savePreferences,
   changeProxy,
   checkIp,
-  handleWill,
   updateDelay,
   vpnTip,
   autoLaunch,
@@ -380,6 +379,7 @@ enum FunctionTag {
   logs,
   requests,
   autoScrollToEnd,
+  autoBackup,
 }
 
 enum DashboardWidget {
@@ -428,13 +428,65 @@ enum DashboardWidget {
 
   const DashboardWidget(this.widget, {this.platforms = SupportPlatform.values});
 
-  static DashboardWidget getDashboardWidget(GridItem gridItem) {
-    final dashboardWidgets = DashboardWidget.values;
-    final index = dashboardWidgets.indexWhere(
-      (item) => item.widget == gridItem,
-    );
-    return dashboardWidgets[index];
-  }
+  static const _variantGroups = [
+    [networkSpeedSmall, networkSpeed],
+    [outboundModeV2, outboundMode],
+    [mediaUnlockSmall, mediaUnlock],
+  ];
+
+  List<DashboardWidget> get variants => _variantGroups.firstWhere(
+    (group) => group.contains(this),
+    orElse: () => [this],
+  );
+
+  DashboardWidget get family =>
+      variants.reduce((a, b) => a.index <= b.index ? a : b);
+
+  DashboardTileSize get nativeSize => switch (this) {
+    networkSpeed || mediaUnlock => DashboardTileSize.large,
+    outboundModeV2 => DashboardTileSize.wide,
+    outboundMode || mediaUnlockSmall || trafficUsage => DashboardTileSize.tall,
+    _ => DashboardTileSize.small,
+  };
+
+  List<DashboardTileSize> get sizes => switch (family) {
+    networkSpeed => const [
+      DashboardTileSize.small,
+      DashboardTileSize.wide,
+      DashboardTileSize.tall,
+      DashboardTileSize.large,
+    ],
+    trafficUsage => const [DashboardTileSize.tall, DashboardTileSize.wide],
+    networkDetection ||
+    intranetIp ||
+    memoryInfo ||
+    connectionsCount ||
+    startButton => const [
+      DashboardTileSize.small,
+      DashboardTileSize.wide,
+      DashboardTileSize.tall,
+    ],
+    _ => [for (final item in variants) item.nativeSize],
+  };
+
+  bool get resizable => sizes.length > 1;
+
+  DashboardWidget variantFor(DashboardTileSize size) => variants.firstWhere(
+    (item) => item.nativeSize == size,
+    orElse: () => family,
+  );
+}
+
+enum DashboardTileSize {
+  small(1, 1),
+  wide(2, 1),
+  tall(1, 2),
+  large(2, 2);
+
+  final int cross;
+  final int rows;
+
+  const DashboardTileSize(this.cross, this.rows);
 }
 
 enum GeodataLoader { standard, memconservative }
@@ -445,7 +497,6 @@ enum PageLabel {
   profiles,
   tools,
   logs,
-  requests,
   resources,
   script,
   toolbox,
@@ -465,8 +516,6 @@ extension PageLabelExtension on PageLabel {
         return appLocalizations.navTools;
       case PageLabel.logs:
         return appLocalizations.logs;
-      case PageLabel.requests:
-        return appLocalizations.requests;
       case PageLabel.resources:
         return appLocalizations.resources;
       case PageLabel.script:
@@ -542,6 +591,7 @@ enum StartSwitchStyle { tonal, outlined }
 enum SidebarFlyoutEntry {
   resources,
   script,
+  toolbox,
   theme,
   backupAndRecovery,
   hotkeyManagement,
@@ -557,6 +607,7 @@ enum SidebarFlyoutEntry {
   String get localizedName => switch (this) {
     SidebarFlyoutEntry.resources => appLocalizations.resources,
     SidebarFlyoutEntry.script => appLocalizations.script,
+    SidebarFlyoutEntry.toolbox => appLocalizations.toolbox,
     SidebarFlyoutEntry.theme => appLocalizations.theme,
     SidebarFlyoutEntry.backupAndRecovery => appLocalizations.backupAndRecovery,
     SidebarFlyoutEntry.hotkeyManagement => appLocalizations.hotkeyManagement,

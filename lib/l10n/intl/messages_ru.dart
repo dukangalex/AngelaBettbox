@@ -138,9 +138,12 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m50(provider) => "Переключить на ${provider}";
 
-  static String m51(label) => "${label} должен быть URL";
+  static String m51(error) =>
+      "Could not confirm these settings were applied to the current profile: ${error}";
 
-  static String m52(count) =>
+  static String m52(label) => "${label} должен быть URL";
+
+  static String m53(count) =>
       "${Intl.plural(count, one: 'год', few: 'года', many: 'лет', other: 'лет')}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -153,7 +156,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Только выбранные приложения используют VPN",
     ),
     "accessControlDesc": MessageLookupByLibrary.simpleMessage(
-      "Настройка доступа приложений к прокси",
+      "Белый и чёрный списки приложений",
     ),
     "accessControlNotAllowDesc": MessageLookupByLibrary.simpleMessage(
       "Выбранные приложения исключены из VPN",
@@ -417,6 +420,62 @@ class MessageLookup extends MessageLookupByLibrary {
     "categoryGaming": MessageLookupByLibrary.simpleMessage("Игровой центр"),
     "categorySocial": MessageLookupByLibrary.simpleMessage("Сообщество"),
     "categoryStreaming": MessageLookupByLibrary.simpleMessage("Стриминг"),
+    "chainAttention": MessageLookupByLibrary.simpleMessage(
+      "Chain settings need attention",
+    ),
+    "chainChooseOtherProfile": MessageLookupByLibrary.simpleMessage(
+      "Choose another profile",
+    ),
+    "chainChooseTarget": MessageLookupByLibrary.simpleMessage(
+      "Choose a proxy or group",
+    ),
+    "chainEnable": MessageLookupByLibrary.simpleMessage("Enable"),
+    "chainEnableDesc": MessageLookupByLibrary.simpleMessage(
+      "Choose an entry from this profile and an exit proxy or group from another. After enabling, select the generated chain in a manual group; only traffic using it follows the chain. Source configs stay unchanged.",
+    ),
+    "chainEntry": MessageLookupByLibrary.simpleMessage("Entry"),
+    "chainExit": MessageLookupByLibrary.simpleMessage("Exit"),
+    "chainExitProfile": MessageLookupByLibrary.simpleMessage("Exit profile"),
+    "chainIssueIncomplete": MessageLookupByLibrary.simpleMessage(
+      "Choose both an entry and an exit before enabling the chain.",
+    ),
+    "chainIssueOtherProfile": MessageLookupByLibrary.simpleMessage(
+      "Choose the exit from a different profile.",
+    ),
+    "chainIssueSameNode": MessageLookupByLibrary.simpleMessage(
+      "Entry and exit cannot be the same proxy or group.",
+    ),
+    "chainIssueUnavailable": MessageLookupByLibrary.simpleMessage(
+      "A selected proxy, group, or profile is unavailable. Choose again.",
+    ),
+    "chainNoEntry": MessageLookupByLibrary.simpleMessage("No entry choices"),
+    "chainNoEntryDesc": MessageLookupByLibrary.simpleMessage(
+      "The current profile has no available proxies or groups.",
+    ),
+    "chainNoExitChoices": MessageLookupByLibrary.simpleMessage(
+      "No exit choices",
+    ),
+    "chainNoExitChoicesDesc": MessageLookupByLibrary.simpleMessage(
+      "The selected profile has no available proxies or groups.",
+    ),
+    "chainNoExits": MessageLookupByLibrary.simpleMessage(
+      "This profile has no available exits.",
+    ),
+    "chainNoOtherProfiles": MessageLookupByLibrary.simpleMessage(
+      "No other profiles",
+    ),
+    "chainNoOtherProfilesDesc": MessageLookupByLibrary.simpleMessage(
+      "The exit must come from another profile. Add one to configure it.",
+    ),
+    "chainNotInProfile": MessageLookupByLibrary.simpleMessage(
+      "not found in this profile",
+    ),
+    "chainNotInSelectedProfile": MessageLookupByLibrary.simpleMessage(
+      "not found in the selected profile",
+    ),
+    "chainTargetGroup": MessageLookupByLibrary.simpleMessage("Group"),
+    "chainTargetProxy": MessageLookupByLibrary.simpleMessage("Proxy"),
+    "chainTitle": MessageLookupByLibrary.simpleMessage("Chain"),
     "chasingDots": MessageLookupByLibrary.simpleMessage("Догоняющие точки"),
     "checkError": MessageLookupByLibrary.simpleMessage("Ошибка проверки"),
     "checkFailed": MessageLookupByLibrary.simpleMessage("Timeout"),
@@ -473,7 +532,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "connectionsActive": MessageLookupByLibrary.simpleMessage("Активные"),
     "connectionsClosed": MessageLookupByLibrary.simpleMessage("Закрытые"),
     "connectionsDesc": MessageLookupByLibrary.simpleMessage(
-      "Просмотр текущих соединений",
+      "Просмотр активных и закрытых соединений",
     ),
     "connectionsSort": MessageLookupByLibrary.simpleMessage(
       "Сортировка соединений",
@@ -538,7 +597,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "DNS по умолчанию",
     ),
     "defaultNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Используется для разрешения DNS-серверов",
+      "Разрешение DNS-серверов",
     ),
     "defaultSort": MessageLookupByLibrary.simpleMessage("По умолчанию"),
     "defaultText": MessageLookupByLibrary.simpleMessage("По умолчанию"),
@@ -576,14 +635,14 @@ class MessageLookup extends MessageLookupByLibrary {
       "Включить преобразование IP4P",
     ),
     "dialerIp4pConvertDesc": MessageLookupByLibrary.simpleMessage(
-      "Включить преобразование IP4P в диалере",
+      "Преобразование IP4P в диалере",
     ),
     "direct": MessageLookupByLibrary.simpleMessage("Напрямую"),
     "directNameserver": MessageLookupByLibrary.simpleMessage(
       "DNS для прямого подключения",
     ),
     "directNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Используется для разрешения доменов с прямым подключением",
+      "Разрешение прямых доменов",
     ),
     "directNameserverFollowPolicy": MessageLookupByLibrary.simpleMessage(
       "Прямой DNS учитывает политики DNS",
@@ -695,7 +754,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "enableTraySpeed": MessageLookupByLibrary.simpleMessage("Скорость в трее"),
     "enableTraySpeedDesc": MessageLookupByLibrary.simpleMessage(
-      "Отображение скорости отдачи и загрузки в строке меню",
+      "Показывать скорость в строке меню",
     ),
     "enabled": MessageLookupByLibrary.simpleMessage("Включено"),
     "endpointIndependentNat": MessageLookupByLibrary.simpleMessage(
@@ -711,7 +770,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "exclude": MessageLookupByLibrary.simpleMessage("Скрыть из недавних"),
     "excludeChina": MessageLookupByLibrary.simpleMessage("Исключить Китай"),
     "excludeChinaDesc": MessageLookupByLibrary.simpleMessage(
-      "Разрешить QUIC-трафик Китая вместо полной блокировки",
+      "Разрешить QUIC для Китая",
     ),
     "excludeDesc": MessageLookupByLibrary.simpleMessage(
       "Скрыть приложение из недавних задач",
@@ -859,13 +918,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "heapObjects": MessageLookupByLibrary.simpleMessage("Objects"),
     "highPriority": MessageLookupByLibrary.simpleMessage("Высокий приоритет"),
     "highPriorityDesc": MessageLookupByLibrary.simpleMessage(
-      "Повысить приоритет процесса приложения и ядра",
+      "Повысить приоритет приложения и ядра",
     ),
     "highRefreshRate": MessageLookupByLibrary.simpleMessage(
       "Высокая частота обновления",
     ),
     "highRefreshRateDesc": MessageLookupByLibrary.simpleMessage(
-      "Включить поддержку максимальной частоты обновления устройства",
+      "Максимальная частота обновления экрана",
     ),
     "host": MessageLookupByLibrary.simpleMessage("Хост"),
     "hostsDesc": MessageLookupByLibrary.simpleMessage(
@@ -1153,7 +1212,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Защита от закольцовки",
     ),
     "loopbackProtectionDesc": MessageLookupByLibrary.simpleMessage(
-      "Блокировать закольцованный трафик из-за ошибок сети",
+      "Блокировать петли трафика из-за ошибок",
     ),
     "loose": MessageLookupByLibrary.simpleMessage("Максимальная"),
     "manualRefreshIp": MessageLookupByLibrary.simpleMessage("Обновить IP"),
@@ -1193,7 +1252,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Больше платформ стриминга",
     ),
     "mediaUnlockPinnedSettingsDesc": MessageLookupByLibrary.simpleMessage(
-      "Можно выбрать до 3 элементов для закрепления в виджете",
+      "Закрепить до 3 элементов в виджете",
     ),
     "mediaUnlockRefreshByCategory": MessageLookupByLibrary.simpleMessage(
       "Частичное обновление по текущей категории",
@@ -1261,7 +1320,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "nameSort": MessageLookupByLibrary.simpleMessage("По имени"),
     "nameserver": MessageLookupByLibrary.simpleMessage("Основной DNS"),
     "nameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Используется для разрешения доменов",
+      "Разрешение доменов",
     ),
     "nameserverPolicy": MessageLookupByLibrary.simpleMessage("Политика DNS"),
     "nameserverPolicyDesc": MessageLookupByLibrary.simpleMessage(
@@ -1411,7 +1470,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "noProxyDesc": MessageLookupByLibrary.simpleMessage(
       "Создайте или добавьте профиль",
     ),
-    "noResolve": MessageLookupByLibrary.simpleMessage("Не разрешать IP"),
+    "noResolve": MessageLookupByLibrary.simpleMessage("Без разрешения IP"),
     "noStatusAvailable": MessageLookupByLibrary.simpleMessage(
       "Статус недоступен",
     ),
@@ -1433,7 +1492,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Высокий приоритет",
     ),
     "notificationHighPriorityDesc": MessageLookupByLibrary.simpleMessage(
-      "Установить высокий приоритет для панели уведомлений",
+      "Высокий приоритет уведомлений",
     ),
     "notificationHighPriorityTip": MessageLookupByLibrary.simpleMessage(
       "Уведомления с высоким приоритетом могут решить проблемы работы в фоне на некоторых кастомных прошивках. Если ваш VPN работает нормально, рекомендуется оставить выключенным. Включить?",
@@ -1621,7 +1680,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "proxyGroupsCount": MessageLookupByLibrary.simpleMessage("Группы"),
     "proxyNameserver": MessageLookupByLibrary.simpleMessage("DNS для прокси"),
     "proxyNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Используется для разрешения доменов прокси",
+      "Разрешение доменов прокси",
     ),
     "proxyPort": MessageLookupByLibrary.simpleMessage("Порт прокси"),
     "proxyPortDesc": MessageLookupByLibrary.simpleMessage(
@@ -1643,13 +1702,13 @@ class MessageLookup extends MessageLookupByLibrary {
       "Отключить ECN QUIC",
     ),
     "quicGoDisableEcnDesc": MessageLookupByLibrary.simpleMessage(
-      "Отключить Explicit Congestion Notification для QUIC",
+      "Отключить ECN для QUIC",
     ),
     "quicGoDisableGso": MessageLookupByLibrary.simpleMessage(
       "Отключить GSO QUIC",
     ),
     "quicGoDisableGsoDesc": MessageLookupByLibrary.simpleMessage(
-      "Отключить Generic Segmentation Offload для QUIC",
+      "Отключить GSO для QUIC",
     ),
     "quicPortSniffer": MessageLookupByLibrary.simpleMessage(
       "QUIC порты сниффера",
@@ -1712,10 +1771,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "replace": MessageLookupByLibrary.simpleMessage("Заменить"),
     "replaceAll": MessageLookupByLibrary.simpleMessage("Заменить все"),
     "request": MessageLookupByLibrary.simpleMessage("Запрос"),
-    "requests": MessageLookupByLibrary.simpleMessage("Запросы"),
-    "requestsDesc": MessageLookupByLibrary.simpleMessage(
-      "Просмотр недавних запросов",
-    ),
     "reset": MessageLookupByLibrary.simpleMessage("Сброс"),
     "resetIconCache": MessageLookupByLibrary.simpleMessage(
       "Сбросить кэш значков",
@@ -1724,9 +1779,9 @@ class MessageLookup extends MessageLookupByLibrary {
       "Сбросить локальный кэш значков? Это безопасно: приложение автоматически загрузит их заново по удалённым ссылкам.",
     ),
     "resetTip": MessageLookupByLibrary.simpleMessage("Сбросить настройки?"),
-    "resources": MessageLookupByLibrary.simpleMessage("Ресурсы"),
+    "resources": MessageLookupByLibrary.simpleMessage("Внешние ресурсы"),
     "resourcesDesc": MessageLookupByLibrary.simpleMessage(
-      "Управление внешними ресурсами",
+      "Просмотр внешних ресурсов и наборов правил",
     ),
     "respectRules": MessageLookupByLibrary.simpleMessage("Следовать правилам"),
     "respectRulesDesc": MessageLookupByLibrary.simpleMessage(
@@ -1822,9 +1877,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "save": MessageLookupByLibrary.simpleMessage("Сохранить"),
     "saveChanges": MessageLookupByLibrary.simpleMessage("Сохранить изменения?"),
     "saveTip": MessageLookupByLibrary.simpleMessage("Сохранить изменения?"),
-    "script": MessageLookupByLibrary.simpleMessage("Скрипт"),
+    "script": MessageLookupByLibrary.simpleMessage("Скрипт переопределения"),
     "scriptDesc": MessageLookupByLibrary.simpleMessage(
-      "Настройка глобального скрипта переопределения",
+      "Настройка скриптов переопределения на JavaScript",
     ),
     "scriptOtherOptions": MessageLookupByLibrary.simpleMessage(
       "Другие настройки",
@@ -1858,7 +1913,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Тумблер запуска на главной",
     ),
     "showStartSwitchDesc": MessageLookupByLibrary.simpleMessage(
-      "Отображать отдельную кнопку переключения на главной странице",
+      "Отдельная кнопка на главной",
     ),
     "shrink": MessageLookupByLibrary.simpleMessage("Стандарт"),
     "sidebarFlyout": MessageLookupByLibrary.simpleMessage("Всплывающая панель"),
@@ -1866,7 +1921,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Задержка появления",
     ),
     "sidebarFlyoutDesc": MessageLookupByLibrary.simpleMessage(
-      "Показывать карточку настроек при наведении на боковую панель",
+      "Карточка настроек при наведении на панель",
     ),
     "sidebarFlyoutEntries": MessageLookupByLibrary.simpleMessage(
       "Пункты панели",
@@ -1887,7 +1942,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Пропустить локальную аутентификацию",
     ),
     "skipLocalAuthDesc": MessageLookupByLibrary.simpleMessage(
-      "Разрешить локальному устройству доступ к прокси без учетных данных",
+      "Доступ без пароля для локального устройства",
     ),
     "skipSrcAddress": MessageLookupByLibrary.simpleMessage(
       "Пропустить IP источника",
@@ -2073,6 +2128,89 @@ class MessageLookup extends MessageLookupByLibrary {
     "system": MessageLookupByLibrary.simpleMessage("Система"),
     "systemApp": MessageLookupByLibrary.simpleMessage("Системные приложения"),
     "systemDns": MessageLookupByLibrary.simpleMessage("DNS"),
+    "systemExplicitAdapt": MessageLookupByLibrary.simpleMessage(
+      "Adaptive path",
+    ),
+    "systemExplicitAdaptDesc": MessageLookupByLibrary.simpleMessage(
+      "If traffic stalls, check immediately and only switch the manual group carrying it. Two failures on different check addresses are required, then stuck connections are released. Automatic groups can no longer fall back to direct. The subscription is not edited.",
+    ),
+    "systemExplicitApplyState": MessageLookupByLibrary.simpleMessage(
+      "Settings application unconfirmed",
+    ),
+    "systemExplicitApplyUnconfirmed": m51,
+    "systemExplicitBlockAds": MessageLookupByLibrary.simpleMessage("Block ads"),
+    "systemExplicitBlockAdsDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Rejects ad domains via the Mihomo GEOSITE category-ads-all category. Replaces only same-category ad rules in the profile; unrelated rules remain.",
+    ),
+    "systemExplicitBlockTunUdp": MessageLookupByLibrary.simpleMessage(
+      "Block all UDP inside VPN",
+    ),
+    "systemExplicitBlockTunUdpDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Drops IPv4/IPv6 UDP entering this app’s TUN, including UDP DNS, regardless of routing mode. Calls, video, QUIC, games and DNS may fail. TCP/TLS, disguised traffic and traffic outside the VPN are not covered; inactive when VPN is stopped.",
+    ),
+    "systemExplicitBlockWebRtc": MessageLookupByLibrary.simpleMessage(
+      "Block WebRTC/STUN/TURN",
+    ),
+    "systemExplicitBlockWebRtcDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Rejects hostnames containing stun/turn and Google STUN by domain, plus UDP 3478-3480, 5349-5355 and 19302-19305. May disrupt calls; disguised traffic is not covered, so it cannot block all WebRTC.",
+    ),
+    "systemExplicitChinaDirect": MessageLookupByLibrary.simpleMessage(
+      "China IPs and domains direct",
+    ),
+    "systemExplicitChinaDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "Uses Mihomo GEOIP/GEOSITE China rules. Replaces only same-category China IP/domain rules; unrelated rules remain.",
+    ),
+    "systemExplicitChinaDnsDirect": MessageLookupByLibrary.simpleMessage(
+      "China public DNS direct (privacy exception)",
+    ),
+    "systemExplicitChinaDnsDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Listed Chinese public DNS endpoints bypass the proxy and may expose queries to the local network/provider. China-direct can also match these endpoints even if this switch is off.",
+    ),
+    "systemExplicitInactive": MessageLookupByLibrary.simpleMessage(
+      "Routing options are not active",
+    ),
+    "systemExplicitInactiveDesc": MessageLookupByLibrary.simpleMessage(
+      "The current mode bypasses these rules. Saved choices resume in rule mode; notification privacy remains enabled.",
+    ),
+    "systemExplicitIntro": MessageLookupByLibrary.simpleMessage(
+      "Applied after scripts and the profile without editing it. Routing options pause in global or direct mode and saved choices resume in rule mode.",
+    ),
+    "systemExplicitLanDirect": MessageLookupByLibrary.simpleMessage(
+      "LAN IPs and domains direct",
+    ),
+    "systemExplicitLanDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "Matches private, loopback and link-local ranges plus .local, .lan and home.arpa; direct traffic bypasses proxies.",
+    ),
+    "systemExplicitLastSwitch": MessageLookupByLibrary.simpleMessage(
+      "Last switch",
+    ),
+    "systemExplicitLimits": MessageLookupByLibrary.simpleMessage(
+      "DNS and VPN-disconnect limits",
+    ),
+    "systemExplicitLimitsDesc": MessageLookupByLibrary.simpleMessage(
+      "DNS is handled only for traffic routed through this app’s TUN and core DNS hijack. System VPN exclusions/bypass and app-encrypted DoH/DoT are not universally covered. VPN-disconnect lockdown must be enabled in Android system VPN settings (“Always-on” and “Block connections without VPN”, if offered); this app cannot enforce that system lock.",
+    ),
+    "systemExplicitNoneYet": MessageLookupByLibrary.simpleMessage("None yet"),
+    "systemExplicitPrivacy": MessageLookupByLibrary.simpleMessage("Privacy"),
+    "systemExplicitPrivacyDesc": MessageLookupByLibrary.simpleMessage(
+      "Hides the profile name in notifications and blocks local discovery.",
+    ),
+    "systemExplicitRuleModeDesc": MessageLookupByLibrary.simpleMessage(
+      "This option needs rule mode. Switching restores saved explicit routing choices.",
+    ),
+    "systemExplicitRuleModeNotApplied": MessageLookupByLibrary.simpleMessage(
+      "Rule mode was not applied; option not enabled.",
+    ),
+    "systemExplicitRuleModeTitle": MessageLookupByLibrary.simpleMessage(
+      "Switch to rule mode?",
+    ),
+    "systemExplicitSubtitle": MessageLookupByLibrary.simpleMessage(
+      "Adaptive path, privacy, China direct",
+    ),
+    "systemExplicitSwitch": MessageLookupByLibrary.simpleMessage("Switch"),
+    "systemExplicitTitle": MessageLookupByLibrary.simpleMessage(
+      "System options",
+    ),
     "systemFont": MessageLookupByLibrary.simpleMessage("Системный шрифт"),
     "systemProxy": MessageLookupByLibrary.simpleMessage("Системный прокси"),
     "systemProxyDesc": MessageLookupByLibrary.simpleMessage(
@@ -2140,7 +2278,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "trayEnhancement": MessageLookupByLibrary.simpleMessage("Улучшение трея"),
     "trayEnhancementDesc": MessageLookupByLibrary.simpleMessage(
-      "Управление группами прокси в меню системного трея",
+      "Управление группами прокси в трее",
     ),
     "trayIconInvert": MessageLookupByLibrary.simpleMessage(
       "Инвертировать значок трея",
@@ -2234,7 +2372,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "upload": MessageLookupByLibrary.simpleMessage("Отправка"),
     "url": MessageLookupByLibrary.simpleMessage("URL"),
     "urlDesc": MessageLookupByLibrary.simpleMessage("Получить профиль по URL"),
-    "urlTip": m51,
+    "urlTip": m52,
     "useGlobalScriptOverride": MessageLookupByLibrary.simpleMessage(
       "Глобальное переопределение",
     ),
@@ -2260,7 +2398,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "vpnDesc": MessageLookupByLibrary.simpleMessage("Настройки VPN"),
     "vpnEnableDesc": MessageLookupByLibrary.simpleMessage(
-      "Автоматическая маршрутизация всего трафика через VpnService",
+      "Маршрутизация через VpnService",
     ),
     "vpnSystemProxyDesc": MessageLookupByLibrary.simpleMessage(
       "Добавить HTTP-прокси к VPN",
@@ -2289,6 +2427,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "xattrUnsupportedFallback": MessageLookupByLibrary.simpleMessage(
       "Файловая система не поддерживает file capabilities (xattr), выполнен откат на setuid",
     ),
-    "years": m52,
+    "years": m53,
   };
 }

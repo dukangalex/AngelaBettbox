@@ -32,56 +32,17 @@ class OptionsDialog<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return CommonDialog(
       title: title,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+      padding: const EdgeInsets.fromLTRB(10, 12, 10, 14),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           for (final option in options)
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  Navigator.of(context).pop(option);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        value == option
-                            ? Icons.check_circle_rounded
-                            : Icons.circle_outlined,
-                        size: 21,
-                        color: value == option
-                            ? context.colorScheme.primary
-                            : context.colorScheme.onSurfaceVariant.withValues(
-                                alpha: 0.6,
-                              ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: value == option
-                            ? SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: EmojiText(
-                                  textBuilder(option),
-                                  style: context.textTheme.bodyMedium,
-                                ),
-                              )
-                            : EmojiText(
-                                textBuilder(option),
-                                style: context.textTheme.bodyMedium,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            OptionItem(
+              text: textBuilder(option),
+              selected: value == option,
+              onTap: () {
+                Navigator.of(context).pop(option);
+              },
             ),
         ],
       ),
@@ -236,6 +197,7 @@ class _InputDialogState extends State<InputDialog> {
   final _formKey = GlobalKey<FormState>();
 
   late TextEditingController textController;
+  late bool _obscure = widget.obscureText ?? false;
   FocusNode? _focusNode;
 
   String get value => widget.value;
@@ -303,7 +265,7 @@ class _InputDialogState extends State<InputDialog> {
           children: [
             TextFormField(
               focusNode: _focusNode,
-              obscureText: widget.obscureText ?? false,
+              obscureText: _obscure,
               keyboardType:
                   widget.keyboardType ??
                   (widget.obscureText == true
@@ -321,6 +283,18 @@ class _InputDialogState extends State<InputDialog> {
                 suffixText: suffixText,
                 hintText: widget.hintText,
                 labelText: widget.labelText,
+                suffixIcon: widget.obscureText == true
+                    ? IconButton(
+                        icon: Icon(
+                          _obscure ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscure = !_obscure;
+                          });
+                        },
+                      )
+                    : null,
               ),
               validator: widget.validator,
             ),

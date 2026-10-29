@@ -128,9 +128,12 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m50(provider) => "${provider} に切り替え";
 
-  static String m51(label) => "${label} は有効なURLである必要があります";
+  static String m51(error) =>
+      "Could not confirm these settings were applied to the current profile: ${error}";
 
-  static String m52(count) => "${Intl.plural(count, other: '年')}";
+  static String m52(label) => "${label} は有効なURLである必要があります";
+
+  static String m53(count) => "${Intl.plural(count, other: '年')}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -139,9 +142,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "accessControlAllowDesc": MessageLookupByLibrary.simpleMessage(
       "選択したアプリのみVPN経由で通信",
     ),
-    "accessControlDesc": MessageLookupByLibrary.simpleMessage(
-      "アプリのブラック/ホワイトリストを設定",
-    ),
+    "accessControlDesc": MessageLookupByLibrary.simpleMessage("アプリのアクセスリスト設定"),
     "accessControlNotAllowDesc": MessageLookupByLibrary.simpleMessage(
       "選択したアプリをVPN対象外に設定",
     ),
@@ -330,6 +331,62 @@ class MessageLookup extends MessageLookupByLibrary {
     "categoryGaming": MessageLookupByLibrary.simpleMessage("ゲームセンター"),
     "categorySocial": MessageLookupByLibrary.simpleMessage("コミュニティ"),
     "categoryStreaming": MessageLookupByLibrary.simpleMessage("動画配信"),
+    "chainAttention": MessageLookupByLibrary.simpleMessage(
+      "Chain settings need attention",
+    ),
+    "chainChooseOtherProfile": MessageLookupByLibrary.simpleMessage(
+      "Choose another profile",
+    ),
+    "chainChooseTarget": MessageLookupByLibrary.simpleMessage(
+      "Choose a proxy or group",
+    ),
+    "chainEnable": MessageLookupByLibrary.simpleMessage("Enable"),
+    "chainEnableDesc": MessageLookupByLibrary.simpleMessage(
+      "Choose an entry from this profile and an exit proxy or group from another. After enabling, select the generated chain in a manual group; only traffic using it follows the chain. Source configs stay unchanged.",
+    ),
+    "chainEntry": MessageLookupByLibrary.simpleMessage("Entry"),
+    "chainExit": MessageLookupByLibrary.simpleMessage("Exit"),
+    "chainExitProfile": MessageLookupByLibrary.simpleMessage("Exit profile"),
+    "chainIssueIncomplete": MessageLookupByLibrary.simpleMessage(
+      "Choose both an entry and an exit before enabling the chain.",
+    ),
+    "chainIssueOtherProfile": MessageLookupByLibrary.simpleMessage(
+      "Choose the exit from a different profile.",
+    ),
+    "chainIssueSameNode": MessageLookupByLibrary.simpleMessage(
+      "Entry and exit cannot be the same proxy or group.",
+    ),
+    "chainIssueUnavailable": MessageLookupByLibrary.simpleMessage(
+      "A selected proxy, group, or profile is unavailable. Choose again.",
+    ),
+    "chainNoEntry": MessageLookupByLibrary.simpleMessage("No entry choices"),
+    "chainNoEntryDesc": MessageLookupByLibrary.simpleMessage(
+      "The current profile has no available proxies or groups.",
+    ),
+    "chainNoExitChoices": MessageLookupByLibrary.simpleMessage(
+      "No exit choices",
+    ),
+    "chainNoExitChoicesDesc": MessageLookupByLibrary.simpleMessage(
+      "The selected profile has no available proxies or groups.",
+    ),
+    "chainNoExits": MessageLookupByLibrary.simpleMessage(
+      "This profile has no available exits.",
+    ),
+    "chainNoOtherProfiles": MessageLookupByLibrary.simpleMessage(
+      "No other profiles",
+    ),
+    "chainNoOtherProfilesDesc": MessageLookupByLibrary.simpleMessage(
+      "The exit must come from another profile. Add one to configure it.",
+    ),
+    "chainNotInProfile": MessageLookupByLibrary.simpleMessage(
+      "not found in this profile",
+    ),
+    "chainNotInSelectedProfile": MessageLookupByLibrary.simpleMessage(
+      "not found in the selected profile",
+    ),
+    "chainTargetGroup": MessageLookupByLibrary.simpleMessage("Group"),
+    "chainTargetProxy": MessageLookupByLibrary.simpleMessage("Proxy"),
+    "chainTitle": MessageLookupByLibrary.simpleMessage("Chain"),
     "chasingDots": MessageLookupByLibrary.simpleMessage("チェイシングドット"),
     "checkError": MessageLookupByLibrary.simpleMessage("確認失敗"),
     "checkFailed": MessageLookupByLibrary.simpleMessage("Timeout"),
@@ -375,7 +432,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "connections": MessageLookupByLibrary.simpleMessage("接続"),
     "connectionsActive": MessageLookupByLibrary.simpleMessage("アクティブ"),
     "connectionsClosed": MessageLookupByLibrary.simpleMessage("終了済み"),
-    "connectionsDesc": MessageLookupByLibrary.simpleMessage("現在の通信接続データを表示"),
+    "connectionsDesc": MessageLookupByLibrary.simpleMessage(
+      "アクティブおよび終了済みの接続を表示",
+    ),
     "connectionsSort": MessageLookupByLibrary.simpleMessage("接続並び替え"),
     "connectivity": MessageLookupByLibrary.simpleMessage("接続性："),
     "contactMe": MessageLookupByLibrary.simpleMessage("お問い合わせ"),
@@ -426,9 +485,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "days": m3,
     "defaultGateway": MessageLookupByLibrary.simpleMessage("ゲートウェイ"),
     "defaultNameserver": MessageLookupByLibrary.simpleMessage("デフォルトDNSサーバー"),
-    "defaultNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "DNSサーバー自体の解決に使用",
-    ),
+    "defaultNameserverDesc": MessageLookupByLibrary.simpleMessage("DNSサーバーの解決"),
     "defaultSort": MessageLookupByLibrary.simpleMessage("デフォルト順"),
     "defaultText": MessageLookupByLibrary.simpleMessage("デフォルト"),
     "delay": MessageLookupByLibrary.simpleMessage("レイテンシ"),
@@ -457,13 +514,11 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "dialerIp4pConvert": MessageLookupByLibrary.simpleMessage("IP4P変換有効化"),
     "dialerIp4pConvertDesc": MessageLookupByLibrary.simpleMessage(
-      "ダイヤラーのIP4Pアドレス変換を有効化",
+      "ダイヤラーのIP4P変換を有効化",
     ),
     "direct": MessageLookupByLibrary.simpleMessage("ダイレクト"),
     "directNameserver": MessageLookupByLibrary.simpleMessage("直連用DNS"),
-    "directNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "ダイレクト接続のドメイン解決に使用",
-    ),
+    "directNameserverDesc": MessageLookupByLibrary.simpleMessage("直連ドメインの解決"),
     "directNameserverFollowPolicy": MessageLookupByLibrary.simpleMessage(
       "直連DNSもポリシーに従う",
     ),
@@ -558,7 +613,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "enableOverride": MessageLookupByLibrary.simpleMessage("オーバーライド有効化"),
     "enableTraySpeed": MessageLookupByLibrary.simpleMessage("速度表示"),
     "enableTraySpeedDesc": MessageLookupByLibrary.simpleMessage(
-      "メニューバーにアップロード/ダウンロード速度を表示",
+      "メニューバーに通信速度を表示",
     ),
     "enabled": MessageLookupByLibrary.simpleMessage("有効"),
     "endpointIndependentNat": MessageLookupByLibrary.simpleMessage("NAT強化"),
@@ -572,7 +627,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "exclude": MessageLookupByLibrary.simpleMessage("タスク一覧で非表示"),
     "excludeChina": MessageLookupByLibrary.simpleMessage("中国通信を除外"),
     "excludeChinaDesc": MessageLookupByLibrary.simpleMessage(
-      "全無効化せずに中国のQUIC通信を許可",
+      "中国のQUIC通信を許可（他は遮断）",
     ),
     "excludeDesc": MessageLookupByLibrary.simpleMessage("最近のタスク履歴からアプリを隠す"),
     "existsTip": m12,
@@ -682,11 +737,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "heapObjects": MessageLookupByLibrary.simpleMessage("Objects"),
     "highPriority": MessageLookupByLibrary.simpleMessage("高優先度"),
     "highPriorityDesc": MessageLookupByLibrary.simpleMessage(
-      "メインプロセスとカーネルプロセスの優先度を付与",
+      "アプリとコアのプロセス優先度を向上",
     ),
     "highRefreshRate": MessageLookupByLibrary.simpleMessage("高リフレッシュレート"),
     "highRefreshRateDesc": MessageLookupByLibrary.simpleMessage(
-      "ディスプレイの最高リフレッシュレートを有効化",
+      "最高リフレッシュレートを有効化",
     ),
     "host": MessageLookupByLibrary.simpleMessage("ホスト"),
     "hostsDesc": MessageLookupByLibrary.simpleMessage("プロファイルのHostsを追記"),
@@ -928,7 +983,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "loopbackDesc": MessageLookupByLibrary.simpleMessage("UWPアプリのループバック制限を解除"),
     "loopbackProtection": MessageLookupByLibrary.simpleMessage("ループバック保護"),
     "loopbackProtectionDesc": MessageLookupByLibrary.simpleMessage(
-      "ネットワークエラーによるループバックを遮断",
+      "エラーによるループバックを遮断",
     ),
     "loose": MessageLookupByLibrary.simpleMessage("ルーズ"),
     "manualRefreshIp": MessageLookupByLibrary.simpleMessage("IPを再取得"),
@@ -956,7 +1011,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "その他のストリーミング解除項目",
     ),
     "mediaUnlockPinnedSettingsDesc": MessageLookupByLibrary.simpleMessage(
-      "ウィジェットに常駐表示する最大3項目を選択できます",
+      "ウィジェットに最大3項目を固定",
     ),
     "mediaUnlockRefreshByCategory": MessageLookupByLibrary.simpleMessage(
       "現在のカテゴリに基づいて部分更新",
@@ -1011,7 +1066,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "name": MessageLookupByLibrary.simpleMessage("名前"),
     "nameSort": MessageLookupByLibrary.simpleMessage("名前順"),
     "nameserver": MessageLookupByLibrary.simpleMessage("ネームサーバー"),
-    "nameserverDesc": MessageLookupByLibrary.simpleMessage("ドメイン名の解決に使用"),
+    "nameserverDesc": MessageLookupByLibrary.simpleMessage("ドメイン名の解決"),
     "nameserverPolicy": MessageLookupByLibrary.simpleMessage("ネームサーバーポリシー"),
     "nameserverPolicyDesc": MessageLookupByLibrary.simpleMessage(
       "特定ドメイン用のDNSポリシーを指定",
@@ -1136,7 +1191,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "noNetworkApp": MessageLookupByLibrary.simpleMessage("非通信アプリ"),
     "noProxy": MessageLookupByLibrary.simpleMessage("プロキシなし"),
     "noProxyDesc": MessageLookupByLibrary.simpleMessage("プロファイルを作成または追加してください"),
-    "noResolve": MessageLookupByLibrary.simpleMessage("IP解決を行わない"),
+    "noResolve": MessageLookupByLibrary.simpleMessage("IP解決なし"),
     "noStatusAvailable": MessageLookupByLibrary.simpleMessage(
       "ステータスを取得できませんでした",
     ),
@@ -1154,7 +1209,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "notUnlocked": MessageLookupByLibrary.simpleMessage("未解除"),
     "notificationHighPriority": MessageLookupByLibrary.simpleMessage("高優先度"),
     "notificationHighPriorityDesc": MessageLookupByLibrary.simpleMessage(
-      "現在の通知バーをフォアグラウンド高優先度に調整",
+      "通知を高優先度（フォアグラウンド）に設定",
     ),
     "notificationHighPriorityTip": MessageLookupByLibrary.simpleMessage(
       "高優先度の通知は、一部のカスタムOSでバックグラウンド維持の問題を緩和できます。現在VPNが正常に動作している場合は無効のままにすることをお勧めします。有効にしますか？",
@@ -1303,9 +1358,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "proxyGroup": MessageLookupByLibrary.simpleMessage("プロキシグループ"),
     "proxyGroupsCount": MessageLookupByLibrary.simpleMessage("プロキシグループ"),
     "proxyNameserver": MessageLookupByLibrary.simpleMessage("プロキシ用DNS"),
-    "proxyNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "プロキシノードのドメイン解決に使用",
-    ),
+    "proxyNameserverDesc": MessageLookupByLibrary.simpleMessage("ノードのドメイン解決"),
     "proxyPort": MessageLookupByLibrary.simpleMessage("プロキシポート"),
     "proxyPortDesc": MessageLookupByLibrary.simpleMessage("Clashのリスニングポート設定"),
     "proxyProviders": MessageLookupByLibrary.simpleMessage("プロキシプロバイダー"),
@@ -1318,11 +1371,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "qrcodeDesc": MessageLookupByLibrary.simpleMessage("QRコードをスキャンして設定をインポート"),
     "quicGoDisableEcn": MessageLookupByLibrary.simpleMessage("QUIC ECN無効化"),
     "quicGoDisableEcnDesc": MessageLookupByLibrary.simpleMessage(
-      "QUICのECN（Explicit Congestion Notification）を無効化",
+      "QUICのECNを無効化",
     ),
     "quicGoDisableGso": MessageLookupByLibrary.simpleMessage("QUIC GSO無効化"),
     "quicGoDisableGsoDesc": MessageLookupByLibrary.simpleMessage(
-      "QUICのGSO（Generic Segmentation Offload）を無効化",
+      "QUICのGSOを無効化",
     ),
     "quicPortSniffer": MessageLookupByLibrary.simpleMessage("QUICポート解析"),
     "quickResponse": MessageLookupByLibrary.simpleMessage("高速レスポンス"),
@@ -1369,16 +1422,14 @@ class MessageLookup extends MessageLookupByLibrary {
     "replace": MessageLookupByLibrary.simpleMessage("置換"),
     "replaceAll": MessageLookupByLibrary.simpleMessage("すべて置換"),
     "request": MessageLookupByLibrary.simpleMessage("リクエスト"),
-    "requests": MessageLookupByLibrary.simpleMessage("リクエスト"),
-    "requestsDesc": MessageLookupByLibrary.simpleMessage("最近の通信リクエスト履歴を表示"),
     "reset": MessageLookupByLibrary.simpleMessage("リセット"),
     "resetIconCache": MessageLookupByLibrary.simpleMessage("アイコンキャッシュをリセット"),
     "resetIconCacheDesc": MessageLookupByLibrary.simpleMessage(
       "ローカルのアイコンキャッシュをリセットしますか？アプリがリモートリンクから自動的に再取得するため、この操作は安全です。",
     ),
     "resetTip": MessageLookupByLibrary.simpleMessage("本当にリセットしますか？"),
-    "resources": MessageLookupByLibrary.simpleMessage("リソース"),
-    "resourcesDesc": MessageLookupByLibrary.simpleMessage("外部リソース情報"),
+    "resources": MessageLookupByLibrary.simpleMessage("外部リソース"),
+    "resourcesDesc": MessageLookupByLibrary.simpleMessage("外部リソースやルールセットを表示"),
     "respectRules": MessageLookupByLibrary.simpleMessage("ルールに従う"),
     "respectRulesDesc": MessageLookupByLibrary.simpleMessage(
       "DNS接続でRules設定を適用",
@@ -1453,8 +1504,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "save": MessageLookupByLibrary.simpleMessage("保存"),
     "saveChanges": MessageLookupByLibrary.simpleMessage("変更を保存しますか？"),
     "saveTip": MessageLookupByLibrary.simpleMessage("保存してもよろしいですか？"),
-    "script": MessageLookupByLibrary.simpleMessage("スクリプト"),
-    "scriptDesc": MessageLookupByLibrary.simpleMessage("グローバルオーバーライドスクリプト設定"),
+    "script": MessageLookupByLibrary.simpleMessage("オーバーライドスクリプト"),
+    "scriptDesc": MessageLookupByLibrary.simpleMessage(
+      "JavaScript オーバーライドスクリプトを設定",
+    ),
     "scriptOtherOptions": MessageLookupByLibrary.simpleMessage("その他の設定"),
     "search": MessageLookupByLibrary.simpleMessage("検索"),
     "seconds": MessageLookupByLibrary.simpleMessage("秒"),
@@ -1483,13 +1536,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "showPanel": MessageLookupByLibrary.simpleMessage("ウィンドウを表示"),
     "showStartSwitch": MessageLookupByLibrary.simpleMessage("単独スイッチ表示"),
     "showStartSwitchDesc": MessageLookupByLibrary.simpleMessage(
-      "ホーム画面に独立したON/OFFボタンを表示",
+      "ホーム画面に独立スイッチを表示",
     ),
     "shrink": MessageLookupByLibrary.simpleMessage("コンパクト"),
     "sidebarFlyout": MessageLookupByLibrary.simpleMessage("ホバーパネル"),
     "sidebarFlyoutDelay": MessageLookupByLibrary.simpleMessage("表示までの遅延"),
     "sidebarFlyoutDesc": MessageLookupByLibrary.simpleMessage(
-      "サイドバーの設定ホバーカードを表示",
+      "サイドバーのホバーカードを表示",
     ),
     "sidebarFlyoutEntries": MessageLookupByLibrary.simpleMessage("表示項目"),
     "sidebarFlyoutOutsideTools": MessageLookupByLibrary.simpleMessage(
@@ -1503,9 +1556,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "skipDomain": MessageLookupByLibrary.simpleMessage("除外ドメイン"),
     "skipDstAddress": MessageLookupByLibrary.simpleMessage("除外宛先IP"),
     "skipLocalAuth": MessageLookupByLibrary.simpleMessage("ローカル認証をスキップ"),
-    "skipLocalAuthDesc": MessageLookupByLibrary.simpleMessage(
-      "ローカル端末からの認証なしアクセスを許可",
-    ),
+    "skipLocalAuthDesc": MessageLookupByLibrary.simpleMessage("ローカル端末の認証をスキップ"),
     "skipSrcAddress": MessageLookupByLibrary.simpleMessage("除外送信元IP"),
     "slow": MessageLookupByLibrary.simpleMessage("遅い"),
     "smartAutoStop": MessageLookupByLibrary.simpleMessage("スマート自動停止"),
@@ -1658,6 +1709,89 @@ class MessageLookup extends MessageLookupByLibrary {
     "system": MessageLookupByLibrary.simpleMessage("システム"),
     "systemApp": MessageLookupByLibrary.simpleMessage("システムアプリ"),
     "systemDns": MessageLookupByLibrary.simpleMessage("DNS"),
+    "systemExplicitAdapt": MessageLookupByLibrary.simpleMessage(
+      "Adaptive path",
+    ),
+    "systemExplicitAdaptDesc": MessageLookupByLibrary.simpleMessage(
+      "If traffic stalls, check immediately and only switch the manual group carrying it. Two failures on different check addresses are required, then stuck connections are released. Automatic groups can no longer fall back to direct. The subscription is not edited.",
+    ),
+    "systemExplicitApplyState": MessageLookupByLibrary.simpleMessage(
+      "Settings application unconfirmed",
+    ),
+    "systemExplicitApplyUnconfirmed": m51,
+    "systemExplicitBlockAds": MessageLookupByLibrary.simpleMessage("Block ads"),
+    "systemExplicitBlockAdsDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Rejects ad domains via the Mihomo GEOSITE category-ads-all category. Replaces only same-category ad rules in the profile; unrelated rules remain.",
+    ),
+    "systemExplicitBlockTunUdp": MessageLookupByLibrary.simpleMessage(
+      "Block all UDP inside VPN",
+    ),
+    "systemExplicitBlockTunUdpDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Drops IPv4/IPv6 UDP entering this app’s TUN, including UDP DNS, regardless of routing mode. Calls, video, QUIC, games and DNS may fail. TCP/TLS, disguised traffic and traffic outside the VPN are not covered; inactive when VPN is stopped.",
+    ),
+    "systemExplicitBlockWebRtc": MessageLookupByLibrary.simpleMessage(
+      "Block WebRTC/STUN/TURN",
+    ),
+    "systemExplicitBlockWebRtcDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Rejects hostnames containing stun/turn and Google STUN by domain, plus UDP 3478-3480, 5349-5355 and 19302-19305. May disrupt calls; disguised traffic is not covered, so it cannot block all WebRTC.",
+    ),
+    "systemExplicitChinaDirect": MessageLookupByLibrary.simpleMessage(
+      "China IPs and domains direct",
+    ),
+    "systemExplicitChinaDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "Uses Mihomo GEOIP/GEOSITE China rules. Replaces only same-category China IP/domain rules; unrelated rules remain.",
+    ),
+    "systemExplicitChinaDnsDirect": MessageLookupByLibrary.simpleMessage(
+      "China public DNS direct (privacy exception)",
+    ),
+    "systemExplicitChinaDnsDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Listed Chinese public DNS endpoints bypass the proxy and may expose queries to the local network/provider. China-direct can also match these endpoints even if this switch is off.",
+    ),
+    "systemExplicitInactive": MessageLookupByLibrary.simpleMessage(
+      "Routing options are not active",
+    ),
+    "systemExplicitInactiveDesc": MessageLookupByLibrary.simpleMessage(
+      "The current mode bypasses these rules. Saved choices resume in rule mode; notification privacy remains enabled.",
+    ),
+    "systemExplicitIntro": MessageLookupByLibrary.simpleMessage(
+      "Applied after scripts and the profile without editing it. Routing options pause in global or direct mode and saved choices resume in rule mode.",
+    ),
+    "systemExplicitLanDirect": MessageLookupByLibrary.simpleMessage(
+      "LAN IPs and domains direct",
+    ),
+    "systemExplicitLanDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "Matches private, loopback and link-local ranges plus .local, .lan and home.arpa; direct traffic bypasses proxies.",
+    ),
+    "systemExplicitLastSwitch": MessageLookupByLibrary.simpleMessage(
+      "Last switch",
+    ),
+    "systemExplicitLimits": MessageLookupByLibrary.simpleMessage(
+      "DNS and VPN-disconnect limits",
+    ),
+    "systemExplicitLimitsDesc": MessageLookupByLibrary.simpleMessage(
+      "DNS is handled only for traffic routed through this app’s TUN and core DNS hijack. System VPN exclusions/bypass and app-encrypted DoH/DoT are not universally covered. VPN-disconnect lockdown must be enabled in Android system VPN settings (“Always-on” and “Block connections without VPN”, if offered); this app cannot enforce that system lock.",
+    ),
+    "systemExplicitNoneYet": MessageLookupByLibrary.simpleMessage("None yet"),
+    "systemExplicitPrivacy": MessageLookupByLibrary.simpleMessage("Privacy"),
+    "systemExplicitPrivacyDesc": MessageLookupByLibrary.simpleMessage(
+      "Hides the profile name in notifications and blocks local discovery.",
+    ),
+    "systemExplicitRuleModeDesc": MessageLookupByLibrary.simpleMessage(
+      "This option needs rule mode. Switching restores saved explicit routing choices.",
+    ),
+    "systemExplicitRuleModeNotApplied": MessageLookupByLibrary.simpleMessage(
+      "Rule mode was not applied; option not enabled.",
+    ),
+    "systemExplicitRuleModeTitle": MessageLookupByLibrary.simpleMessage(
+      "Switch to rule mode?",
+    ),
+    "systemExplicitSubtitle": MessageLookupByLibrary.simpleMessage(
+      "Adaptive path, privacy, China direct",
+    ),
+    "systemExplicitSwitch": MessageLookupByLibrary.simpleMessage("Switch"),
+    "systemExplicitTitle": MessageLookupByLibrary.simpleMessage(
+      "System options",
+    ),
     "systemFont": MessageLookupByLibrary.simpleMessage("システムフォント"),
     "systemProxy": MessageLookupByLibrary.simpleMessage("システムプロキシ"),
     "systemProxyDesc": MessageLookupByLibrary.simpleMessage("システムプロキシの設定"),
@@ -1783,7 +1917,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "upload": MessageLookupByLibrary.simpleMessage("送信"),
     "url": MessageLookupByLibrary.simpleMessage("URL"),
     "urlDesc": MessageLookupByLibrary.simpleMessage("URLから設定を取得"),
-    "urlTip": m51,
+    "urlTip": m52,
     "useGlobalScriptOverride": MessageLookupByLibrary.simpleMessage(
       "グローバルスクリプトオーバーライドを使用",
     ),
@@ -1803,7 +1937,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "viewDetailedIpData": MessageLookupByLibrary.simpleMessage("詳細なIPデータを見る"),
     "vpnDesc": MessageLookupByLibrary.simpleMessage("VPN関連の設定を変更"),
     "vpnEnableDesc": MessageLookupByLibrary.simpleMessage(
-      "VpnServiceでシステム通信をルーティング",
+      "VpnServiceで通信をルーティング",
     ),
     "vpnSystemProxyDesc": MessageLookupByLibrary.simpleMessage(
       "VpnServiceにHTTPプロキシを添付",
@@ -1824,6 +1958,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "xattrUnsupportedFallback": MessageLookupByLibrary.simpleMessage(
       "ファイルシステムがファイルケーパビリティ（xattr）に対応していないため、setuid にフォールバックしました",
     ),
-    "years": m52,
+    "years": m53,
   };
 }

@@ -138,9 +138,12 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m50(provider) => "Switch to ${provider}";
 
-  static String m51(label) => "${label} must be a URL";
+  static String m51(error) =>
+      "Could not confirm these settings were applied to the current profile: ${error}";
 
-  static String m52(count) =>
+  static String m52(label) => "${label} must be a URL";
+
+  static String m53(count) =>
       "${Intl.plural(count, one: 'year', other: 'years')}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
@@ -151,7 +154,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Only route selected apps through VPN",
     ),
     "accessControlDesc": MessageLookupByLibrary.simpleMessage(
-      "Configure per-app access allowlist/blocklist",
+      "App allowlist and blocklist",
     ),
     "accessControlNotAllowDesc": MessageLookupByLibrary.simpleMessage(
       "Exclude selected apps from VPN",
@@ -272,7 +275,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "alwaysShowTitleBar": MessageLookupByLibrary.simpleMessage("Title Buttons"),
     "alwaysShowTitleBarDesc": MessageLookupByLibrary.simpleMessage(
-      "Always show the title bar buttons in the top-right corner",
+      "Always show top-right title bar buttons",
     ),
     "analyzeLogPrompt": m0,
     "app": MessageLookupByLibrary.simpleMessage("App"),
@@ -397,6 +400,62 @@ class MessageLookup extends MessageLookupByLibrary {
     "categoryGaming": MessageLookupByLibrary.simpleMessage("Gaming Center"),
     "categorySocial": MessageLookupByLibrary.simpleMessage("Social Platforms"),
     "categoryStreaming": MessageLookupByLibrary.simpleMessage("Streaming"),
+    "chainAttention": MessageLookupByLibrary.simpleMessage(
+      "Chain settings need attention",
+    ),
+    "chainChooseOtherProfile": MessageLookupByLibrary.simpleMessage(
+      "Choose another profile",
+    ),
+    "chainChooseTarget": MessageLookupByLibrary.simpleMessage(
+      "Choose a proxy or group",
+    ),
+    "chainEnable": MessageLookupByLibrary.simpleMessage("Enable"),
+    "chainEnableDesc": MessageLookupByLibrary.simpleMessage(
+      "Choose an entry from this profile and an exit proxy or group from another. After enabling, select the generated chain in a manual group; only traffic using it follows the chain. Source configs stay unchanged.",
+    ),
+    "chainEntry": MessageLookupByLibrary.simpleMessage("Entry"),
+    "chainExit": MessageLookupByLibrary.simpleMessage("Exit"),
+    "chainExitProfile": MessageLookupByLibrary.simpleMessage("Exit profile"),
+    "chainIssueIncomplete": MessageLookupByLibrary.simpleMessage(
+      "Choose both an entry and an exit before enabling the chain.",
+    ),
+    "chainIssueOtherProfile": MessageLookupByLibrary.simpleMessage(
+      "Choose the exit from a different profile.",
+    ),
+    "chainIssueSameNode": MessageLookupByLibrary.simpleMessage(
+      "Entry and exit cannot be the same proxy or group.",
+    ),
+    "chainIssueUnavailable": MessageLookupByLibrary.simpleMessage(
+      "A selected proxy, group, or profile is unavailable. Choose again.",
+    ),
+    "chainNoEntry": MessageLookupByLibrary.simpleMessage("No entry choices"),
+    "chainNoEntryDesc": MessageLookupByLibrary.simpleMessage(
+      "The current profile has no available proxies or groups.",
+    ),
+    "chainNoExitChoices": MessageLookupByLibrary.simpleMessage(
+      "No exit choices",
+    ),
+    "chainNoExitChoicesDesc": MessageLookupByLibrary.simpleMessage(
+      "The selected profile has no available proxies or groups.",
+    ),
+    "chainNoExits": MessageLookupByLibrary.simpleMessage(
+      "This profile has no available exits.",
+    ),
+    "chainNoOtherProfiles": MessageLookupByLibrary.simpleMessage(
+      "No other profiles",
+    ),
+    "chainNoOtherProfilesDesc": MessageLookupByLibrary.simpleMessage(
+      "The exit must come from another profile. Add one to configure it.",
+    ),
+    "chainNotInProfile": MessageLookupByLibrary.simpleMessage(
+      "not found in this profile",
+    ),
+    "chainNotInSelectedProfile": MessageLookupByLibrary.simpleMessage(
+      "not found in the selected profile",
+    ),
+    "chainTargetGroup": MessageLookupByLibrary.simpleMessage("Group"),
+    "chainTargetProxy": MessageLookupByLibrary.simpleMessage("Proxy"),
+    "chainTitle": MessageLookupByLibrary.simpleMessage("Chain"),
     "chasingDots": MessageLookupByLibrary.simpleMessage("Chasing Dots"),
     "checkError": MessageLookupByLibrary.simpleMessage("Check Failed"),
     "checkFailed": MessageLookupByLibrary.simpleMessage("Timeout"),
@@ -457,7 +516,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "connectionsActive": MessageLookupByLibrary.simpleMessage("Active"),
     "connectionsClosed": MessageLookupByLibrary.simpleMessage("Closed"),
     "connectionsDesc": MessageLookupByLibrary.simpleMessage(
-      "View active connections",
+      "View active and closed connections",
     ),
     "connectionsSort": MessageLookupByLibrary.simpleMessage("Connections Sort"),
     "connectivity": MessageLookupByLibrary.simpleMessage("Connectivity:"),
@@ -522,7 +581,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Default Nameserver",
     ),
     "defaultNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Used to resolve DNS servers",
+      "Resolve DNS servers",
     ),
     "defaultSort": MessageLookupByLibrary.simpleMessage("Default Sort"),
     "defaultText": MessageLookupByLibrary.simpleMessage("Default"),
@@ -558,14 +617,14 @@ class MessageLookup extends MessageLookupByLibrary {
       "Enable Dialer IP4P Conversion",
     ),
     "dialerIp4pConvertDesc": MessageLookupByLibrary.simpleMessage(
-      "Enable dialer IP4P address conversion feature",
+      "Enable dialer IP4P conversion",
     ),
     "direct": MessageLookupByLibrary.simpleMessage("Direct"),
     "directNameserver": MessageLookupByLibrary.simpleMessage(
       "Direct Nameserver",
     ),
     "directNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Used to resolve direct domains",
+      "Resolve direct domains",
     ),
     "directNameserverFollowPolicy": MessageLookupByLibrary.simpleMessage(
       "Direct DNS Follows Policy",
@@ -673,7 +732,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "enableOverride": MessageLookupByLibrary.simpleMessage("Enable Override"),
     "enableTraySpeed": MessageLookupByLibrary.simpleMessage("Tray Speed"),
     "enableTraySpeedDesc": MessageLookupByLibrary.simpleMessage(
-      "Display upload and download rates in the menu bar",
+      "Show network speed in menu bar",
     ),
     "enabled": MessageLookupByLibrary.simpleMessage("Enabled"),
     "endpointIndependentNat": MessageLookupByLibrary.simpleMessage(
@@ -689,7 +748,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "exclude": MessageLookupByLibrary.simpleMessage("Hide from Recents"),
     "excludeChina": MessageLookupByLibrary.simpleMessage("Exclude China"),
     "excludeChinaDesc": MessageLookupByLibrary.simpleMessage(
-      "Allow China QUIC traffic instead of blocking all",
+      "Allow China QUIC instead of blocking all",
     ),
     "excludeDesc": MessageLookupByLibrary.simpleMessage(
       "Hide app from recent tasks list",
@@ -827,13 +886,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "heapObjects": MessageLookupByLibrary.simpleMessage("Objects"),
     "highPriority": MessageLookupByLibrary.simpleMessage("High Priority"),
     "highPriorityDesc": MessageLookupByLibrary.simpleMessage(
-      "Increase priority of main process and core process",
+      "Elevate app & core process priority",
     ),
     "highRefreshRate": MessageLookupByLibrary.simpleMessage(
       "High Refresh Rate",
     ),
     "highRefreshRateDesc": MessageLookupByLibrary.simpleMessage(
-      "Enable highest refresh rate support",
+      "Enable max refresh rate",
     ),
     "host": MessageLookupByLibrary.simpleMessage("Host"),
     "hostsDesc": MessageLookupByLibrary.simpleMessage(
@@ -1117,7 +1176,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Loopback Protection",
     ),
     "loopbackProtectionDesc": MessageLookupByLibrary.simpleMessage(
-      "Block loopback traffic from network errors",
+      "Block loopback traffic from errors",
     ),
     "loose": MessageLookupByLibrary.simpleMessage("Loose"),
     "manualRefreshIp": MessageLookupByLibrary.simpleMessage("Refresh IP"),
@@ -1155,7 +1214,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "More Streaming Unlock Items",
     ),
     "mediaUnlockPinnedSettingsDesc": MessageLookupByLibrary.simpleMessage(
-      "Select up to 3 items to pin on the widget",
+      "Pin up to 3 items on widget",
     ),
     "mediaUnlockRefreshByCategory": MessageLookupByLibrary.simpleMessage(
       "Partially refresh based on current category",
@@ -1219,7 +1278,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "nameSort": MessageLookupByLibrary.simpleMessage("Sort by Name"),
     "nameserver": MessageLookupByLibrary.simpleMessage("Nameserver"),
     "nameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Used to resolve domains",
+      "Resolve domain names",
     ),
     "nameserverPolicy": MessageLookupByLibrary.simpleMessage(
       "Nameserver Policy",
@@ -1323,7 +1382,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "navBarHapticFeedbackDesc": MessageLookupByLibrary.simpleMessage(
       "Bottom navigation bar animation and haptic feedback",
     ),
-    "navConnections": MessageLookupByLibrary.simpleMessage("Active"),
+    "navConnections": MessageLookupByLibrary.simpleMessage("Connections"),
     "navTools": MessageLookupByLibrary.simpleMessage("More"),
     "network": MessageLookupByLibrary.simpleMessage("Network"),
     "networkDesc": MessageLookupByLibrary.simpleMessage(
@@ -1387,7 +1446,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "High Priority",
     ),
     "notificationHighPriorityDesc": MessageLookupByLibrary.simpleMessage(
-      "Adjust current notification bar to foreground high priority",
+      "Foreground high-priority notification",
     ),
     "notificationHighPriorityTip": MessageLookupByLibrary.simpleMessage(
       "High-priority notifications can alleviate background core keep-alive issues on some customized systems. If your VPN service is currently running normally, it is recommended to keep this option disabled. Are you sure you want to enable it?",
@@ -1565,7 +1624,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "proxyGroupsCount": MessageLookupByLibrary.simpleMessage("Proxy Groups"),
     "proxyNameserver": MessageLookupByLibrary.simpleMessage("Proxy Nameserver"),
     "proxyNameserverDesc": MessageLookupByLibrary.simpleMessage(
-      "Used to resolve proxy nodes",
+      "Resolve proxy node domains",
     ),
     "proxyPort": MessageLookupByLibrary.simpleMessage("Proxy Port"),
     "proxyPortDesc": MessageLookupByLibrary.simpleMessage(
@@ -1587,13 +1646,13 @@ class MessageLookup extends MessageLookupByLibrary {
       "Disable QUIC ECN",
     ),
     "quicGoDisableEcnDesc": MessageLookupByLibrary.simpleMessage(
-      "Disable QUIC Explicit Congestion Notification",
+      "Disable QUIC ECN",
     ),
     "quicGoDisableGso": MessageLookupByLibrary.simpleMessage(
       "Disable QUIC GSO",
     ),
     "quicGoDisableGsoDesc": MessageLookupByLibrary.simpleMessage(
-      "Disable QUIC Generic Segmentation Offload",
+      "Disable QUIC GSO",
     ),
     "quicPortSniffer": MessageLookupByLibrary.simpleMessage(
       "QUIC Port Sniffing",
@@ -1655,9 +1714,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "replaceAll": MessageLookupByLibrary.simpleMessage("Replace All"),
     "request": MessageLookupByLibrary.simpleMessage("Request"),
     "requests": MessageLookupByLibrary.simpleMessage("Recent"),
-    "requestsDesc": MessageLookupByLibrary.simpleMessage(
-      "View recent request logs",
-    ),
     "reset": MessageLookupByLibrary.simpleMessage("Reset"),
     "resetIconCache": MessageLookupByLibrary.simpleMessage("Reset Icon Cache"),
     "resetIconCacheDesc": MessageLookupByLibrary.simpleMessage(
@@ -1666,9 +1722,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "resetTip": MessageLookupByLibrary.simpleMessage(
       "Are you sure you want to reset?",
     ),
-    "resources": MessageLookupByLibrary.simpleMessage("Resources"),
+    "resources": MessageLookupByLibrary.simpleMessage("External Resources"),
     "resourcesDesc": MessageLookupByLibrary.simpleMessage(
-      "External resource info",
+      "View external resources and rule sets",
     ),
     "respectRules": MessageLookupByLibrary.simpleMessage("Respect Rules"),
     "respectRulesDesc": MessageLookupByLibrary.simpleMessage(
@@ -1760,9 +1816,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "saveTip": MessageLookupByLibrary.simpleMessage(
       "Are you sure you want to save?",
     ),
-    "script": MessageLookupByLibrary.simpleMessage("Script"),
+    "script": MessageLookupByLibrary.simpleMessage("Override Script"),
     "scriptDesc": MessageLookupByLibrary.simpleMessage(
-      "Global override script config",
+      "Configure JavaScript override scripts",
     ),
     "scriptOtherOptions": MessageLookupByLibrary.simpleMessage(
       "Other Settings",
@@ -1796,13 +1852,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "showPanel": MessageLookupByLibrary.simpleMessage("Show Window"),
     "showStartSwitch": MessageLookupByLibrary.simpleMessage("Linkage Switch"),
     "showStartSwitchDesc": MessageLookupByLibrary.simpleMessage(
-      "Display independent switch button on the homepage",
+      "Show standalone switch on homepage",
     ),
     "shrink": MessageLookupByLibrary.simpleMessage("Compact"),
     "sidebarFlyout": MessageLookupByLibrary.simpleMessage("Hover Panel"),
     "sidebarFlyoutDelay": MessageLookupByLibrary.simpleMessage("Trigger Delay"),
     "sidebarFlyoutDesc": MessageLookupByLibrary.simpleMessage(
-      "Show the sidebar settings hover card",
+      "Show sidebar settings hover card",
     ),
     "sidebarFlyoutEntries": MessageLookupByLibrary.simpleMessage("Entries"),
     "sidebarFlyoutOutsideTools": MessageLookupByLibrary.simpleMessage(
@@ -1821,7 +1877,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Skip Local Authentication",
     ),
     "skipLocalAuthDesc": MessageLookupByLibrary.simpleMessage(
-      "Allow local machine to access proxy without credentials",
+      "Allow local access without credentials",
     ),
     "skipSrcAddress": MessageLookupByLibrary.simpleMessage("Skip Source IP"),
     "slow": MessageLookupByLibrary.simpleMessage("Slow"),
@@ -2003,6 +2059,89 @@ class MessageLookup extends MessageLookupByLibrary {
     "system": MessageLookupByLibrary.simpleMessage("System"),
     "systemApp": MessageLookupByLibrary.simpleMessage("System App"),
     "systemDns": MessageLookupByLibrary.simpleMessage("DNS"),
+    "systemExplicitAdapt": MessageLookupByLibrary.simpleMessage(
+      "Adaptive path",
+    ),
+    "systemExplicitAdaptDesc": MessageLookupByLibrary.simpleMessage(
+      "If traffic stalls, check immediately and only switch the manual group carrying it. Two failures on different check addresses are required, then stuck connections are released. Automatic groups can no longer fall back to direct. The subscription is not edited.",
+    ),
+    "systemExplicitApplyState": MessageLookupByLibrary.simpleMessage(
+      "Settings application unconfirmed",
+    ),
+    "systemExplicitApplyUnconfirmed": m51,
+    "systemExplicitBlockAds": MessageLookupByLibrary.simpleMessage("Block ads"),
+    "systemExplicitBlockAdsDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Rejects ad domains via the Mihomo GEOSITE category-ads-all category. Replaces only same-category ad rules in the profile; unrelated rules remain.",
+    ),
+    "systemExplicitBlockTunUdp": MessageLookupByLibrary.simpleMessage(
+      "Block all UDP inside VPN",
+    ),
+    "systemExplicitBlockTunUdpDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Drops IPv4/IPv6 UDP entering this app’s TUN, including UDP DNS, regardless of routing mode. Calls, video, QUIC, games and DNS may fail. TCP/TLS, disguised traffic and traffic outside the VPN are not covered; inactive when VPN is stopped.",
+    ),
+    "systemExplicitBlockWebRtc": MessageLookupByLibrary.simpleMessage(
+      "Block WebRTC/STUN/TURN",
+    ),
+    "systemExplicitBlockWebRtcDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Rejects hostnames containing stun/turn and Google STUN by domain, plus UDP 3478-3480, 5349-5355 and 19302-19305. May disrupt calls; disguised traffic is not covered, so it cannot block all WebRTC.",
+    ),
+    "systemExplicitChinaDirect": MessageLookupByLibrary.simpleMessage(
+      "China IPs and domains direct",
+    ),
+    "systemExplicitChinaDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "Uses Mihomo GEOIP/GEOSITE China rules. Replaces only same-category China IP/domain rules; unrelated rules remain.",
+    ),
+    "systemExplicitChinaDnsDirect": MessageLookupByLibrary.simpleMessage(
+      "China public DNS direct (privacy exception)",
+    ),
+    "systemExplicitChinaDnsDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Listed Chinese public DNS endpoints bypass the proxy and may expose queries to the local network/provider. China-direct can also match these endpoints even if this switch is off.",
+    ),
+    "systemExplicitInactive": MessageLookupByLibrary.simpleMessage(
+      "Routing options are not active",
+    ),
+    "systemExplicitInactiveDesc": MessageLookupByLibrary.simpleMessage(
+      "The current mode bypasses these rules. Saved choices resume in rule mode; notification privacy remains enabled.",
+    ),
+    "systemExplicitIntro": MessageLookupByLibrary.simpleMessage(
+      "Applied after scripts and the profile without editing it. Routing options pause in global or direct mode and saved choices resume in rule mode.",
+    ),
+    "systemExplicitLanDirect": MessageLookupByLibrary.simpleMessage(
+      "LAN IPs and domains direct",
+    ),
+    "systemExplicitLanDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "Matches private, loopback and link-local ranges plus .local, .lan and home.arpa; direct traffic bypasses proxies.",
+    ),
+    "systemExplicitLastSwitch": MessageLookupByLibrary.simpleMessage(
+      "Last switch",
+    ),
+    "systemExplicitLimits": MessageLookupByLibrary.simpleMessage(
+      "DNS and VPN-disconnect limits",
+    ),
+    "systemExplicitLimitsDesc": MessageLookupByLibrary.simpleMessage(
+      "DNS is handled only for traffic routed through this app’s TUN and core DNS hijack. System VPN exclusions/bypass and app-encrypted DoH/DoT are not universally covered. VPN-disconnect lockdown must be enabled in Android system VPN settings (“Always-on” and “Block connections without VPN”, if offered); this app cannot enforce that system lock.",
+    ),
+    "systemExplicitNoneYet": MessageLookupByLibrary.simpleMessage("None yet"),
+    "systemExplicitPrivacy": MessageLookupByLibrary.simpleMessage("Privacy"),
+    "systemExplicitPrivacyDesc": MessageLookupByLibrary.simpleMessage(
+      "Hides the profile name in notifications and blocks local discovery.",
+    ),
+    "systemExplicitRuleModeDesc": MessageLookupByLibrary.simpleMessage(
+      "This option needs rule mode. Switching restores saved explicit routing choices.",
+    ),
+    "systemExplicitRuleModeNotApplied": MessageLookupByLibrary.simpleMessage(
+      "Rule mode was not applied; option not enabled.",
+    ),
+    "systemExplicitRuleModeTitle": MessageLookupByLibrary.simpleMessage(
+      "Switch to rule mode?",
+    ),
+    "systemExplicitSubtitle": MessageLookupByLibrary.simpleMessage(
+      "Adaptive path, privacy, China direct",
+    ),
+    "systemExplicitSwitch": MessageLookupByLibrary.simpleMessage("Switch"),
+    "systemExplicitTitle": MessageLookupByLibrary.simpleMessage(
+      "System options",
+    ),
     "systemFont": MessageLookupByLibrary.simpleMessage("System Font"),
     "systemProxy": MessageLookupByLibrary.simpleMessage("System Proxy"),
     "systemProxyDesc": MessageLookupByLibrary.simpleMessage("Set system proxy"),
@@ -2062,7 +2201,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "trayEnhancement": MessageLookupByLibrary.simpleMessage("Tray Enhancement"),
     "trayEnhancementDesc": MessageLookupByLibrary.simpleMessage(
-      "Control proxy groups in system tray menu",
+      "Control proxy groups via tray menu",
     ),
     "trayIconInvert": MessageLookupByLibrary.simpleMessage("Invert Tray Icon"),
     "trayIconInvertDesc": MessageLookupByLibrary.simpleMessage(
@@ -2144,7 +2283,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "upload": MessageLookupByLibrary.simpleMessage("Upload"),
     "url": MessageLookupByLibrary.simpleMessage("URL"),
     "urlDesc": MessageLookupByLibrary.simpleMessage("Get profile via URL"),
-    "urlTip": m51,
+    "urlTip": m52,
     "useGlobalScriptOverride": MessageLookupByLibrary.simpleMessage(
       "Use Global Script Override",
     ),
@@ -2166,7 +2305,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "vpnDesc": MessageLookupByLibrary.simpleMessage("VPN-related settings"),
     "vpnEnableDesc": MessageLookupByLibrary.simpleMessage(
-      "Route system traffic via VpnService",
+      "Route traffic via VpnService",
     ),
     "vpnSystemProxyDesc": MessageLookupByLibrary.simpleMessage(
       "Attach HTTP proxy to VpnService",
@@ -2193,6 +2332,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "xattrUnsupportedFallback": MessageLookupByLibrary.simpleMessage(
       "The filesystem does not support file capabilities, falling back to setuid",
     ),
-    "years": m52,
+    "years": m53,
   };
 }
