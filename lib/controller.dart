@@ -1915,8 +1915,7 @@ class AppController {
     _ref
         .read(patchClashConfigProvider.notifier)
         .updateState((state) => state.copyWith(mode: mode));
-    if (SystemExplicitStore.instance.value.anyEnabled ||
-        SystemExplicitStore.instance.value.blockTunUdp) {
+    if (SystemExplicitStore.instance.value.anyEnabled) {
       bool applied;
       try {
         applied = await applyProfileChecked();

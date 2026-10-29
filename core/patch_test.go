@@ -1690,19 +1690,3 @@ func TestApplyPatchTunDNSMode(t *testing.T) {
 		t.Errorf("patched dns-mode should override, got %q", rawCfg.Tun.DNSMode)
 	}
 }
-
-func TestApplyPatchBlockTunUDP(t *testing.T) {
-	rawCfg := parsePatchProfile(t, chainTestProfile())
-	if _, err := applyPatch(rawCfg, patchParams(t, `{"block-tun-udp": true}`)); err != nil {
-		t.Fatal(err)
-	}
-	if !currentBlockTunUDP {
-		t.Error("currentBlockTunUDP = false, want true after block-tun-udp patch")
-	}
-	if _, err := applyPatch(rawCfg, patchParams(t, `{}`)); err != nil {
-		t.Fatal(err)
-	}
-	if currentBlockTunUDP {
-		t.Error("currentBlockTunUDP = true, want false after patch without block-tun-udp")
-	}
-}

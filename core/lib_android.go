@@ -172,7 +172,7 @@ func startTunLocked(fd int, callback unsafe.Pointer) error {
 	// Ownership moves to core/tun.Start, which either closes the descriptor on
 	// validation failure or passes it to sing_tun.New for listener ownership.
 	fdUnclaimed = false
-	listener, err := t.Start(fd, currentConfig.General.Tun.Device, currentConfig.General.Tun.Stack, currentConfig.General.Tun.DNSMode, currentConfig.General.Tun.DisableICMPForwarding, uint32(currentConfig.General.Tun.MTU), currentConfig.General.IPv6, currentConfig.General.Tun.CongestionController, currentBlockTunUDP)
+	listener, err := t.Start(fd, currentConfig.General.Tun.Device, currentConfig.General.Tun.Stack, currentConfig.General.Tun.DNSMode, currentConfig.General.Tun.DisableICMPForwarding, uint32(currentConfig.General.Tun.MTU), currentConfig.General.IPv6, currentConfig.General.Tun.CongestionController)
 	if err != nil {
 		if tunHandler.CompareAndSwap(handler, nil) {
 			removeTunHook()

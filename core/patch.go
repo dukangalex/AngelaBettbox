@@ -68,14 +68,8 @@ type PatchParams struct {
 	// SystemExplicitStore.apply / ProfileChainStore.apply, which used to
 	// mutate the Dart-assembled full config before the Go patch pipeline
 	// existed.
-	BlockTunUDP bool              `json:"block-tun-udp"`
 	ChainPolicy *PatchChainPolicy `json:"chain-policy"`
 }
-
-// currentBlockTunUDP mirrors the latest applied patch params. The Android
-// TUN start path reads it to enforce the system-explicit "block all UDP
-// inside the VPN" option at packet ingress (see core/tun).
-var currentBlockTunUDP bool
 
 const defaultHealthCheckTimeout = 5000
 
@@ -122,7 +116,6 @@ func hasPatchValue(data json.RawMessage) bool {
 }
 
 func applyPatch(raw *config.RawConfig, params *PatchParams) (string, error) {
-	currentBlockTunUDP = params.BlockTunUDP
 	defaults := config.DefaultRawConfig()
 	if hasPatchValue(params.General) {
 		if err := yaml.Unmarshal(params.General, raw); err != nil {

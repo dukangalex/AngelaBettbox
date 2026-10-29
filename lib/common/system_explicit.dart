@@ -51,7 +51,6 @@ class SystemExplicitOptions {
   bool lanDirect;
   bool blockCommonWebRtc;
   bool blockAds;
-  bool blockTunUdp;
 
   SystemExplicitOptions({
     this.privacy = false,
@@ -60,7 +59,6 @@ class SystemExplicitOptions {
     this.lanDirect = false,
     this.blockCommonWebRtc = false,
     this.blockAds = false,
-    this.blockTunUdp = false,
   });
 
   bool get anyEnabled =>
@@ -78,7 +76,6 @@ class SystemExplicitOptions {
     'lanDirect': lanDirect,
     'blockCommonWebRtc': blockCommonWebRtc,
     'blockAds': blockAds,
-    'blockTunUdp': blockTunUdp,
   };
 
   factory SystemExplicitOptions.fromJson(Map<String, dynamic> json) {
@@ -89,7 +86,6 @@ class SystemExplicitOptions {
       lanDirect: json['lanDirect'] == true,
       blockCommonWebRtc: json['blockCommonWebRtc'] == true,
       blockAds: json['blockAds'] == true,
-      blockTunUdp: json['blockTunUdp'] == true,
     );
   }
 
