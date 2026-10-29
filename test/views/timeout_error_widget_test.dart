@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:bett_box/common/common.dart';
 import 'package:bett_box/controller.dart';
 import 'package:bett_box/enum/enum.dart';
+import 'package:bett_box/l10n/l10n.dart';
 import 'package:bett_box/models/models.dart';
 import 'package:bett_box/state.dart';
 import 'package:bett_box/views/system_explicit.dart';
@@ -25,6 +26,7 @@ void main() {
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
+    await AppLocalizations.load(const Locale('en'));
     await SystemExplicitStore.instance.ensureLoaded();
     SystemExplicitStore.instance.value = SystemExplicitOptions();
     globalState.config = Config(

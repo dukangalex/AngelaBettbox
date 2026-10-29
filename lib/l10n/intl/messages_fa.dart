@@ -136,9 +136,12 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m50(provider) => "تغییر به ${provider}";
 
-  static String m51(label) => "${label} باید یک URL معتبر باشد";
+  static String m51(error) =>
+      "Could not confirm these settings were applied to the current profile: ${error}";
 
-  static String m52(count) => "${Intl.plural(count, other: '# سال')}";
+  static String m52(label) => "${label} باید یک URL معتبر باشد";
+
+  static String m53(count) => "${Intl.plural(count, other: '# سال')}";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -400,6 +403,62 @@ class MessageLookup extends MessageLookupByLibrary {
       "پلتفرم‌های اجتماعی",
     ),
     "categoryStreaming": MessageLookupByLibrary.simpleMessage("رسانه‌های جاری"),
+    "chainAttention": MessageLookupByLibrary.simpleMessage(
+      "Chain settings need attention",
+    ),
+    "chainChooseOtherProfile": MessageLookupByLibrary.simpleMessage(
+      "Choose another profile",
+    ),
+    "chainChooseTarget": MessageLookupByLibrary.simpleMessage(
+      "Choose a proxy or group",
+    ),
+    "chainEnable": MessageLookupByLibrary.simpleMessage("Enable"),
+    "chainEnableDesc": MessageLookupByLibrary.simpleMessage(
+      "Choose an entry from this profile and an exit proxy or group from another. After enabling, select the generated chain in a manual group; only traffic using it follows the chain. Source configs stay unchanged.",
+    ),
+    "chainEntry": MessageLookupByLibrary.simpleMessage("Entry"),
+    "chainExit": MessageLookupByLibrary.simpleMessage("Exit"),
+    "chainExitProfile": MessageLookupByLibrary.simpleMessage("Exit profile"),
+    "chainIssueIncomplete": MessageLookupByLibrary.simpleMessage(
+      "Choose both an entry and an exit before enabling the chain.",
+    ),
+    "chainIssueOtherProfile": MessageLookupByLibrary.simpleMessage(
+      "Choose the exit from a different profile.",
+    ),
+    "chainIssueSameNode": MessageLookupByLibrary.simpleMessage(
+      "Entry and exit cannot be the same proxy or group.",
+    ),
+    "chainIssueUnavailable": MessageLookupByLibrary.simpleMessage(
+      "A selected proxy, group, or profile is unavailable. Choose again.",
+    ),
+    "chainNoEntry": MessageLookupByLibrary.simpleMessage("No entry choices"),
+    "chainNoEntryDesc": MessageLookupByLibrary.simpleMessage(
+      "The current profile has no available proxies or groups.",
+    ),
+    "chainNoExitChoices": MessageLookupByLibrary.simpleMessage(
+      "No exit choices",
+    ),
+    "chainNoExitChoicesDesc": MessageLookupByLibrary.simpleMessage(
+      "The selected profile has no available proxies or groups.",
+    ),
+    "chainNoExits": MessageLookupByLibrary.simpleMessage(
+      "This profile has no available exits.",
+    ),
+    "chainNoOtherProfiles": MessageLookupByLibrary.simpleMessage(
+      "No other profiles",
+    ),
+    "chainNoOtherProfilesDesc": MessageLookupByLibrary.simpleMessage(
+      "The exit must come from another profile. Add one to configure it.",
+    ),
+    "chainNotInProfile": MessageLookupByLibrary.simpleMessage(
+      "not found in this profile",
+    ),
+    "chainNotInSelectedProfile": MessageLookupByLibrary.simpleMessage(
+      "not found in the selected profile",
+    ),
+    "chainTargetGroup": MessageLookupByLibrary.simpleMessage("Group"),
+    "chainTargetProxy": MessageLookupByLibrary.simpleMessage("Proxy"),
+    "chainTitle": MessageLookupByLibrary.simpleMessage("Chain"),
     "chasingDots": MessageLookupByLibrary.simpleMessage("نقاط تعقیب‌کننده"),
     "checkError": MessageLookupByLibrary.simpleMessage("بررسی ناموفق بود"),
     "checkFailed": MessageLookupByLibrary.simpleMessage("Timeout"),
@@ -2024,6 +2083,89 @@ class MessageLookup extends MessageLookupByLibrary {
     "system": MessageLookupByLibrary.simpleMessage("سیستم"),
     "systemApp": MessageLookupByLibrary.simpleMessage("برنامه‌های سیستم"),
     "systemDns": MessageLookupByLibrary.simpleMessage("DNS"),
+    "systemExplicitAdapt": MessageLookupByLibrary.simpleMessage(
+      "Adaptive path",
+    ),
+    "systemExplicitAdaptDesc": MessageLookupByLibrary.simpleMessage(
+      "If traffic stalls, check immediately and only switch the manual group carrying it. Two failures on different check addresses are required, then stuck connections are released. Automatic groups can no longer fall back to direct. The subscription is not edited.",
+    ),
+    "systemExplicitApplyState": MessageLookupByLibrary.simpleMessage(
+      "Settings application unconfirmed",
+    ),
+    "systemExplicitApplyUnconfirmed": m51,
+    "systemExplicitBlockAds": MessageLookupByLibrary.simpleMessage("Block ads"),
+    "systemExplicitBlockAdsDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Rejects ad domains via the Mihomo GEOSITE category-ads-all category. Replaces only same-category ad rules in the profile; unrelated rules remain.",
+    ),
+    "systemExplicitBlockTunUdp": MessageLookupByLibrary.simpleMessage(
+      "Block all UDP inside VPN",
+    ),
+    "systemExplicitBlockTunUdpDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Drops IPv4/IPv6 UDP entering this app’s TUN, including UDP DNS, regardless of routing mode. Calls, video, QUIC, games and DNS may fail. TCP/TLS, disguised traffic and traffic outside the VPN are not covered; inactive when VPN is stopped.",
+    ),
+    "systemExplicitBlockWebRtc": MessageLookupByLibrary.simpleMessage(
+      "Block WebRTC/STUN/TURN",
+    ),
+    "systemExplicitBlockWebRtcDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Rejects hostnames containing stun/turn and Google STUN by domain, plus UDP 3478-3480, 5349-5355 and 19302-19305. May disrupt calls; disguised traffic is not covered, so it cannot block all WebRTC.",
+    ),
+    "systemExplicitChinaDirect": MessageLookupByLibrary.simpleMessage(
+      "China IPs and domains direct",
+    ),
+    "systemExplicitChinaDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "Uses Mihomo GEOIP/GEOSITE China rules. Replaces only same-category China IP/domain rules; unrelated rules remain.",
+    ),
+    "systemExplicitChinaDnsDirect": MessageLookupByLibrary.simpleMessage(
+      "China public DNS direct (privacy exception)",
+    ),
+    "systemExplicitChinaDnsDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "Off by default. Listed Chinese public DNS endpoints bypass the proxy and may expose queries to the local network/provider. China-direct can also match these endpoints even if this switch is off.",
+    ),
+    "systemExplicitInactive": MessageLookupByLibrary.simpleMessage(
+      "Routing options are not active",
+    ),
+    "systemExplicitInactiveDesc": MessageLookupByLibrary.simpleMessage(
+      "The current mode bypasses these rules. Saved choices resume in rule mode; notification privacy remains enabled.",
+    ),
+    "systemExplicitIntro": MessageLookupByLibrary.simpleMessage(
+      "Applied after scripts and the profile without editing it. Routing options pause in global or direct mode and saved choices resume in rule mode.",
+    ),
+    "systemExplicitLanDirect": MessageLookupByLibrary.simpleMessage(
+      "LAN IPs and domains direct",
+    ),
+    "systemExplicitLanDirectDesc": MessageLookupByLibrary.simpleMessage(
+      "Matches private, loopback and link-local ranges plus .local, .lan and home.arpa; direct traffic bypasses proxies.",
+    ),
+    "systemExplicitLastSwitch": MessageLookupByLibrary.simpleMessage(
+      "Last switch",
+    ),
+    "systemExplicitLimits": MessageLookupByLibrary.simpleMessage(
+      "DNS and VPN-disconnect limits",
+    ),
+    "systemExplicitLimitsDesc": MessageLookupByLibrary.simpleMessage(
+      "DNS is handled only for traffic routed through this app’s TUN and core DNS hijack. System VPN exclusions/bypass and app-encrypted DoH/DoT are not universally covered. VPN-disconnect lockdown must be enabled in Android system VPN settings (“Always-on” and “Block connections without VPN”, if offered); this app cannot enforce that system lock.",
+    ),
+    "systemExplicitNoneYet": MessageLookupByLibrary.simpleMessage("None yet"),
+    "systemExplicitPrivacy": MessageLookupByLibrary.simpleMessage("Privacy"),
+    "systemExplicitPrivacyDesc": MessageLookupByLibrary.simpleMessage(
+      "Hides the profile name in notifications and blocks local discovery.",
+    ),
+    "systemExplicitRuleModeDesc": MessageLookupByLibrary.simpleMessage(
+      "This option needs rule mode. Switching restores saved explicit routing choices.",
+    ),
+    "systemExplicitRuleModeNotApplied": MessageLookupByLibrary.simpleMessage(
+      "Rule mode was not applied; option not enabled.",
+    ),
+    "systemExplicitRuleModeTitle": MessageLookupByLibrary.simpleMessage(
+      "Switch to rule mode?",
+    ),
+    "systemExplicitSubtitle": MessageLookupByLibrary.simpleMessage(
+      "Adaptive path, privacy, China direct",
+    ),
+    "systemExplicitSwitch": MessageLookupByLibrary.simpleMessage("Switch"),
+    "systemExplicitTitle": MessageLookupByLibrary.simpleMessage(
+      "System options",
+    ),
     "systemFont": MessageLookupByLibrary.simpleMessage("فونت سیستم"),
     "systemProxy": MessageLookupByLibrary.simpleMessage("پروکسی سیستم"),
     "systemProxyDesc": MessageLookupByLibrary.simpleMessage(
@@ -2177,7 +2319,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "urlDesc": MessageLookupByLibrary.simpleMessage(
       "دریافت پروفایل از طریق آدرس URL",
     ),
-    "urlTip": m51,
+    "urlTip": m52,
     "useGlobalScriptOverride": MessageLookupByLibrary.simpleMessage(
       "استفاده از اسکریپت اورراید سراسری",
     ),
@@ -2228,6 +2370,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "xattrUnsupportedFallback": MessageLookupByLibrary.simpleMessage(
       "سیستم فایل از قابلیت‌های فایل (xattr) پشتیبانی نمی‌کند؛ به setuid بازگشت داده شد",
     ),
-    "years": m52,
+    "years": m53,
   };
 }

@@ -1775,15 +1775,11 @@ class _SystemExplicitItem extends StatelessWidget {
 }
 
 String _systemExplicitTitle(BuildContext context) {
-  final zh = Localizations.localeOf(context).languageCode == 'zh';
-  return zh ? '系统显式' : 'System options';
+  return appLocalizations.systemExplicitTitle;
 }
 
 String _systemExplicitSubtitle(BuildContext context) {
-  final zh = Localizations.localeOf(context).languageCode == 'zh';
-  return zh
-      ? '自适应通路、防隐私、中国直连'
-      : 'Adaptive path, privacy, China direct';
+  return appLocalizations.systemExplicitSubtitle;
 }
 
 class _ConfigItem extends StatelessWidget {

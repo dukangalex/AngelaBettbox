@@ -500,9 +500,7 @@ class ProfileItem extends StatelessWidget {
       ),
       PopupMenuItemData(
         icon: Icons.alt_route,
-        label: Localizations.localeOf(context).languageCode == 'zh'
-            ? '链式代理'
-            : 'Chain',
+        label: appLocalizations.chainTitle,
         onPressed: () {
           BaseNavigator.push(context, ProfileChainPage(profile: profile));
         },

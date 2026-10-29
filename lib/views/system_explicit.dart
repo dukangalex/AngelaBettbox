@@ -1,6 +1,5 @@
+import 'package:bett_box/common/common.dart';
 import 'package:bett_box/common/path_guard.dart';
-import 'package:bett_box/common/system.dart';
-import 'package:bett_box/common/system_explicit.dart';
 import 'package:bett_box/enum/enum.dart';
 import 'package:bett_box/providers/providers.dart';
 import 'package:bett_box/state.dart';
@@ -42,31 +41,22 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
     setState(() => _note = PathGuard.instance.note.value);
   }
 
-  bool get _zh => Localizations.localeOf(context).languageCode == 'zh';
-
-  String _t(String zh, String en) => _zh ? zh : en;
-
   Future<void> _setRuleOption(bool on, void Function(bool) update) async {
     final mode = ref.read(patchClashConfigProvider).mode;
     if (on && mode != Mode.rule) {
       final accepted = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: Text(_t('切换到规则模式？', 'Switch to rule mode?')),
-          content: Text(
-            _t(
-              '此选项需要规则模式。切换后会恢复已保存的系统显式路由选项。',
-              'This option needs rule mode. Switching restores saved explicit routing choices.',
-            ),
-          ),
+          title: Text(appLocalizations.systemExplicitRuleModeTitle),
+          content: Text(appLocalizations.systemExplicitRuleModeDesc),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(_t('取消', 'Cancel')),
+              child: Text(appLocalizations.cancel),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: Text(_t('切换', 'Switch')),
+              child: Text(appLocalizations.systemExplicitSwitch),
             ),
           ],
         ),
@@ -76,10 +66,7 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
       if (!mounted) return;
       if (ref.read(patchClashConfigProvider).mode != Mode.rule) {
         setState(
-          () => _applyError = _t(
-            '未切换到规则模式，选项未启用。',
-            'Rule mode was not applied; option not enabled.',
-          ),
+          () => _applyError = appLocalizations.systemExplicitRuleModeNotApplied,
         );
         return;
       }
@@ -101,9 +88,8 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
       // Saved choices can differ from the running configuration after failure.
       if (mounted) {
         setState(
-          () => _applyError = _t(
-            '无法确认设置已应用到当前配置：$error',
-            'Could not confirm these settings were applied to the current profile: $error',
+          () => _applyError = appLocalizations.systemExplicitApplyUnconfirmed(
+            '$error',
           ),
         );
       }
@@ -131,34 +117,21 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
     final incompatible = !systemExplicitModeCompatible(value, mode);
     return generateListView(
       generateSection(
-        title: _t(
-          '写在脚本和配置之后，不改订阅原文。全局或直连模式会暂停规则选项，切回规则模式时恢复已保存的选择。',
-          'Applied after scripts and the profile without editing it. Routing options pause in global or direct mode and saved choices resume in rule mode.',
-        ),
+        title: appLocalizations.systemExplicitIntro,
         items: [
           if (incompatible)
             ListItem(
-              title: Text(_t('当前路由选项未生效', 'Routing options are not active')),
-              subtitle: Text(
-                _t(
-                  '当前模式绕过这些规则，已保存的选择将在规则模式恢复；隐私通知隐藏仍保留。',
-                  'The current mode bypasses these rules. Saved choices resume in rule mode; notification privacy remains enabled.',
-                ),
-              ),
+              title: Text(appLocalizations.systemExplicitInactive),
+              subtitle: Text(appLocalizations.systemExplicitInactiveDesc),
             ),
           if (_applyError.isNotEmpty)
             ListItem(
-              title: Text(_t('设置应用状态待确认', 'Settings application unconfirmed')),
+              title: Text(appLocalizations.systemExplicitApplyState),
               subtitle: Text(_applyError),
             ),
           ListItem.switchItem(
-            title: Text(_t('自适应通路', 'Adaptive path')),
-            subtitle: Text(
-              _t(
-                '发出数据却收不到回包时会立刻复查。只切换正在走流量的手动组。连续两次、并且换过探测地址仍测不通，才换节点，并放开旧节点上卡住的连接。自动测速组不再把直连当作失败后的退路。不改订阅。',
-                'If traffic stalls, check immediately and only switch the manual group carrying it. Two failures on different check addresses are required, then stuck connections are released. Automatic groups can no longer fall back to direct. The subscription is not edited.',
-              ),
-            ),
+            title: Text(appLocalizations.systemExplicitAdapt),
+            subtitle: Text(appLocalizations.systemExplicitAdaptDesc),
             delegate: SwitchDelegate(
               value: value.adapt,
               onChanged: (on) {
@@ -168,17 +141,14 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
             ),
           ),
           ListItem(
-            title: Text(_t('最近一次切换', 'Last switch')),
-            subtitle: Text(_note.isEmpty ? _t('还没有切换', 'None yet') : _note),
+            title: Text(appLocalizations.systemExplicitLastSwitch),
+            subtitle: Text(
+              _note.isEmpty ? appLocalizations.systemExplicitNoneYet : _note,
+            ),
           ),
           ListItem.switchItem(
-            title: Text(_t('防隐私', 'Privacy')),
-            subtitle: Text(
-              _t(
-                '通知不显示配置名，并阻断局域网发现。',
-                'Hides the profile name in notifications and blocks local discovery.',
-              ),
-            ),
+            title: Text(appLocalizations.systemExplicitPrivacy),
+            subtitle: Text(appLocalizations.systemExplicitPrivacyDesc),
             delegate: SwitchDelegate(
               value: value.privacy,
               onChanged: (on) =>
@@ -186,13 +156,8 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
             ),
           ),
           ListItem.switchItem(
-            title: Text(_t('中国 IP 和域名直连', 'China IPs and domains direct')),
-            subtitle: Text(
-              _t(
-                '按 Mihomo 的 GEOIP/GEOSITE 中国规则直连；仅替换配置中同类中国 IP/域名规则，其它规则保留。',
-                'Uses Mihomo GEOIP/GEOSITE China rules. Replaces only same-category China IP/domain rules; unrelated rules remain.',
-              ),
-            ),
+            title: Text(appLocalizations.systemExplicitChinaDirect),
+            subtitle: Text(appLocalizations.systemExplicitChinaDirectDesc),
             delegate: SwitchDelegate(
               value: value.chinaDirect,
               onChanged: (on) =>
@@ -200,18 +165,8 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
             ),
           ),
           ListItem.switchItem(
-            title: Text(
-              _t(
-                '中国公共 DNS 直连（隐私例外）',
-                'China public DNS direct (privacy exception)',
-              ),
-            ),
-            subtitle: Text(
-              _t(
-                '默认关闭。仅列出的中国公共 DNS IP/域名走直连，可能暴露 DNS 查询给本地网络/运营商；中国直连也可能覆盖这些地址，即使本项关闭。',
-                'Off by default. Listed Chinese public DNS endpoints bypass the proxy and may expose queries to the local network/provider. China-direct can also match these endpoints even if this switch is off.',
-              ),
-            ),
+            title: Text(appLocalizations.systemExplicitChinaDnsDirect),
+            subtitle: Text(appLocalizations.systemExplicitChinaDnsDirectDesc),
             delegate: SwitchDelegate(
               value: value.chinaPublicDnsDirect,
               onChanged: (on) => _setRuleOption(
@@ -221,13 +176,8 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
             ),
           ),
           ListItem.switchItem(
-            title: Text(_t('局域网 IP 和域名直连', 'LAN IPs and domains direct')),
-            subtitle: Text(
-              _t(
-                '仅匹配私网/本机/链路本地网段及 .local、.lan、home.arpa；直连流量不经过代理。',
-                'Matches private, loopback and link-local ranges plus .local, .lan and home.arpa; direct traffic bypasses proxies.',
-              ),
-            ),
+            title: Text(appLocalizations.systemExplicitLanDirect),
+            subtitle: Text(appLocalizations.systemExplicitLanDirectDesc),
             delegate: SwitchDelegate(
               value: value.lanDirect,
               onChanged: (on) =>
@@ -235,18 +185,8 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
             ),
           ),
           ListItem.switchItem(
-            title: Text(
-              _t(
-                '阻断 WebRTC/STUN/TURN',
-                'Block WebRTC/STUN/TURN',
-              ),
-            ),
-            subtitle: Text(
-              _t(
-                '默认关闭。按域名阻断含 stun/turn 的主机名与 Google STUN，并阻断 UDP 3478-3480、5349-5355、19302-19305；可能影响语音/视频，伪装流量不在覆盖内，不能保证阻断所有 WebRTC。',
-                'Off by default. Rejects hostnames containing stun/turn and Google STUN by domain, plus UDP 3478-3480, 5349-5355 and 19302-19305. May disrupt calls; disguised traffic is not covered, so it cannot block all WebRTC.',
-              ),
-            ),
+            title: Text(appLocalizations.systemExplicitBlockWebRtc),
+            subtitle: Text(appLocalizations.systemExplicitBlockWebRtcDesc),
             delegate: SwitchDelegate(
               value: value.blockCommonWebRtc,
               onChanged: (on) => _setRuleOption(
@@ -256,13 +196,8 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
             ),
           ),
           ListItem.switchItem(
-            title: Text(_t('广告拦截', 'Block ads')),
-            subtitle: Text(
-              _t(
-                '默认关闭。按 Mihomo 的 GEOSITE category-ads-all 分类阻断广告域名；仅替换配置中同类广告规则，其它规则保留。',
-                'Off by default. Rejects ad domains via the Mihomo GEOSITE category-ads-all category. Replaces only same-category ad rules in the profile; unrelated rules remain.',
-              ),
-            ),
+            title: Text(appLocalizations.systemExplicitBlockAds),
+            subtitle: Text(appLocalizations.systemExplicitBlockAdsDesc),
             delegate: SwitchDelegate(
               value: value.blockAds,
               onChanged: (on) =>
@@ -271,13 +206,8 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
           ),
           if (system.isAndroid)
             ListItem.switchItem(
-              title: Text(_t('阻断 VPN 内全部 UDP', 'Block all UDP inside VPN')),
-              subtitle: Text(
-                _t(
-                  '默认关闭。仅阻断进入本应用 TUN 的 IPv4/IPv6 UDP，包括 UDP DNS，不受路由模式影响；可能影响通话、视频、QUIC、游戏和 DNS。TCP/TLS、伪装流量与 VPN 之外不受此项保护；未启动 VPN 时不生效。',
-                  'Off by default. Drops IPv4/IPv6 UDP entering this app’s TUN, including UDP DNS, regardless of routing mode. Calls, video, QUIC, games and DNS may fail. TCP/TLS, disguised traffic and traffic outside the VPN are not covered; inactive when VPN is stopped.',
-                ),
-              ),
+              title: Text(appLocalizations.systemExplicitBlockTunUdp),
+              subtitle: Text(appLocalizations.systemExplicitBlockTunUdpDesc),
               delegate: SwitchDelegate(
                 value: value.blockTunUdp,
                 onChanged: (on) {
@@ -287,15 +217,8 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
               ),
             ),
           ListItem(
-            title: Text(
-              _t('DNS 与 VPN 断开保护范围', 'DNS and VPN-disconnect limits'),
-            ),
-            subtitle: Text(
-              _t(
-                'DNS 仅在流量经过本应用 TUN 且被 DNS 劫持/核心处理时受控；系统绕过 VPN、应用排除项及应用自行加密的 DoH/DoT 不在通用保证内。断开保护需在 Android 系统 VPN 设置中启用“始终开启”和“阻止未使用 VPN 的连接”（若系统提供）；本应用不能代替系统锁定。',
-                'DNS is handled only for traffic routed through this app’s TUN and core DNS hijack. System VPN exclusions/bypass and app-encrypted DoH/DoT are not universally covered. VPN-disconnect lockdown must be enabled in Android system VPN settings (“Always-on” and “Block connections without VPN”, if offered); this app cannot enforce that system lock.',
-              ),
-            ),
+            title: Text(appLocalizations.systemExplicitLimits),
+            subtitle: Text(appLocalizations.systemExplicitLimitsDesc),
           ),
         ],
       ),

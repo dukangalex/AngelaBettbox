@@ -46,13 +46,9 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
     _load();
   }
 
-  bool get _zh => Localizations.localeOf(context).languageCode == 'zh';
-
-  String _t(String zh, String en) => _zh ? zh : en;
-
   String _kindLabel(ChainTargetKind kind) => switch (kind) {
-    ChainTargetKind.proxy => _t('节点', 'Proxy'),
-    ChainTargetKind.group => _t('策略组', 'Group'),
+    ChainTargetKind.proxy => appLocalizations.chainTargetProxy,
+    ChainTargetKind.group => appLocalizations.chainTargetGroup,
   };
 
   String _choiceLabel(_ChainChoice choice) =>
@@ -162,22 +158,11 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
       );
 
   String _issueMessage(ProfileChainIssue issue) => switch (issue) {
-    ProfileChainIssue.incomplete => _t(
-      '请先选择入口和出口，再启用链式代理。',
-      'Choose both an entry and an exit before enabling the chain.',
-    ),
-    ProfileChainIssue.sameNode => _t(
-      '入口和出口不能是同一个节点或策略组。',
-      'Entry and exit cannot be the same proxy or group.',
-    ),
-    ProfileChainIssue.otherProfileRequired => _t(
-      '出口必须来自当前配置以外的另一份配置，请重新选择。',
-      'Choose the exit from a different profile.',
-    ),
-    ProfileChainIssue.unavailable => _t(
-      '所选节点、策略组或配置已不可用，请重新选择。',
-      'A selected proxy, group, or profile is unavailable. Choose again.',
-    ),
+    ProfileChainIssue.incomplete => appLocalizations.chainIssueIncomplete,
+    ProfileChainIssue.sameNode => appLocalizations.chainIssueSameNode,
+    ProfileChainIssue.otherProfileRequired =>
+      appLocalizations.chainIssueOtherProfile,
+    ProfileChainIssue.unavailable => appLocalizations.chainIssueUnavailable,
   };
 
   Future<void> _commit(ProfileChain candidate) async {
@@ -251,7 +236,7 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
       title: Text(title),
       subtitle: Text(
         selectedName.isEmpty
-            ? _t('选择节点或策略组', 'Choose a proxy or group')
+            ? appLocalizations.chainChooseTarget
             : valid
             ? _choiceLabel(_ChainChoice(selectedKind, selectedName))
             : '$selectedName · $unavailableHint',
@@ -288,7 +273,7 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
     final landingChoices = landingProfile?.choices ?? const [];
     final issue = _currentIssue;
     return CommonScaffold(
-      title: _t('链式代理', 'Chain'),
+      title: appLocalizations.chainTitle,
       body: !_ready
           ? const Center(child: CircularProgressIndicator())
           : generateListView(
@@ -296,13 +281,8 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
                 title: label,
                 items: [
                   ListItem.switchItem(
-                    title: Text(_t('启用', 'Enable')),
-                    subtitle: Text(
-                      _t(
-                        '入口来自当前配置；出口可选其他配置的节点或策略组。开启后请在策略组中选择“链式落地”，只有走该选项的流量才经过链路；不改订阅原文。',
-                        'Choose an entry from this profile and an exit proxy or group from another. After enabling, select the generated chain in a manual group; only traffic using it follows the chain. Source configs stay unchanged.',
-                      ),
-                    ),
+                    title: Text(appLocalizations.chainEnable),
+                    subtitle: Text(appLocalizations.chainEnableDesc),
                     delegate: SwitchDelegate(
                       value: chain.enabled,
                       onChanged: _saving
@@ -312,9 +292,7 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
                   ),
                   if (_error != null || issue != null)
                     ListItem(
-                      title: Text(
-                        _t('链式设置未就绪', 'Chain settings need attention'),
-                      ),
+                      title: Text(appLocalizations.chainAttention),
                       subtitle: Text(
                         _error ?? _issueMessage(issue!),
                         style: TextStyle(
@@ -324,24 +302,16 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
                     ),
                   if (entryChoices.isEmpty)
                     ListItem(
-                      title: Text(_t('当前配置没有可选项', 'No entry choices')),
-                      subtitle: Text(
-                        _t(
-                          '当前配置没有可用节点或策略组。',
-                          'The current profile has no available proxies or groups.',
-                        ),
-                      ),
+                      title: Text(appLocalizations.chainNoEntry),
+                      subtitle: Text(appLocalizations.chainNoEntryDesc),
                     )
                   else
                     _targetItem(
-                      title: _t('入口', 'Entry'),
+                      title: appLocalizations.chainEntry,
                       selectedKind: chain.entryKind,
                       selectedName: chain.entry,
                       choices: entryChoices,
-                      unavailableHint: _t(
-                        '当前配置中已不存在',
-                        'not found in this profile',
-                      ),
+                      unavailableHint: appLocalizations.chainNotInProfile,
                       onChanged: (choice) {
                         if (choice.name == chain.landing &&
                             chain.resolvedLandingProfileId(widget.profile.id) ==
@@ -364,14 +334,14 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
                     ),
                   if (exitProfiles.isNotEmpty)
                     ListItem<String>.options(
-                      title: Text(_t('出口配置', 'Exit profile')),
+                      title: Text(appLocalizations.chainExitProfile),
                       subtitle: Text(
                         landingProfile?.profile.label ??
                             landingProfile?.profile.id ??
-                            _t('请选择其它配置', 'Choose another profile'),
+                            appLocalizations.chainChooseOtherProfile,
                       ),
                       delegate: OptionsDelegate<String>(
-                        title: _t('出口配置', 'Exit profile'),
+                        title: appLocalizations.chainExitProfile,
                         options: [
                           '',
                           for (final profile in exitProfiles) profile.id,
@@ -379,7 +349,7 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
                         value: selectedExitProfileId,
                         textBuilder: (id) {
                           if (id.isEmpty) {
-                            return _t('请选择其它配置', 'Choose another profile');
+                            return appLocalizations.chainChooseOtherProfile;
                           }
                           final profile = exitProfiles.firstWhere(
                             (item) => item.id == id,
@@ -408,10 +378,7 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
                               : (choices.isEmpty ? null : choices.first);
                           if (next == null) {
                             setState(
-                              () => _error = _t(
-                                '这份配置没有可选出口。',
-                                'This profile has no available exits.',
-                              ),
+                              () => _error = appLocalizations.chainNoExits,
                             );
                             return;
                           }
@@ -427,34 +394,22 @@ class _ProfileChainPageState extends ConsumerState<ProfileChainPage> {
                     ),
                   if (exitProfiles.isEmpty)
                     ListItem(
-                      title: Text(_t('没有其它配置', 'No other profiles')),
-                      subtitle: Text(
-                        _t(
-                          '出口必须来自其它配置；先添加另一份配置后再选择。',
-                          'The exit must come from another profile. Add one to configure it.',
-                        ),
-                      ),
+                      title: Text(appLocalizations.chainNoOtherProfiles),
+                      subtitle: Text(appLocalizations.chainNoOtherProfilesDesc),
                     ),
                   if (landingChoices.isEmpty)
                     ListItem(
-                      title: Text(_t('出口配置没有可选项', 'No exit choices')),
-                      subtitle: Text(
-                        _t(
-                          '所选配置中没有可用节点或策略组。',
-                          'The selected profile has no available proxies or groups.',
-                        ),
-                      ),
+                      title: Text(appLocalizations.chainNoExitChoices),
+                      subtitle: Text(appLocalizations.chainNoExitChoicesDesc),
                     )
                   else
                     _targetItem(
-                      title: _t('出口', 'Exit'),
+                      title: appLocalizations.chainExit,
                       selectedKind: chain.landingKind,
                       selectedName: chain.landing,
                       choices: landingChoices,
-                      unavailableHint: _t(
-                        '所选配置中已不存在',
-                        'not found in the selected profile',
-                      ),
+                      unavailableHint:
+                          appLocalizations.chainNotInSelectedProfile,
                       onChanged: (choice) {
                         if (chain.resolvedLandingProfileId(widget.profile.id) ==
                                 widget.profile.id &&
