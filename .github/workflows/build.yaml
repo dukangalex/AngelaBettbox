@@ -19,7 +19,24 @@ env:
   IPINFO_TOKEN: ${{ secrets.IPINFO_TOKEN || vars.IPINFO_TOKEN }}
   
 jobs:
+  version-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Verify tag matches pubspec version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          tag="${tag%-pre[0-9]*}"
+          ver="$(grep -E '^version:' pubspec.yaml | head -1 | sed 's/^version:[[:space:]]*//' | sed 's/+.*//')"
+          if [ "$tag" != "$ver" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match pubspec version ${ver}; bump pubspec.yaml before tagging."
+            exit 1
+          fi
+          echo "Tag ${GITHUB_REF_NAME} matches pubspec version ${ver}."
+
   build:
+    needs: version-guard
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
