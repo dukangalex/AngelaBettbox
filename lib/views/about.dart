@@ -65,6 +65,11 @@ class AboutView extends StatelessWidget {
         icon: Icons.memory,
         onTap: () => globalState.openUrl('https://github.com/MetaCubeX/mihomo'),
       ),
+      _LinkTile(
+        title: 'Group',
+        icon: Icons.groups_outlined,
+        onTap: () => globalState.openUrl('https://t.me/AngelaNexusGroup'),
+      ),
     ];
     return generateSection(
       title: appLocalizations.more,
