@@ -1,27 +1,5 @@
 /// Runtime config changes. The saved subscription is not touched.
-/// Automatic groups lose DIRECT so a dead node cannot fall through.
 const explicitChainGroup = '链式落地';
-
-void dropAutomaticDirect(Map<String, dynamic> raw) {
-  final groups = raw['proxy-groups'];
-  if (groups is! List) return;
-  for (final group in groups) {
-    if (group is! Map) continue;
-    final type = group['type']?.toString();
-    if (type != 'url-test' && type != 'fallback' && type != 'load-balance') {
-      continue;
-    }
-    final proxies = group['proxies'];
-    if (proxies is! List) continue;
-    final kept = proxies.where((item) {
-      final name = item.toString();
-      return name != 'DIRECT' && name != 'REJECT' && name != 'REJECT-DROP';
-    }).toList();
-    if (kept.isNotEmpty && kept.length != proxies.length) {
-      group['proxies'] = kept;
-    }
-  }
-}
 
 /// Inline landing nodes get dialer-proxy. Provider node names, which are
 /// not in the file, become a relay group the selectors can choose.

@@ -24,14 +24,17 @@ void main() {
       }
     },
   );
-  test('disabled options and adaptive path preserve the selected mode', () {
+  test('disabled options and TUN UDP block preserve the selected mode', () {
     for (final mode in Mode.values) {
       expect(
         systemExplicitModeCompatible(SystemExplicitOptions(), mode),
         isTrue,
       );
       expect(
-        systemExplicitModeCompatible(SystemExplicitOptions(adapt: true), mode),
+        systemExplicitModeCompatible(
+          SystemExplicitOptions(blockTunUdp: true),
+          mode,
+        ),
         isTrue,
       );
       requireSystemExplicitMode(SystemExplicitOptions(), mode);
@@ -93,13 +96,11 @@ void main() {
       final opt = SystemExplicitOptions(
         blockTunUdp: true,
         chinaPublicDnsDirect: true,
-        adapt: true,
         privacy: true,
       );
       final restored = SystemExplicitOptions.fromJson(opt.toJson());
       expect(restored.blockTunUdp, isTrue);
       expect(restored.chinaPublicDnsDirect, isTrue);
-      expect(restored.adapt, isTrue);
       expect(restored.privacy, isTrue);
       expect(restored.buildRuntimeRulesForMode(Mode.global), isEmpty);
       expect(restored.buildRuntimeRulesForMode(Mode.rule), isNotEmpty);

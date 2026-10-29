@@ -1,5 +1,4 @@
 import 'package:bett_box/common/common.dart';
-import 'package:bett_box/common/path_guard.dart';
 import 'package:bett_box/enum/enum.dart';
 import 'package:bett_box/providers/providers.dart';
 import 'package:bett_box/state.dart';
@@ -16,29 +15,15 @@ class SystemExplicitView extends ConsumerStatefulWidget {
 
 class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
   var _ready = false;
-  var _note = '';
   var _applyError = '';
 
   @override
   void initState() {
     super.initState();
-    _note = PathGuard.instance.note.value;
-    PathGuard.instance.note.addListener(_onNote);
     SystemExplicitStore.instance.ensureLoaded().then((_) {
       if (!mounted) return;
       setState(() => _ready = true);
     });
-  }
-
-  @override
-  void dispose() {
-    PathGuard.instance.note.removeListener(_onNote);
-    super.dispose();
-  }
-
-  void _onNote() {
-    if (!mounted) return;
-    setState(() => _note = PathGuard.instance.note.value);
   }
 
   Future<void> _setRuleOption(bool on, void Function(bool) update) async {
@@ -96,11 +81,64 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
       return;
     }
     if (mounted) setState(() => _applyError = '');
-    await PathGuard.instance.sync(
-      running: globalState.isStart,
-      change: (group, proxy) => globalState.appController.changeProxy(
-        groupName: group,
-        proxyName: proxy,
+  }
+
+  /// Descriptions stay collapsed until the row is tapped, so the page reads
+  /// as a compact list of switches; the explanation is one tap away.
+  final _expanded = <String>{};
+
+  void _toggleExpanded(String id) {
+    setState(() {
+      if (!_expanded.remove(id)) _expanded.add(id);
+    });
+  }
+
+  Widget _optionItem({
+    required String id,
+    required String title,
+    required String desc,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final expanded = _expanded.contains(id);
+    return ListItem(
+      padding: const EdgeInsets.only(left: 16, right: 8),
+      title: Text(title),
+      subtitle: expanded ? Text(desc) : null,
+      onTap: () => _toggleExpanded(id),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            expanded ? Icons.expand_less : Icons.expand_more,
+            size: 20,
+            color: context.colorScheme.onSurfaceVariant,
+          ),
+          Transform.scale(
+            scale: 0.86,
+            alignment: Alignment.centerRight,
+            child: Switch(value: value, onChanged: onChanged),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoItem({
+    required String id,
+    required String title,
+    required String desc,
+  }) {
+    final expanded = _expanded.contains(id);
+    return ListItem(
+      padding: const EdgeInsets.only(left: 16, right: 8),
+      title: Text(title),
+      subtitle: expanded ? Text(desc) : null,
+      onTap: () => _toggleExpanded(id),
+      trailing: Icon(
+        expanded ? Icons.expand_less : Icons.expand_more,
+        size: 20,
+        color: context.colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -129,96 +167,73 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
               title: Text(appLocalizations.systemExplicitApplyState),
               subtitle: Text(_applyError),
             ),
-          ListItem.switchItem(
-            title: Text(appLocalizations.systemExplicitAdapt),
-            subtitle: Text(appLocalizations.systemExplicitAdaptDesc),
-            delegate: SwitchDelegate(
-              value: value.adapt,
+          _optionItem(
+            id: 'privacy',
+            title: appLocalizations.systemExplicitPrivacy,
+            desc: appLocalizations.systemExplicitPrivacyDesc,
+            value: value.privacy,
+            onChanged: (on) =>
+                _setRuleOption(on, (valueOn) => value.privacy = valueOn),
+          ),
+          _optionItem(
+            id: 'chinaDirect',
+            title: appLocalizations.systemExplicitChinaDirect,
+            desc: appLocalizations.systemExplicitChinaDirectDesc,
+            value: value.chinaDirect,
+            onChanged: (on) =>
+                _setRuleOption(on, (valueOn) => value.chinaDirect = valueOn),
+          ),
+          _optionItem(
+            id: 'chinaDnsDirect',
+            title: appLocalizations.systemExplicitChinaDnsDirect,
+            desc: appLocalizations.systemExplicitChinaDnsDirectDesc,
+            value: value.chinaPublicDnsDirect,
+            onChanged: (on) => _setRuleOption(
+              on,
+              (valueOn) => value.chinaPublicDnsDirect = valueOn,
+            ),
+          ),
+          _optionItem(
+            id: 'lanDirect',
+            title: appLocalizations.systemExplicitLanDirect,
+            desc: appLocalizations.systemExplicitLanDirectDesc,
+            value: value.lanDirect,
+            onChanged: (on) =>
+                _setRuleOption(on, (valueOn) => value.lanDirect = valueOn),
+          ),
+          _optionItem(
+            id: 'blockWebRtc',
+            title: appLocalizations.systemExplicitBlockWebRtc,
+            desc: appLocalizations.systemExplicitBlockWebRtcDesc,
+            value: value.blockCommonWebRtc,
+            onChanged: (on) => _setRuleOption(
+              on,
+              (valueOn) => value.blockCommonWebRtc = valueOn,
+            ),
+          ),
+          _optionItem(
+            id: 'blockAds',
+            title: appLocalizations.systemExplicitBlockAds,
+            desc: appLocalizations.systemExplicitBlockAdsDesc,
+            value: value.blockAds,
+            onChanged: (on) =>
+                _setRuleOption(on, (valueOn) => value.blockAds = valueOn),
+          ),
+          if (system.isAndroid)
+            _optionItem(
+              id: 'blockTunUdp',
+              title: appLocalizations.systemExplicitBlockTunUdp,
+              desc: appLocalizations.systemExplicitBlockTunUdpDesc,
+              value: value.blockTunUdp,
               onChanged: (on) {
-                value.adapt = on;
+                setState(() => value.blockTunUdp = on);
                 _commit();
               },
             ),
-          ),
-          ListItem(
-            title: Text(appLocalizations.systemExplicitLastSwitch),
-            subtitle: Text(
-              _note.isEmpty ? appLocalizations.systemExplicitNoneYet : _note,
-            ),
-          ),
-          ListItem.switchItem(
-            title: Text(appLocalizations.systemExplicitPrivacy),
-            subtitle: Text(appLocalizations.systemExplicitPrivacyDesc),
-            delegate: SwitchDelegate(
-              value: value.privacy,
-              onChanged: (on) =>
-                  _setRuleOption(on, (valueOn) => value.privacy = valueOn),
-            ),
-          ),
-          ListItem.switchItem(
-            title: Text(appLocalizations.systemExplicitChinaDirect),
-            subtitle: Text(appLocalizations.systemExplicitChinaDirectDesc),
-            delegate: SwitchDelegate(
-              value: value.chinaDirect,
-              onChanged: (on) =>
-                  _setRuleOption(on, (valueOn) => value.chinaDirect = valueOn),
-            ),
-          ),
-          ListItem.switchItem(
-            title: Text(appLocalizations.systemExplicitChinaDnsDirect),
-            subtitle: Text(appLocalizations.systemExplicitChinaDnsDirectDesc),
-            delegate: SwitchDelegate(
-              value: value.chinaPublicDnsDirect,
-              onChanged: (on) => _setRuleOption(
-                on,
-                (valueOn) => value.chinaPublicDnsDirect = valueOn,
-              ),
-            ),
-          ),
-          ListItem.switchItem(
-            title: Text(appLocalizations.systemExplicitLanDirect),
-            subtitle: Text(appLocalizations.systemExplicitLanDirectDesc),
-            delegate: SwitchDelegate(
-              value: value.lanDirect,
-              onChanged: (on) =>
-                  _setRuleOption(on, (valueOn) => value.lanDirect = valueOn),
-            ),
-          ),
-          ListItem.switchItem(
-            title: Text(appLocalizations.systemExplicitBlockWebRtc),
-            subtitle: Text(appLocalizations.systemExplicitBlockWebRtcDesc),
-            delegate: SwitchDelegate(
-              value: value.blockCommonWebRtc,
-              onChanged: (on) => _setRuleOption(
-                on,
-                (valueOn) => value.blockCommonWebRtc = valueOn,
-              ),
-            ),
-          ),
-          ListItem.switchItem(
-            title: Text(appLocalizations.systemExplicitBlockAds),
-            subtitle: Text(appLocalizations.systemExplicitBlockAdsDesc),
-            delegate: SwitchDelegate(
-              value: value.blockAds,
-              onChanged: (on) =>
-                  _setRuleOption(on, (valueOn) => value.blockAds = valueOn),
-            ),
-          ),
-          if (system.isAndroid)
-            ListItem.switchItem(
-              title: Text(appLocalizations.systemExplicitBlockTunUdp),
-              subtitle: Text(appLocalizations.systemExplicitBlockTunUdpDesc),
-              delegate: SwitchDelegate(
-                value: value.blockTunUdp,
-                onChanged: (on) {
-                  setState(() => value.blockTunUdp = on);
-                  _commit();
-                },
-              ),
-            ),
-          ListItem(
-            title: Text(appLocalizations.systemExplicitLimits),
-            subtitle: Text(appLocalizations.systemExplicitLimitsDesc),
+          _infoItem(
+            id: 'limits',
+            title: appLocalizations.systemExplicitLimits,
+            desc: appLocalizations.systemExplicitLimitsDesc,
           ),
         ],
       ),

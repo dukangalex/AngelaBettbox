@@ -69,7 +69,7 @@ void main() {
           'interval': 60,
           'tolerance': 20,
           'timeout': 2000,
-          'lazy': false,
+          'lazy': true,
           'proxies': ['Node A'],
         },
         {
@@ -90,7 +90,7 @@ void main() {
             'url': 'http://www.gstatic.com/generate_204',
             'interval': 30,
             'timeout': 1000,
-            'lazy': false,
+            'lazy': true,
           },
         },
       },
@@ -105,7 +105,7 @@ void main() {
     expect(fastGroup['interval'], 60);
     expect(fastGroup['tolerance'], 100);
     expect(fastGroup['timeout'], 5000);
-    expect(fastGroup['lazy'], isFalse);
+    expect(fastGroup['lazy'], isTrue, reason: 'lazy is preserved, not forced');
 
     final calm = ProfileChainOverlay.build(
       profileId: 'p1',
@@ -138,7 +138,11 @@ void main() {
     final healthCheck = providers.single['health-check'] as Map;
     expect(healthCheck['interval'], 60);
     expect(healthCheck['timeout'], 5000);
-    expect(healthCheck['lazy'], isFalse);
+    expect(
+      healthCheck['lazy'],
+      isTrue,
+      reason: 'lazy is preserved, not forced',
+    );
   });
 
   test('imports unfiltered provider-backed group and prefixes provider', () {

@@ -1118,7 +1118,6 @@ class GlobalState {
       // AngelaMihomo fork: the remaining SystemExplicitStore.apply /
       // ProfileChainStore.apply mutations are applied Go-side in
       // core/patch.go (the Dart full-config hook no longer exists).
-      'drop-automatic-direct': SystemExplicitStore.instance.value.adapt,
       // These explicit routes replace matching same-category profile/script
       // rules; unrelated rules are preserved in their original order.
       'system-explicit-rules': SystemExplicitStore.instance.value

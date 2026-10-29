@@ -59,23 +59,29 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 100));
     });
     await tester.pump(const Duration(milliseconds: 100));
-    final item = tester.widget<ListItem>(
-      find.byWidgetPredicate(
-        (w) =>
-            w is ListItem &&
-            w.title is Text &&
-            (w.title as Text).data == 'Adaptive path',
+    final toggle = tester.widget<Switch>(
+      find.descendant(
+        of: find.byWidgetPredicate(
+          (w) =>
+              w is ListItem &&
+              w.title is Text &&
+              (w.title as Text).data == 'China IPs and domains direct',
+        ),
+        matching: find.byType(Switch),
       ),
     );
     await tester.runAsync(() async {
-      (item.delegate as SwitchDelegate).onChanged!(true);
+      toggle.onChanged!(true);
       await Future<void>.delayed(const Duration(milliseconds: 200));
     });
     await tester.pump();
     expect(find.text('Settings application unconfirmed'), findsOneWidget);
     expect(find.textContaining('setupConfig timeout'), findsOneWidget);
-    expect(SystemExplicitStore.instance.value.adapt, isTrue);
+    expect(SystemExplicitStore.instance.value.chinaDirect, isTrue);
     final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString('system_explicit_v1'), contains('"adapt":true'));
+    expect(
+      prefs.getString('system_explicit_v1'),
+      contains('"chinaDirect":true'),
+    );
   });
 }

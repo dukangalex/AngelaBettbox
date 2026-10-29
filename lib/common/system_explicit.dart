@@ -52,7 +52,6 @@ class SystemExplicitOptions {
   bool blockCommonWebRtc;
   bool blockAds;
   bool blockTunUdp;
-  bool adapt;
 
   SystemExplicitOptions({
     this.privacy = false,
@@ -62,7 +61,6 @@ class SystemExplicitOptions {
     this.blockCommonWebRtc = false,
     this.blockAds = false,
     this.blockTunUdp = false,
-    this.adapt = false,
   });
 
   bool get anyEnabled =>
@@ -81,7 +79,6 @@ class SystemExplicitOptions {
     'blockCommonWebRtc': blockCommonWebRtc,
     'blockAds': blockAds,
     'blockTunUdp': blockTunUdp,
-    'adapt': adapt,
   };
 
   factory SystemExplicitOptions.fromJson(Map<String, dynamic> json) {
@@ -93,7 +90,6 @@ class SystemExplicitOptions {
       blockCommonWebRtc: json['blockCommonWebRtc'] == true,
       blockAds: json['blockAds'] == true,
       blockTunUdp: json['blockTunUdp'] == true,
-      adapt: json['adapt'] == true,
     );
   }
 
@@ -232,10 +228,10 @@ class SystemExplicitStore {
   ];
 
   /// Note: the config mutations that used to live here are now applied
-  /// Go-side in core/patch.go (see patchDropAutomaticDirect and the
-  /// system-explicit-rules path), because the Dart full-config hook no longer
-  /// exists in the typed-patch pipeline. The original Dart spec is kept in
-  /// common/explicit_policy.dart for reference.
+  /// Go-side in core/patch.go (see the system-explicit-rules path), because
+  /// the Dart full-config hook no longer exists in the typed-patch pipeline.
+  /// The original Dart spec is kept in common/explicit_policy.dart for
+  /// reference.
 
   String notificationLabel(String profileLabel) {
     if (value.privacy) return 'Angela Mihomo';
