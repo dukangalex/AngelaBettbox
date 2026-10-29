@@ -590,6 +590,7 @@ jobs:
           curl -sS -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TG_CHANNEL_ID}" \
             --data-urlencode "text=${MSG}" \
+            --data-urlencode "link_preview_options={\"url\":\"https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}\"}" \
             -o /tmp/tg_resp.json -w 'HTTP %{http_code}\n'
           cat /tmp/tg_resp.json
           grep -q '"ok":true' /tmp/tg_resp.json
