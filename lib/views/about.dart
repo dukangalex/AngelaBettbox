@@ -54,10 +54,10 @@ class AboutView extends StatelessWidget {
       ),
       _LinkTile(
         prefix: 'Forked from',
-        title: 'FlClash',
+        title: 'Bettbox',
         icon: Icons.code,
         onTap: () =>
-            globalState.openUrl('https://github.com/chen08209/FlClash'),
+            globalState.openUrl('https://github.com/appshubcc/Bettbox'),
       ),
       _LinkTile(
         prefix: 'Powered by',
