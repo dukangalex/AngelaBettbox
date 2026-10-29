@@ -1248,7 +1248,15 @@ func patchChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) error {
 			}
 			selectors++
 			members := anyStrings(group["proxies"])
-			group["proxies"] = append(members, chainGroup)
+			if selectors == 1 {
+				// The main selector lists the chain first so it is the
+				// default choice once a chain is configured; other
+				// selectors keep the chain as an extra option at the end
+				// without hijacking their own defaults.
+				group["proxies"] = append([]any{chainGroup}, members...)
+			} else {
+				group["proxies"] = append(members, chainGroup)
+			}
 		}
 		if selectors == 0 {
 			return fmt.Errorf("the active profile has no manual selector to expose the chain")

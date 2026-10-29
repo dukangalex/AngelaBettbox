@@ -865,11 +865,45 @@ rules:
 		t.Fatalf("generated chain must point at selected exit graph: %#v", chain)
 	}
 	manual := findGroup(raw.ProxyGroup, "Manual")["proxies"]
-	if !reflect.DeepEqual(manual, []any{"Entry", explicitChainGroup}) {
-		t.Fatalf("manual selector must preserve original choice and expose chain: %#v", manual)
+	if !reflect.DeepEqual(manual, []any{explicitChainGroup, "Entry"}) {
+		t.Fatalf("main selector must list the chain first as the default choice: %#v", manual)
 	}
 	if got := findGroup(raw.ProxyGroup, "Auto")["proxies"]; !reflect.DeepEqual(got, []any{"Entry"}) {
 		t.Fatalf("non-manual group must remain unchanged: %#v", got)
+	}
+	if _, err := config.ParseRawConfig(raw); err != nil {
+		t.Fatalf("patched external chain invalid: %v", err)
+	}
+}
+
+func TestExternalChainIsDefaultOnlyInMainSelector(t *testing.T) {
+	raw := parsePatchProfile(t, `
+proxies:
+  - {name: Entry, type: http, server: entry.example, port: 80}
+  - {name: Node, type: http, server: node.example, port: 80}
+proxy-groups:
+  - {name: Main, type: select, proxies: [Node, Entry]}
+  - {name: Secondary, type: select, proxies: [Node]}
+rules:
+  - MATCH,Main
+`)
+	params := &PatchParams{ChainPolicy: &PatchChainPolicy{
+		Enabled: true, Entry: "Entry", EntryKind: "proxy",
+		Landing: "[ext] Exit Group", LandingKind: "group",
+		ExternalProfile: "other", ExternalTarget: "[ext] Exit Group", ExternalKind: "group",
+		ExternalProxies: []map[string]any{{"name": "[ext] Exit", "type": "http", "server": "exit.example", "port": 80}},
+		ExternalGroups:  []map[string]any{{"name": "[ext] Exit Group", "type": "select", "proxies": []any{"[ext] Exit"}}},
+	}}
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	main := findGroup(raw.ProxyGroup, "Main")["proxies"]
+	if !reflect.DeepEqual(main, []any{explicitChainGroup, "Node", "Entry"}) {
+		t.Fatalf("main selector must default to the chain: %#v", main)
+	}
+	secondary := findGroup(raw.ProxyGroup, "Secondary")["proxies"]
+	if !reflect.DeepEqual(secondary, []any{"Node", explicitChainGroup}) {
+		t.Fatalf("secondary selector must keep the chain as a trailing option: %#v", secondary)
 	}
 	if _, err := config.ParseRawConfig(raw); err != nil {
 		t.Fatalf("patched external chain invalid: %v", err)
@@ -901,7 +935,7 @@ rules: ['MATCH,Main']
 	if got := findGroup(raw.ProxyGroup, "Inner")["proxies"]; !reflect.DeepEqual(got, []any{"Entry"}) {
 		t.Fatalf("nested entry changed: %#v", got)
 	}
-	if got := findGroup(raw.ProxyGroup, "Main")["proxies"]; !reflect.DeepEqual(got, []any{"Entry", explicitChainGroup}) {
+	if got := findGroup(raw.ProxyGroup, "Main")["proxies"]; !reflect.DeepEqual(got, []any{explicitChainGroup, "Entry"}) {
 		t.Fatalf("main: %#v", got)
 	}
 	if _, err := config.ParseRawConfig(raw); err != nil {
