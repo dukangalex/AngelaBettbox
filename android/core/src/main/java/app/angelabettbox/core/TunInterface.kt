@@ -1,4 +1,4 @@
-package com.appshub.bettbox.core
+package app.angelabettbox.core
 
 import androidx.annotation.Keep
 

@@ -248,9 +248,11 @@ class System {
 
   static const _setcapFailedExit = 12;
 
-  static const _polkitRuleFileName = '90-bettbox.rules';
+  static const _polkitRuleFileName = '90-angelamihomo.rules';
 
   static const _legacyPolkitRuleFileName = '99-bettbox.rules';
+
+  static const _legacyPolkitRuleFileName90 = '90-bettbox.rules';
 
   static const _polkitRuleSystemPath =
       '/usr/share/polkit-1/rules.d/$_polkitRuleFileName';
@@ -280,7 +282,9 @@ class System {
 
   static const _legacyPolkitRuleCleanupScript =
       'rm -f /etc/polkit-1/rules.d/$_legacyPolkitRuleFileName '
-      '/usr/share/polkit-1/rules.d/$_legacyPolkitRuleFileName';
+      '/usr/share/polkit-1/rules.d/$_legacyPolkitRuleFileName '
+      '/etc/polkit-1/rules.d/$_legacyPolkitRuleFileName90 '
+      '/usr/share/polkit-1/rules.d/$_legacyPolkitRuleFileName90';
 
   static const _polkitRuleEtcPath =
       '/etc/polkit-1/rules.d/$_polkitRuleFileName';

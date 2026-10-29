@@ -18,4 +18,4 @@ startup_wm_class: app.angelabettbox
 
 include: []
 extra_files:
-  linux/packaging/polkit/90-bettbox.rules: 90-bettbox.rules
+  linux/packaging/polkit/90-angelamihomo.rules: 90-angelamihomo.rules

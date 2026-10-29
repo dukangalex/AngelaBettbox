@@ -27,7 +27,7 @@ startup_notify: true
 startup_wm_class: app.angelabettbox
 
 extra_files:
-  linux/packaging/polkit/90-bettbox.rules: usr/share/polkit-1/rules.d/90-bettbox.rules
+  linux/packaging/polkit/90-angelamihomo.rules: usr/share/polkit-1/rules.d/90-angelamihomo.rules
 
 install: |
   mkdir -p %{buildroot}%{_bindir}
