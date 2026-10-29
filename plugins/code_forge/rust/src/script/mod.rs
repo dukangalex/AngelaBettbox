@@ -299,6 +299,14 @@ if (typeof Compatible_With_Bettbox !== 'undefined' && Compatible_With_Bettbox &&
     }
   }
 }
+if (typeof Compatible_With_Mihomo !== 'undefined' && Compatible_With_Mihomo && Array.isArray(Compatible_With_Mihomo.policyGroupOptions)) {
+  var __declaredMihomo = Compatible_With_Mihomo.policyGroupOptions;
+  for (var __k = 0; __k < __declaredMihomo.length; __k++) {
+    if (typeof __declaredMihomo[__k] === 'string') {
+      __groups.push(__declaredMihomo[__k]);
+    }
+  }
+}
 return JSON.stringify({ options: __options, icons: __icons, policyGroupOptions: __groups });
 "#;
 
