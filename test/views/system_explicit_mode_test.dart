@@ -45,8 +45,8 @@ void main() {
     (tester) async {
       await tester.runAsync(() async {
         await tester.pumpWidget(
-          const ProviderScope(
-            child: MaterialApp(home: Scaffold(body: SystemExplicitView())),
+          ProviderScope(
+            child: MaterialApp(home: Scaffold(body: generateListView([const SystemExplicitSection()]))),
           ),
         );
         await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -148,8 +148,8 @@ void main() {
     );
     await tester.runAsync(() async {
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(home: Scaffold(body: SystemExplicitView())),
+        ProviderScope(
+          child: MaterialApp(home: Scaffold(body: generateListView([const SystemExplicitSection()]))),
         ),
       );
       await Future<void>.delayed(const Duration(milliseconds: 100));

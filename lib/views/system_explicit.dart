@@ -6,14 +6,18 @@ import 'package:bett_box/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SystemExplicitView extends ConsumerStatefulWidget {
-  const SystemExplicitView({super.key});
+/// The system-explicit options as a section of the tools page
+/// (OtherSettingView), where they live alongside the app's other
+/// network-protection switches.
+class SystemExplicitSection extends ConsumerStatefulWidget {
+  const SystemExplicitSection({super.key});
 
   @override
-  ConsumerState<SystemExplicitView> createState() => _SystemExplicitViewState();
+  ConsumerState<SystemExplicitSection> createState() =>
+      _SystemExplicitSectionState();
 }
 
-class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
+class _SystemExplicitSectionState extends ConsumerState<SystemExplicitSection> {
   var _ready = false;
   var _applyError = '';
 
@@ -149,17 +153,16 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
   @override
   Widget build(BuildContext context) {
     if (!_ready) {
-      return const Center(child: CircularProgressIndicator());
+      return const SizedBox.shrink();
     }
     final value = SystemExplicitStore.instance.value;
     final mode = ref.watch(
       patchClashConfigProvider.select((state) => state.mode),
     );
     final incompatible = !systemExplicitModeCompatible(value, mode);
-    return generateListView(
-      generateSection(
-        title: appLocalizations.systemExplicitIntro,
-        items: [
+    return generateSection(
+      title: appLocalizations.systemExplicitTitle,
+      items: [
           if (incompatible)
             ListItem(
               title: Text(appLocalizations.systemExplicitInactive),
@@ -227,8 +230,7 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
             title: appLocalizations.systemExplicitLimits,
             desc: appLocalizations.systemExplicitLimitsDesc,
           ),
-        ],
-      ),
-    );
+      ],
+    ).first;
   }
 }
