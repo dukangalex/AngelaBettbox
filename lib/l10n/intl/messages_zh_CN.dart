@@ -1687,7 +1687,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "url": MessageLookupByLibrary.simpleMessage("URL"),
     "urlDesc": MessageLookupByLibrary.simpleMessage("通过 URL 获取配置文件"),
     "urlTip": m52,
-    "useGlobalScriptOverride": MessageLookupByLibrary.simpleMessage("使用全局脚本覆写"),
+    "useGlobalScriptOverride": MessageLookupByLibrary.simpleMessage("脚本覆写开关"),
     "scriptNotUsed": MessageLookupByLibrary.simpleMessage("不使用脚本"),
     "followGlobalScript": MessageLookupByLibrary.simpleMessage("跟随全局脚本"),
     "useHosts": MessageLookupByLibrary.simpleMessage("使用Hosts"),

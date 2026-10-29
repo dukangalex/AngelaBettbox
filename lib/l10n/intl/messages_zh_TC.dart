@@ -1702,7 +1702,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "urlDesc": MessageLookupByLibrary.simpleMessage("透過 URL 獲取設定檔"),
     "urlTip": m52,
     "useGlobalScriptOverride": MessageLookupByLibrary.simpleMessage(
-      "使用全域指令碼覆寫",
+      "指令碼覆寫開關",
     ),
     "scriptNotUsed": MessageLookupByLibrary.simpleMessage("不使用指令碼"),
     "followGlobalScript": MessageLookupByLibrary.simpleMessage(

@@ -2285,7 +2285,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "urlDesc": MessageLookupByLibrary.simpleMessage("Get profile via URL"),
     "urlTip": m52,
     "useGlobalScriptOverride": MessageLookupByLibrary.simpleMessage(
-      "Use Global Script Override",
+      "Script Override",
     ),
     "scriptNotUsed": MessageLookupByLibrary.simpleMessage(
       "Do Not Use a Script",

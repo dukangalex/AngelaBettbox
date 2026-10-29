@@ -5900,10 +5900,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Use Global Script Override`
+  /// `Script Override`
   String get useGlobalScriptOverride {
     return Intl.message(
-      'Use Global Script Override',
+      'Script Override',
       name: 'useGlobalScriptOverride',
       desc: '',
       args: [],
