@@ -473,6 +473,17 @@ class ProfileItem extends StatelessWidget {
     BaseNavigator.push(context, overrideProfileView);
   }
 
+  Future<void> _handleToggleScriptOverride(BuildContext context) async {
+    final container = ProviderScope.containerOf(context);
+    final value = !profile.useScriptOverride;
+    container
+        .read(profilesProvider.notifier)
+        .updateProfile(profile.id, (p) => p.copyWith(useScriptOverride: value));
+    if (profile.id == container.read(currentProfileIdProvider)) {
+      await globalState.appController.applyProfile(silence: true);
+    }
+  }
+
   List<PopupMenuItemData> _buildMenuItems(BuildContext context) {
     return [
       PopupMenuItemData(
@@ -496,6 +507,15 @@ class ProfileItem extends StatelessWidget {
         label: appLocalizations.override,
         onPressed: () {
           _handlePushGenProfilePage(context, profile.id);
+        },
+      ),
+      PopupMenuItemData(
+        icon: profile.useScriptOverride
+            ? Icons.check_box_outlined
+            : Icons.check_box_outline_blank,
+        label: appLocalizations.useGlobalScriptOverride,
+        onPressed: () {
+          _handleToggleScriptOverride(context);
         },
       ),
       PopupMenuItemData(

@@ -26,11 +26,11 @@ void main() {
     };
     final before = jsonEncode(source);
     final overlay = ProfileChainOverlay.build(
-      profileId: 'source-profile',
+      profileId: 'profile-1793192612',
       source: source,
       targetKind: ChainTargetKind.group,
       targetName: 'Outer',
-      reservedNames: {'[AngelaMihomo chain source-profile] Node A'},
+      reservedNames: {'[chain 192612] Node A'},
     );
     expect(
       jsonEncode(source),
@@ -42,18 +42,103 @@ void main() {
     expect(groups, hasLength(2));
     expect(proxies, hasLength(2));
     expect(overlay['external-target-kind'], 'group');
-    expect(overlay['external-profile-id'], 'source-profile');
+    expect(overlay['external-profile-id'], 'profile-1793192612');
     final names = {
       ...proxies.map((node) => node['name']),
       ...groups.map((group) => group['name']),
     };
     expect(names, hasLength(4));
-    expect(names, isNot(contains('[AngelaMihomo chain source-profile] Node A')));
+    expect(names, isNot(contains('[chain 192612] Node A')));
     final outer = groups.singleWhere(
       (g) => g['name'] == overlay['external-target'],
     );
     expect((outer['proxies'] as List).length, 2);
     expect(outer['empty-fallback'], 'REJECT');
+  });
+
+  test('floors aggressive health-check parameters on imported copies', () {
+    final source = <String, dynamic>{
+      'proxies': [
+        {'name': 'Node A', 'type': 'http', 'server': 'a.example', 'port': 80},
+      ],
+      'proxy-groups': [
+        {
+          'name': 'Fast',
+          'type': 'url-test',
+          'url': 'http://www.gstatic.com/generate_204',
+          'interval': 60,
+          'tolerance': 20,
+          'timeout': 2000,
+          'lazy': false,
+          'proxies': ['Node A'],
+        },
+        {
+          'name': 'Calm',
+          'type': 'url-test',
+          'url': 'http://www.gstatic.com/generate_204',
+          'interval': 600,
+          'tolerance': 150,
+          'proxies': ['Node A'],
+        },
+      ],
+      'proxy-providers': {
+        'prov': {
+          'type': 'http',
+          'url': 'https://example.com/prov',
+          'health-check': {
+            'enable': true,
+            'url': 'http://www.gstatic.com/generate_204',
+            'interval': 30,
+            'timeout': 1000,
+            'lazy': false,
+          },
+        },
+      },
+    };
+    final fast = ProfileChainOverlay.build(
+      profileId: 'p1',
+      source: source,
+      targetKind: ChainTargetKind.group,
+      targetName: 'Fast',
+    );
+    final fastGroup = (fast['external-groups'] as List).cast<Map>().single;
+    expect(fastGroup['interval'], 180);
+    expect(fastGroup['tolerance'], 100);
+    expect(fastGroup['timeout'], 5000);
+    expect(fastGroup['lazy'], isTrue);
+
+    final calm = ProfileChainOverlay.build(
+      profileId: 'p1',
+      source: source,
+      targetKind: ChainTargetKind.group,
+      targetName: 'Calm',
+    );
+    final calmGroup = (calm['external-groups'] as List).cast<Map>().single;
+    expect(calmGroup['interval'], 600, reason: 'generous values stay');
+    expect(calmGroup['tolerance'], 150);
+    expect(calmGroup.containsKey('timeout'), isFalse);
+
+    final withProvider = ProfileChainOverlay.build(
+      profileId: 'p1',
+      source: <String, dynamic>{
+        'proxy-groups': [
+          {
+            'name': 'Pool',
+            'type': 'select',
+            'use': ['prov'],
+          },
+        ],
+        'proxy-providers': source['proxy-providers'],
+      },
+      targetKind: ChainTargetKind.group,
+      targetName: 'Pool',
+    );
+    final providers = (withProvider['external-providers'] as Map).values
+        .cast<Map>();
+    final healthCheck = providers.single['health-check'] as Map;
+    expect(healthCheck['interval'], 180);
+    expect(healthCheck['timeout'], 5000);
+    expect(healthCheck['lazy'], isTrue);
   });
 
   test('imports unfiltered provider-backed group and prefixes provider', () {

@@ -1385,7 +1385,7 @@ func TestExternalProfileProviderGroupTwoHopConnect(t *testing.T) {
 		Enabled: true, Entry: "EntryGroup", EntryKind: "group", Landing: "ExitGroup", LandingKind: "group",
 		ExternalProfile: "other", ExternalTarget: "[other] ExitGroup", ExternalKind: "group",
 		ExternalProviders: map[string]map[string]any{
-			"[other] provider": {"type": "inline", "payload": []map[string]any{proxyConfig("Exit", exit)}, "override": map[string]any{"override-expr": []any{`.name = "[AngelaMihomo chain other/provider] " + .name`}}},
+			"[other] provider": {"type": "inline", "payload": []map[string]any{proxyConfig("Exit", exit)}, "override": map[string]any{"override-expr": []any{`.name = "[chain other/provider] " + .name`}}},
 		},
 		ExternalGroups: []map[string]any{
 			{"name": "[other] ExitGroup", "type": "select", "use": []any{"[other] provider"}, "empty-fallback": "REJECT", "exclude-type": "Direct|Compatible|Pass"},
@@ -1581,6 +1581,32 @@ proxy-groups:
 		if findGroup(raw.ProxyGroup, name)["empty-fallback"] != "REJECT" {
 			t.Fatal(name)
 		}
+	}
+	parseChainConfig(t, raw)
+}
+
+func TestChainEntryHealthCheckFloors(t *testing.T) {
+	raw := parsePatchProfile(t, `
+proxies:
+ - {name: node, type: http, server: 127.0.0.1, port: 1}
+proxy-groups:
+ - {name: Fast, type: url-test, proxies: [node], url: 'http://127.0.0.1:1', interval: 60, tolerance: 20, timeout: 2000, lazy: false}
+ - {name: Calm, type: url-test, proxies: [node], url: 'http://127.0.0.1:1', interval: 900, tolerance: 200}
+ - {name: Entry, type: select, proxies: [Fast, Calm]}
+`)
+	if err := hardenChainEntryGroup(raw, "Entry"); err != nil {
+		t.Fatal(err)
+	}
+	fast := findGroup(raw.ProxyGroup, "Fast")
+	if fast["interval"] != 180 || fast["tolerance"] != 100 || fast["timeout"] != 5000 || fast["lazy"] != true {
+		t.Fatalf("aggressive entry parameters were not floored: %v", fast)
+	}
+	calm := findGroup(raw.ProxyGroup, "Calm")
+	if calm["interval"] != 900 || calm["tolerance"] != 200 {
+		t.Fatalf("generous entry parameters were changed: %v", calm)
+	}
+	if _, ok := calm["timeout"]; ok {
+		t.Fatalf("absent timeout must not be invented: %v", calm)
 	}
 	parseChainConfig(t, raw)
 }

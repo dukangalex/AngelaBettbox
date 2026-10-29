@@ -8,6 +8,38 @@ import 'package:bett_box/common/profile_chain.dart';
 class ProfileChainOverlay {
   const ProfileChainOverlay._();
 
+  /// Short source marker embedded in generated names. Profile ids are
+  /// timestamp-like and long; the last 6 characters keep generated group
+  /// names readable while staying distinct per source profile.
+  static String _nameToken(String profileId) => profileId.length > 6
+      ? profileId.substring(profileId.length - 6)
+      : profileId;
+
+  /// Health checks of the imported exit graph run through the entry, so a
+  /// check costs two hops and is far flakier than the direct checks the
+  /// source profile was tuned for. Aggressive source parameters (short
+  /// interval, small tolerance, short timeout, eager checking) make the
+  /// exit selection flap and users feel random disconnects. Floor the
+  /// parameters on the imported runtime copy only; the saved source
+  /// profile is never modified. Floors mirror the chain parameters proven
+  /// in the subscription converter: 3-minute interval, 100 ms tolerance.
+  static void _floorHealthCheck(Map<String, dynamic> node) {
+    void floor(String key, num minimum) {
+      final value = node[key];
+      final parsed = value is num ? value : num.tryParse('$value');
+      if (parsed != null && parsed < minimum) {
+        node[key] = minimum;
+      }
+    }
+
+    floor('interval', 180);
+    floor('tolerance', 100);
+    floor('timeout', 5000);
+    if (node['lazy'] == false) {
+      node['lazy'] = true;
+    }
+  }
+
   static Map<String, dynamic> build({
     required String profileId,
     required Map<String, dynamic> source,
@@ -43,7 +75,7 @@ class ProfileChainOverlay {
       );
     }
 
-    final prefix = '[AngelaMihomo chain $profileId] ';
+    final prefix = '[chain ${_nameToken(profileId)}] ';
     final used = <String>{...allNames, ...providerNames, ...reservedNames};
     final renamed = <String, String>{};
     String mapped(String kind, String original) =>
@@ -90,6 +122,12 @@ class ProfileChainOverlay {
       }
       if (!importedProviderNames.add(name)) return;
       final copied = _cloneMap(provider);
+      final healthCheck = copied['health-check'];
+      if (healthCheck is Map) {
+        final floored = _asStringMap(healthCheck);
+        _floorHealthCheck(floored);
+        copied['health-check'] = floored;
+      }
       final override = copied['override'];
       final overrideMap = override == null
           ? <String, dynamic>{}
@@ -127,7 +165,7 @@ class ProfileChainOverlay {
           'Provider "$name" has an unsupported override-expr value.',
         );
       }
-      final providerPrefix = '[AngelaMihomo chain $profileId/$name] ';
+      final providerPrefix = '[chain ${_nameToken(profileId)}/$name] ';
       expressions.add('.name = ${jsonEncode(providerPrefix)} + .name');
       overrideMap['override-expr'] = expressions;
       copied['override'] = overrideMap;
@@ -161,6 +199,7 @@ class ProfileChainOverlay {
       // A provider can be empty after refresh; the Mihomo default is
       // COMPATIBLE (direct). A chain must fail closed instead.
       copy['empty-fallback'] = 'REJECT';
+      _floorHealthCheck(copy);
       final members = group['proxies'];
       if (members is List) {
         final remapped = <dynamic>[];

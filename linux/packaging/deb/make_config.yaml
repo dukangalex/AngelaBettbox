@@ -35,7 +35,7 @@ extra_files:
 
 postinstall_scripts:
   - |
-    CORE_PATH="/usr/share/angelamihomo/AngelaMihomoCore"
+    CORE_PATH="/usr/share/AngelaMihomo/AngelaMihomoCore"
     if [ -f "$CORE_PATH" ]; then
       setcap 'cap_net_admin,cap_net_bind_service,cap_net_raw=+ep' "$CORE_PATH" && sync
     fi
