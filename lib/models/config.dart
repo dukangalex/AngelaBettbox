@@ -646,6 +646,19 @@ abstract class Config with _$Config {
       }
     } catch (_) {}
 
+    // Migrate a stored TUN device name that still carries the legacy
+    // product name to the current one. Only the exact legacy value is
+    // rewritten; a device name set on purpose is kept.
+    try {
+      final patchConfig = json['patchClashConfig'];
+      if (patchConfig is Map) {
+        final tun = patchConfig['tun'];
+        if (tun is Map && tun['device'] == 'Bettbox') {
+          tun['device'] = 'AngelaMihomo';
+        }
+      }
+    } catch (_) {}
+
     return Config.fromJson(json);
   }
 }
