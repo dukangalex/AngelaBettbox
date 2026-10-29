@@ -48,6 +48,33 @@ void main() {
     expect(await props.externalize(), same(props));
   });
 
+  test('recognizes both Bettbox and Mihomo compatibility markers', () async {
+    final props = await ScriptProps.fromJson({
+      'currentId': 'a',
+      'scripts': [
+        {
+          'id': 'a',
+          'label': 'A',
+          'content':
+              'const Compatible_With_Mihomo = { ruleOptionsEnable: true };\n'
+              'function main(c){return c}',
+        },
+        {
+          'id': 'b',
+          'label': 'B',
+          'content':
+              'const Compatible_With_Bettbox = { ruleOptionsEnable: true };\n'
+              'function main(c){return c}',
+        },
+        {'id': 'c', 'label': 'C', 'content': 'function main(c){return c}'},
+      ],
+    }).externalize();
+
+    expect(props.scripts[0].compatible, isTrue);
+    expect(props.scripts[1].compatible, isTrue);
+    expect(props.scripts[2].compatible, isFalse);
+  });
+
   test('saved content is read back and tracked by digest', () async {
     final draft = Script.create(label: 'C');
     final first = await draft.writeContent('function main(c){return c}');

@@ -2285,7 +2285,13 @@ class MessageLookup extends MessageLookupByLibrary {
     "urlDesc": MessageLookupByLibrary.simpleMessage("Get profile via URL"),
     "urlTip": m52,
     "useGlobalScriptOverride": MessageLookupByLibrary.simpleMessage(
-      "Use Global Script Override",
+      "Script Override",
+    ),
+    "scriptNotUsed": MessageLookupByLibrary.simpleMessage(
+      "Do Not Use a Script",
+    ),
+    "followGlobalScript": MessageLookupByLibrary.simpleMessage(
+      "Follow Global Script",
     ),
     "useHosts": MessageLookupByLibrary.simpleMessage("Use Hosts"),
     "useSystemHosts": MessageLookupByLibrary.simpleMessage("Use System Hosts"),

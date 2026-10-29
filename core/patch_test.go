@@ -538,25 +538,6 @@ func findProxy(t *testing.T, proxies []map[string]any, name string) map[string]a
 	return nil
 }
 
-func TestApplyPatchDropAutomaticDirect(t *testing.T) {
-	rawCfg := parsePatchProfile(t, chainTestProfile())
-	params := patchParams(t, `{"drop-automatic-direct": true}`)
-	if _, err := applyPatch(rawCfg, params); err != nil {
-		t.Fatal(err)
-	}
-	if got := findGroup(rawCfg.ProxyGroup, "Auto")["proxies"]; !reflect.DeepEqual(got, []any{"Entry", "Landing"}) {
-		t.Errorf("Auto proxies = %v, want [Entry Landing]", got)
-	}
-	// A group left with nothing must keep DIRECT (same as the Dart original).
-	if got := findGroup(rawCfg.ProxyGroup, "OnlyDirect")["proxies"]; !reflect.DeepEqual(got, []any{"DIRECT"}) {
-		t.Errorf("OnlyDirect proxies = %v, want [DIRECT]", got)
-	}
-	// Manual select groups are not automatic groups: untouched.
-	if got := findGroup(rawCfg.ProxyGroup, "Manual")["proxies"]; !reflect.DeepEqual(got, []any{"Auto", "DIRECT"}) {
-		t.Errorf("Manual proxies = %v, want [Auto DIRECT]", got)
-	}
-}
-
 func TestApplyPatchChainInline(t *testing.T) {
 	rawCfg := parsePatchProfile(t, chainTestProfile())
 	params := patchParams(t, `{"chain-policy": {"enabled": true, "entry": "Entry", "landing": "Landing"}}`)
@@ -865,11 +846,45 @@ rules:
 		t.Fatalf("generated chain must point at selected exit graph: %#v", chain)
 	}
 	manual := findGroup(raw.ProxyGroup, "Manual")["proxies"]
-	if !reflect.DeepEqual(manual, []any{"Entry", explicitChainGroup}) {
-		t.Fatalf("manual selector must preserve original choice and expose chain: %#v", manual)
+	if !reflect.DeepEqual(manual, []any{explicitChainGroup, "Entry"}) {
+		t.Fatalf("main selector must list the chain first as the default choice: %#v", manual)
 	}
 	if got := findGroup(raw.ProxyGroup, "Auto")["proxies"]; !reflect.DeepEqual(got, []any{"Entry"}) {
 		t.Fatalf("non-manual group must remain unchanged: %#v", got)
+	}
+	if _, err := config.ParseRawConfig(raw); err != nil {
+		t.Fatalf("patched external chain invalid: %v", err)
+	}
+}
+
+func TestExternalChainIsDefaultOnlyInMainSelector(t *testing.T) {
+	raw := parsePatchProfile(t, `
+proxies:
+  - {name: Entry, type: http, server: entry.example, port: 80}
+  - {name: Node, type: http, server: node.example, port: 80}
+proxy-groups:
+  - {name: Main, type: select, proxies: [Node, Entry]}
+  - {name: Secondary, type: select, proxies: [Node]}
+rules:
+  - MATCH,Main
+`)
+	params := &PatchParams{ChainPolicy: &PatchChainPolicy{
+		Enabled: true, Entry: "Entry", EntryKind: "proxy",
+		Landing: "[ext] Exit Group", LandingKind: "group",
+		ExternalProfile: "other", ExternalTarget: "[ext] Exit Group", ExternalKind: "group",
+		ExternalProxies: []map[string]any{{"name": "[ext] Exit", "type": "http", "server": "exit.example", "port": 80}},
+		ExternalGroups:  []map[string]any{{"name": "[ext] Exit Group", "type": "select", "proxies": []any{"[ext] Exit"}}},
+	}}
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	main := findGroup(raw.ProxyGroup, "Main")["proxies"]
+	if !reflect.DeepEqual(main, []any{explicitChainGroup, "Node", "Entry"}) {
+		t.Fatalf("main selector must default to the chain: %#v", main)
+	}
+	secondary := findGroup(raw.ProxyGroup, "Secondary")["proxies"]
+	if !reflect.DeepEqual(secondary, []any{"Node", explicitChainGroup}) {
+		t.Fatalf("secondary selector must keep the chain as a trailing option: %#v", secondary)
 	}
 	if _, err := config.ParseRawConfig(raw); err != nil {
 		t.Fatalf("patched external chain invalid: %v", err)
@@ -901,7 +916,7 @@ rules: ['MATCH,Main']
 	if got := findGroup(raw.ProxyGroup, "Inner")["proxies"]; !reflect.DeepEqual(got, []any{"Entry"}) {
 		t.Fatalf("nested entry changed: %#v", got)
 	}
-	if got := findGroup(raw.ProxyGroup, "Main")["proxies"]; !reflect.DeepEqual(got, []any{"Entry", explicitChainGroup}) {
+	if got := findGroup(raw.ProxyGroup, "Main")["proxies"]; !reflect.DeepEqual(got, []any{explicitChainGroup, "Entry"}) {
 		t.Fatalf("main: %#v", got)
 	}
 	if _, err := config.ParseRawConfig(raw); err != nil {
@@ -1591,7 +1606,7 @@ proxies:
  - {name: node, type: http, server: 127.0.0.1, port: 1}
 proxy-groups:
  - {name: Fast, type: url-test, proxies: [node], url: 'http://127.0.0.1:1', interval: 60, tolerance: 20, timeout: 2000, lazy: false}
- - {name: Calm, type: url-test, proxies: [node], url: 'http://127.0.0.1:1', interval: 900, tolerance: 200}
+ - {name: Calm, type: url-test, proxies: [node], url: 'http://127.0.0.1:1', interval: 900, tolerance: 200, lazy: true}
  - {name: Entry, type: select, proxies: [Fast, Calm]}
 `)
 	if err := hardenChainEntryGroup(raw, "Entry"); err != nil {
@@ -1604,6 +1619,9 @@ proxy-groups:
 	calm := findGroup(raw.ProxyGroup, "Calm")
 	if calm["interval"] != 900 || calm["tolerance"] != 200 {
 		t.Fatalf("generous entry parameters were changed: %v", calm)
+	}
+	if calm["lazy"] != true {
+		t.Fatalf("lazy must be preserved, not forced off: %v", calm)
 	}
 	if _, ok := calm["timeout"]; ok {
 		t.Fatalf("absent timeout must not be invented: %v", calm)
@@ -1670,5 +1688,21 @@ func TestApplyPatchTunDNSMode(t *testing.T) {
 	}
 	if rawCfg.Tun.DNSMode != "hijack" {
 		t.Errorf("patched dns-mode should override, got %q", rawCfg.Tun.DNSMode)
+	}
+}
+
+func TestApplyPatchBlockTunUDP(t *testing.T) {
+	rawCfg := parsePatchProfile(t, chainTestProfile())
+	if _, err := applyPatch(rawCfg, patchParams(t, `{"block-tun-udp": true}`)); err != nil {
+		t.Fatal(err)
+	}
+	if !currentBlockTunUDP {
+		t.Error("currentBlockTunUDP = false, want true after block-tun-udp patch")
+	}
+	if _, err := applyPatch(rawCfg, patchParams(t, `{}`)); err != nil {
+		t.Fatal(err)
+	}
+	if currentBlockTunUDP {
+		t.Error("currentBlockTunUDP = true, want false after patch without block-tun-udp")
 	}
 }

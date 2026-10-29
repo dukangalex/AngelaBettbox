@@ -94,4 +94,34 @@ void main() {
       'policyGroupOptions': ['AI'],
     });
   });
+
+  test('extracts policy group options from the Mihomo marker', () async {
+    final options = json.decode(
+      await extractScriptOptions(
+        script:
+            'const ruleOptionsEnable = { ai: true };\n'
+            "const Compatible_With_Mihomo = { policyGroupOptions: ['AI'] };\n"
+            'function main(config) { return config }',
+      ),
+    );
+
+    expect(options, {
+      'options': {'ai': true},
+      'icons': <String, String>{},
+      'policyGroupOptions': ['AI'],
+    });
+  });
+
+  test('merges policy group options from both markers', () async {
+    final options = json.decode(
+      await extractScriptOptions(
+        script:
+            "const Compatible_With_Bettbox = { policyGroupOptions: ['AI'] };\n"
+            "const Compatible_With_Mihomo = { policyGroupOptions: ['Streaming'] };\n"
+            'function main(config) { return config }',
+      ),
+    );
+
+    expect(options['policyGroupOptions'], ['AI', 'Streaming']);
+  });
 }

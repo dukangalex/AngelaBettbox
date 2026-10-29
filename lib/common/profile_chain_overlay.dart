@@ -22,8 +22,8 @@ class ProfileChainOverlay {
   /// profile is never modified: a 60-second interval floor so a dead hop
   /// is detected within about a minute, a 100 ms tolerance floor and a
   /// 5000 ms timeout floor because two-hop checks jitter far too much
-  /// for tighter switching, and lazy checking forced off so checks keep
-  /// running in the background.
+  /// for tighter switching. The profile's lazy setting is left as-is
+  /// (2026-10-29 power-saving decision): idle groups are not probed.
   static void _floorHealthCheck(Map<String, dynamic> node) {
     void floor(String key, num minimum) {
       final value = node[key];
@@ -36,9 +36,6 @@ class ProfileChainOverlay {
     floor('interval', 60);
     floor('tolerance', 100);
     floor('timeout', 5000);
-    if (node['lazy'] == true) {
-      node['lazy'] = false;
-    }
   }
 
   static Map<String, dynamic> build({

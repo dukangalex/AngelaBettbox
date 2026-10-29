@@ -52,15 +52,18 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 100));
       });
       await tester.pump(const Duration(milliseconds: 100));
-      final item = tester.widget<ListItem>(
-        find.byWidgetPredicate(
-          (w) =>
-              w is ListItem &&
-              w.title is Text &&
-              (w.title as Text).data == 'China IPs and domains direct',
+      final toggle = tester.widget<Switch>(
+        find.descendant(
+          of: find.byWidgetPredicate(
+            (w) =>
+                w is ListItem &&
+                w.title is Text &&
+                (w.title as Text).data == 'China IPs and domains direct',
+          ),
+          matching: find.byType(Switch),
         ),
       );
-      (item.delegate as SwitchDelegate).onChanged!(true);
+      toggle.onChanged!(true);
       await tester.pump();
       expect(SystemExplicitStore.instance.value.chinaDirect, isFalse);
       expect(find.text('Switch to rule mode?'), findsOneWidget);
@@ -137,12 +140,37 @@ void main() {
     await tester.pump();
     expect(find.text('global'), findsOneWidget);
   });
+  testWidgets('option descriptions stay collapsed until the row is tapped', (
+    tester,
+  ) async {
+    globalState.config = globalState.config.copyWith(
+      patchClashConfig: defaultClashConfig.copyWith(mode: Mode.rule),
+    );
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(home: Scaffold(body: SystemExplicitView())),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pump(const Duration(milliseconds: 100));
+    const desc =
+        'Uses Mihomo GEOIP/GEOSITE China rules. Replaces only same-category '
+        'China IP/domain rules; unrelated rules remain.';
+    expect(find.text(desc), findsNothing);
+    await tester.tap(find.text('China IPs and domains direct'));
+    await tester.pump();
+    expect(find.text(desc), findsOneWidget);
+    await tester.tap(find.text('China IPs and domains direct'));
+    await tester.pump();
+    expect(find.text(desc), findsNothing);
+  });
   test('routing preferences pause and restore without mutation', () {
     final opts = SystemExplicitOptions(
       chinaDirect: true,
       blockCommonWebRtc: true,
       blockTunUdp: true,
-      adapt: true,
     );
     final rule = opts.buildRuntimeRulesForMode(Mode.rule);
     expect(rule, isNotEmpty);
@@ -150,7 +178,6 @@ void main() {
     expect(opts.buildRuntimeRulesForMode(Mode.direct), isEmpty);
     expect(opts.buildRuntimeRulesForMode(Mode.rule), rule);
     expect(opts.blockTunUdp, isTrue);
-    expect(opts.adapt, isTrue);
     final roundtrip = SystemExplicitOptions.fromJson(opts.toJson());
     expect(roundtrip.toJson(), opts.toJson());
   });

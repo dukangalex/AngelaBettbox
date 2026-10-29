@@ -68,9 +68,14 @@ type PatchParams struct {
 	// SystemExplicitStore.apply / ProfileChainStore.apply, which used to
 	// mutate the Dart-assembled full config before the Go patch pipeline
 	// existed.
-	DropAutomaticDirect bool              `json:"drop-automatic-direct"`
-	ChainPolicy         *PatchChainPolicy `json:"chain-policy"`
+	BlockTunUDP bool              `json:"block-tun-udp"`
+	ChainPolicy *PatchChainPolicy `json:"chain-policy"`
 }
+
+// currentBlockTunUDP mirrors the latest applied patch params. The Android
+// TUN start path reads it to enforce the system-explicit "block all UDP
+// inside the VPN" option at packet ingress (see core/tun).
+var currentBlockTunUDP bool
 
 const defaultHealthCheckTimeout = 5000
 
@@ -117,6 +122,7 @@ func hasPatchValue(data json.RawMessage) bool {
 }
 
 func applyPatch(raw *config.RawConfig, params *PatchParams) (string, error) {
+	currentBlockTunUDP = params.BlockTunUDP
 	defaults := config.DefaultRawConfig()
 	if hasPatchValue(params.General) {
 		if err := yaml.Unmarshal(params.General, raw); err != nil {
@@ -172,12 +178,6 @@ func applyPatch(raw *config.RawConfig, params *PatchParams) (string, error) {
 	}
 	patchProxyGroups(raw, params)
 
-	// AngelaMihomo fork: drop DIRECT/REJECT from automatic groups so a
-	// dead node cannot fall through to direct (was dropAutomaticDirect in
-	// the fork's explicit_policy.dart).
-	if params.DropAutomaticDirect {
-		patchDropAutomaticDirect(raw)
-	}
 	// AngelaMihomo fork: per-profile chain proxy (was applyChainPolicy in
 	// the fork's explicit_policy.dart).
 	if err := patchChainPolicy(raw, params.ChainPolicy); err != nil {
@@ -915,33 +915,6 @@ func patchProxyGroups(raw *config.RawConfig, params *PatchParams) {
 	}
 }
 
-func patchDropAutomaticDirect(raw *config.RawConfig) {
-	for _, group := range raw.ProxyGroup {
-		if group == nil {
-			continue
-		}
-		groupType, _ := group["type"].(string)
-		if groupType != "url-test" && groupType != "fallback" && groupType != "load-balance" {
-			continue
-		}
-		proxies, ok := group["proxies"].([]any)
-		if !ok {
-			continue
-		}
-		kept := make([]any, 0, len(proxies))
-		for _, item := range proxies {
-			if name, isString := item.(string); isString &&
-				(name == "DIRECT" || name == "REJECT" || name == "REJECT-DROP") {
-				continue
-			}
-			kept = append(kept, item)
-		}
-		if len(kept) > 0 && len(kept) != len(proxies) {
-			group["proxies"] = kept
-		}
-	}
-}
-
 const explicitChainGroup = "链式落地"
 
 // floorChainHealthCheck aligns health-check parameters on the runtime
@@ -949,9 +922,11 @@ const explicitChainGroup = "链式落地"
 // parameters (2026-10-29 alignment, user directive): a 60-second
 // interval floor so a dead hop is detected within about a minute, a
 // 100 ms tolerance floor and a 5000 ms timeout floor because two-hop
-// checks jitter far too much for tighter switching, and lazy checking
-// forced off so checks keep running in the background. More generous
-// source values are left untouched.
+// checks jitter far too much for tighter switching. The profile's lazy
+// setting is left as-is (2026-10-29 power-saving decision, user
+// directive): idle groups are not probed, which keeps background
+// wake-ups down; checks resume with traffic. More generous source
+// values are left untouched.
 func floorChainHealthCheck(group map[string]any) {
 	floor := func(key string, minimum float64) {
 		var value float64
@@ -972,9 +947,6 @@ func floorChainHealthCheck(group map[string]any) {
 	floor("interval", 60)
 	floor("tolerance", 100)
 	floor("timeout", 5000)
-	if lazy, ok := group["lazy"].(bool); ok && lazy {
-		group["lazy"] = false
-	}
 }
 
 // patchChainPolicy uses dialer-proxy, including for subscription nodes. Mihomo
@@ -1248,7 +1220,15 @@ func patchChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) error {
 			}
 			selectors++
 			members := anyStrings(group["proxies"])
-			group["proxies"] = append(members, chainGroup)
+			if selectors == 1 {
+				// The main selector lists the chain first so it is the
+				// default choice once a chain is configured; other
+				// selectors keep the chain as an extra option at the end
+				// without hijacking their own defaults.
+				group["proxies"] = append([]any{chainGroup}, members...)
+			} else {
+				group["proxies"] = append(members, chainGroup)
+			}
 		}
 		if selectors == 0 {
 			return fmt.Errorf("the active profile has no manual selector to expose the chain")

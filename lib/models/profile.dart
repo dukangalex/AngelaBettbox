@@ -86,6 +86,7 @@ abstract class Profile with _$Profile {
     @Default(false)
     bool isUpdating,
     @Default(true) bool useScriptOverride,
+    String? scriptId,
     String? ageSecretKey,
     @JsonKey(name: 'group-switches')
     @Default({})

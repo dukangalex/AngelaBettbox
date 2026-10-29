@@ -100,11 +100,12 @@
 自定义脚本 UI 适配：
 
 * 本项目支持外置覆写脚本适配图形化 UI。以 AIsouler 的 **[脚本/配置分享](https://github.com/AIsouler/MyClash)** 为例，只需在脚本首行添加以下声明，即可直接联动内置可视化开关：
-* <code>const Compatible_With_Bettbox = { ruleOptionsEnable: true };</code>
+* <code>const Compatible_With_Mihomo = { ruleOptionsEnable: true };</code>（Mihomo 系通用声明，任何支持该约定的 Mihomo 客户端均可识别）
+* Bettbox 声明同样受支持：<code>const Compatible_With_Bettbox = { ruleOptionsEnable: true };</code>
 * 若脚本开关中包含策略组与其他功能开关，可通过 `policyGroupOptions` 声明策略组开关名称；未声明的开关会自动归纳至「⚙️ 其他设置」二级菜单：
 
 ```js
-const Compatible_With_Bettbox = {
+const Compatible_With_Mihomo = {
   ruleOptionsEnable: true,
   // 声明属于策略组的开关名称，需与 ruleOptionsEnable 的键完全一致
   policyGroupOptions: ['🚀 节点选择', '🛑 广告拦截'],
