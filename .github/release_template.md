@@ -1,17 +1,11 @@
 # Angela Mihomo 正式版本发布 / Stable Release
 
-> **Angela Mihomo** is a customized build based on [appshubcc/Bettbox](https://github.com/appshubcc/Bettbox) (GPL-3.0),
-> with per-profile chain proxy, leak protection and failover enhancements.
-> 本版本基于上游 Bettbox 定制，加入按配置文件链式代理、泄漏防护与故障转移等功能。
-
 ### ✨ 本版定制 / What's new in this build
 
 - **按配置文件链式代理 / Per-profile chain proxy**：每个订阅配置可独立设置链式代理
   (Chain proxy can be configured independently for each profile)
 - **泄漏防护 / Leak protection**：防 DNS 泄漏、严格路由策略
   (DNS leak protection and strict routing policy)
-- **故障转移 / Failover**：死节点双地址确认、只修复承载流量的分组、故障节点不回落直连
-  (Dead-node confirmation, heal only the group carrying traffic, never fall back to direct)
 - **导入增强 / Import**：订阅导入归一化转换
   (Subscription import normalization)
 
