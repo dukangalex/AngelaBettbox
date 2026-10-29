@@ -102,10 +102,10 @@ void main() {
       targetName: 'Fast',
     );
     final fastGroup = (fast['external-groups'] as List).cast<Map>().single;
-    expect(fastGroup['interval'], 180);
+    expect(fastGroup['interval'], 60);
     expect(fastGroup['tolerance'], 100);
     expect(fastGroup['timeout'], 5000);
-    expect(fastGroup['lazy'], isTrue);
+    expect(fastGroup['lazy'], isFalse);
 
     final calm = ProfileChainOverlay.build(
       profileId: 'p1',
@@ -136,9 +136,9 @@ void main() {
     final providers = (withProvider['external-providers'] as Map).values
         .cast<Map>();
     final healthCheck = providers.single['health-check'] as Map;
-    expect(healthCheck['interval'], 180);
+    expect(healthCheck['interval'], 60);
     expect(healthCheck['timeout'], 5000);
-    expect(healthCheck['lazy'], isTrue);
+    expect(healthCheck['lazy'], isFalse);
   });
 
   test('imports unfiltered provider-backed group and prefixes provider', () {
