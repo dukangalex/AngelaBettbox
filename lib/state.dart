@@ -779,7 +779,11 @@ class GlobalState {
   Future<SetupParams?> buildValidateParams(Profile profile) async {
     final currentProfileId = config.currentProfileId;
     final scriptActive =
-        config.scriptProps.currentScript != null && profile.useScriptOverride;
+        config.scriptProps.resolveScript(
+          useScriptOverride: profile.useScriptOverride,
+          scriptId: profile.scriptId,
+        ) !=
+        null;
     if (isService ||
         scriptActive ||
         (currentProfileId != null && currentProfileId != profile.id)) {
@@ -813,8 +817,11 @@ class GlobalState {
   }
 
   Future<String> _writeScriptedConfig(Profile profile) async {
-    if (config.scriptProps.currentScript == null ||
-        !profile.useScriptOverride) {
+    final resolvedScript = config.scriptProps.resolveScript(
+      useScriptOverride: profile.useScriptOverride,
+      scriptId: profile.scriptId,
+    );
+    if (resolvedScript == null) {
       return '';
     }
     final stamp = DateTime.now().microsecondsSinceEpoch;
@@ -822,8 +829,7 @@ class GlobalState {
     final separator = Platform.pathSeparator;
     final file = File('$relayPath${separator}scripted-$stamp.json');
     return _scriptEvaluateLock.synchronized(() async {
-      final currentScript = config.scriptProps.currentScript;
-      if (currentScript == null) return '';
+      final currentScript = resolvedScript;
       unawaited(_sweepRelay(relayPath));
       final cache = File('$relayPath${separator}cache-${profile.id}.json');
       final cacheKey = File('$relayPath${separator}cache-${profile.id}.key');
@@ -1044,7 +1050,11 @@ class GlobalState {
     };
 
     final scriptActive =
-        config.scriptProps.currentScript != null && profile.useScriptOverride;
+        config.scriptProps.resolveScript(
+          useScriptOverride: profile.useScriptOverride,
+          scriptId: profile.scriptId,
+        ) !=
+        null;
     final overrideData = profile.overrideData;
     final isRussian =
         config.appSetting.locale?.toLowerCase().startsWith('ru') ?? false;

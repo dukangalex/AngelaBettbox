@@ -1704,6 +1704,10 @@ class MessageLookup extends MessageLookupByLibrary {
     "useGlobalScriptOverride": MessageLookupByLibrary.simpleMessage(
       "使用全域指令碼覆寫",
     ),
+    "scriptNotUsed": MessageLookupByLibrary.simpleMessage("不使用指令碼"),
+    "followGlobalScript": MessageLookupByLibrary.simpleMessage(
+      "跟隨全域指令碼",
+    ),
     "useHosts": MessageLookupByLibrary.simpleMessage("使用 Hosts"),
     "useSystemHosts": MessageLookupByLibrary.simpleMessage("使用系統 Hosts"),
     "userAuth": MessageLookupByLibrary.simpleMessage("用戶驗證"),

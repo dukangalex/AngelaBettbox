@@ -5910,6 +5910,24 @@ class AppLocalizations {
     );
   }
 
+  String get scriptNotUsed {
+    return Intl.message(
+      'Do Not Use a Script',
+      name: 'scriptNotUsed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  String get followGlobalScript {
+    return Intl.message(
+      'Follow Global Script',
+      name: 'followGlobalScript',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Failed to import profile. Please check your network status or try resetting the subscription link ( HTTP error code: {statusCode} )`
   String profileImportFailed(Object statusCode) {
     return Intl.message(

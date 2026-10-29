@@ -474,6 +474,28 @@ extension ScriptPropsExt on ScriptProps {
     return null;
   }
 
+  Script? scriptById(String id) {
+    final index = scripts.indexWhere((script) => script.id == id);
+    if (index != -1) {
+      return scripts[index];
+    }
+    return null;
+  }
+
+  /// Resolves the script that applies to one profile:
+  /// - [useScriptOverride] off -> no script;
+  /// - on with a [scriptId] that still exists -> that script;
+  /// - on without one (or the chosen script was deleted) -> the
+  ///   global [currentScript].
+  Script? resolveScript({required bool useScriptOverride, String? scriptId}) {
+    if (!useScriptOverride) return null;
+    if (scriptId != null) {
+      final script = scriptById(scriptId);
+      if (script != null) return script;
+    }
+    return currentScript;
+  }
+
   Future<ScriptProps> externalize() async {
     if (scripts.every((script) => script.content.isEmpty)) return this;
     final next = <Script>[];

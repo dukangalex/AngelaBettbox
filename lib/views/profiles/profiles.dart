@@ -9,6 +9,7 @@ import 'package:bett_box/state.dart';
 import 'package:bett_box/views/profile_chain.dart';
 import 'package:bett_box/views/profiles/edit_profile.dart';
 import 'package:bett_box/views/profiles/override_profile.dart';
+import 'package:bett_box/views/profiles/profile_script_picker.dart';
 import 'package:bett_box/views/profiles/scripts.dart';
 import 'package:bett_box/widgets/widgets.dart';
 import 'package:material_ui/material_ui.dart';
@@ -473,12 +474,24 @@ class ProfileItem extends StatelessWidget {
     BaseNavigator.push(context, overrideProfileView);
   }
 
-  Future<void> _handleToggleScriptOverride(BuildContext context) async {
+  Future<void> _handlePickScript(BuildContext context) async {
     final container = ProviderScope.containerOf(context);
-    final value = !profile.useScriptOverride;
-    container
-        .read(profilesProvider.notifier)
-        .updateProfile(profile.id, (p) => p.copyWith(useScriptOverride: value));
+    final selection = await BaseNavigator.push<ProfileScriptSelection>(
+      context,
+      ProfileScriptPickerPage(
+        useScriptOverride: profile.useScriptOverride,
+        scriptId: profile.scriptId,
+        scriptProps: globalState.config.scriptProps,
+      ),
+    );
+    if (selection == null) return;
+    container.read(profilesProvider.notifier).updateProfile(
+      profile.id,
+      (p) => p.copyWith(
+        useScriptOverride: selection.useScriptOverride,
+        scriptId: selection.scriptId,
+      ),
+    );
     if (profile.id == container.read(currentProfileIdProvider)) {
       await globalState.appController.applyProfile(silence: true);
     }
@@ -510,12 +523,10 @@ class ProfileItem extends StatelessWidget {
         },
       ),
       PopupMenuItemData(
-        icon: profile.useScriptOverride
-            ? Icons.check_box_outlined
-            : Icons.check_box_outline_blank,
-        label: appLocalizations.useGlobalScriptOverride,
+        icon: Icons.code,
+        label: appLocalizations.script,
         onPressed: () {
-          _handleToggleScriptOverride(context);
+          _handlePickScript(context);
         },
       ),
       PopupMenuItemData(

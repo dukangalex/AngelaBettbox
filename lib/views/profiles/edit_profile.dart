@@ -9,6 +9,7 @@ import 'package:bett_box/models/models.dart';
 import 'package:bett_box/pages/editor.dart';
 import 'package:bett_box/providers/providers.dart';
 import 'package:bett_box/state.dart';
+import 'package:bett_box/views/profiles/profile_script_picker.dart';
 import 'package:bett_box/widgets/widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
@@ -35,6 +36,7 @@ class EditProfileViewState extends State<EditProfileView> {
   late TextEditingController autoUpdateDurationController;
   late bool autoUpdate;
   late bool useScriptOverride;
+  late String? scriptId;
   late TextEditingController ageSecretKeyController;
   FocusNode? urlFocusNode;
   bool _obscureAgeSecretKey = true;
@@ -52,6 +54,7 @@ class EditProfileViewState extends State<EditProfileView> {
     urlController = TextEditingController(text: widget.profile.url);
     autoUpdate = widget.isNew ? false : widget.profile.autoUpdate;
     useScriptOverride = widget.profile.useScriptOverride;
+    scriptId = widget.profile.scriptId;
     autoUpdateDurationController = TextEditingController(
       text: widget.profile.autoUpdateDuration.inMinutes.toString(),
     );
@@ -77,6 +80,35 @@ class EditProfileViewState extends State<EditProfileView> {
     super.dispose();
   }
 
+  String _scriptSelectionLabel() {
+    final scriptProps = globalState.config.scriptProps;
+    if (!useScriptOverride) return appLocalizations.scriptNotUsed;
+    final chosen = scriptId == null
+        ? null
+        : scriptProps.scriptById(scriptId!);
+    if (chosen != null) return chosen.label;
+    final current = scriptProps.currentScript;
+    return current == null
+        ? appLocalizations.followGlobalScript
+        : '${appLocalizations.followGlobalScript} · ${current.label}';
+  }
+
+  Future<void> _handlePickScript() async {
+    final selection = await BaseNavigator.push<ProfileScriptSelection>(
+      context,
+      ProfileScriptPickerPage(
+        useScriptOverride: useScriptOverride,
+        scriptId: scriptId,
+        scriptProps: globalState.config.scriptProps,
+      ),
+    );
+    if (selection == null || !mounted) return;
+    setState(() {
+      useScriptOverride = selection.useScriptOverride;
+      scriptId = selection.scriptId;
+    });
+  }
+
   Future<void> _handleConfirm() async {
     if (!_formKey.currentState!.validate()) return;
     final appController = globalState.appController;
@@ -93,6 +125,7 @@ class EditProfileViewState extends State<EditProfileView> {
         minutes: int.parse(autoUpdateDurationController.text),
       ),
       useScriptOverride: useScriptOverride,
+      scriptId: scriptId,
     );
     if (widget.isNew) {
       final ref = appController.ref;
@@ -402,16 +435,11 @@ class EditProfileViewState extends State<EditProfileView> {
           child: CommonCard(
             type: CommonCardType.filled,
             radius: 16,
-            child: ListItem.switchItem(
-              title: Text(appLocalizations.useGlobalScriptOverride),
-              delegate: SwitchDelegate<bool>(
-                value: useScriptOverride,
-                onChanged: (value) {
-                  setState(() {
-                    useScriptOverride = value;
-                  });
-                },
-              ),
+            child: ListItem(
+              title: Text(appLocalizations.script),
+              subtitle: Text(_scriptSelectionLabel()),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: _handlePickScript,
             ),
           ),
         ),
