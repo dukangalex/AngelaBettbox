@@ -867,6 +867,50 @@ rules:
 	}
 }
 
+func TestChainHopGroupsGetStickyHealthCheckFloors(t *testing.T) {
+	raw := parsePatchProfile(t, `
+proxies:
+  - {name: N1, type: http, server: n1.example, port: 80}
+  - {name: N2, type: http, server: n2.example, port: 80}
+proxy-groups:
+  - {name: Manual, type: select, proxies: [N1]}
+  - {name: EntryAuto, type: url-test, proxies: [N1, N2], url: "https://example.invalid", interval: 30, tolerance: 50, timeout: 3000}
+  - {name: Bystander, type: url-test, proxies: [N1, N2], url: "https://example.invalid", interval: 30, tolerance: 50, timeout: 3000}
+rules:
+  - MATCH,Manual
+`)
+	params := &PatchParams{ChainPolicy: &PatchChainPolicy{
+		Enabled: true, Entry: "EntryAuto", EntryKind: "group",
+		Landing: "[ext] ExitAuto", LandingKind: "group",
+		ExternalProfile: "other", ExternalTarget: "[ext] ExitAuto", ExternalKind: "group",
+		ExternalProxies: []map[string]any{{"name": "[ext] Exit", "type": "http", "server": "exit.example", "port": 80}},
+		ExternalGroups: []map[string]any{{"name": "[ext] ExitAuto", "type": "url-test", "proxies": []any{"[ext] Exit"}, "url": "https://example.invalid", "interval": 45, "tolerance": 60, "timeout": 2000}},
+	}}
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	assertHopFloors := func(name string, want bool) {
+		group := findGroup(raw.ProxyGroup, name)
+		if group == nil {
+			t.Fatalf("group %q missing", name)
+		}
+		interval, tolerance, timeout := group["interval"], group["tolerance"], group["timeout"]
+		if want {
+			if interval != 180 || tolerance != 200 || timeout != 5000 {
+				t.Fatalf("chain hop %q must be floored to 180/200/5000, got %v/%v/%v", name, interval, tolerance, timeout)
+			}
+		} else if interval != 30 || tolerance != 50 || timeout != 3000 {
+			t.Fatalf("group %q does not carry the chain and must keep its parameters, got %v/%v/%v", name, interval, tolerance, timeout)
+		}
+	}
+	assertHopFloors("EntryAuto", true)
+	assertHopFloors("[ext] ExitAuto", true)
+	assertHopFloors("Bystander", false)
+	if _, err := config.ParseRawConfig(raw); err != nil {
+		t.Fatalf("patched chain with sticky hop floors invalid: %v", err)
+	}
+}
+
 func TestExternalChainIsDefaultOnlyInMainSelector(t *testing.T) {
 	raw := parsePatchProfile(t, `
 proxies:
