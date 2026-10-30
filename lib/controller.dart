@@ -1892,8 +1892,8 @@ class AppController {
           title: Text(zh ? '切换模式？' : 'Change routing mode?'),
           content: Text(
             zh
-                ? '全局或直连模式会暂停系统显式路由规则，包括局域网发现和常见端口阻断。直连模式不经过代理。选项会保留，切回规则模式时恢复；VPN 内 UDP 阻断如已开启则不受模式影响。'
-                : 'Global or direct mode suspends system explicit routing rules, including discovery and common-port blocks. Direct mode bypasses the proxy. Choices are kept and restored in rule mode; the TUN UDP block, if enabled, is independent of mode.',
+                ? '全局或直连模式会暂停系统显式路由规则，包括局域网发现和常见端口阻断。直连模式不经过代理。选项会保留，切回规则模式时恢复。'
+                : 'Global or direct mode suspends system explicit routing rules, including discovery and common-port blocks. Direct mode bypasses the proxy. Choices are kept and restored in rule mode.',
           ),
           actions: [
             TextButton(
