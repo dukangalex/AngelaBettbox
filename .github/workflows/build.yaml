@@ -581,10 +581,14 @@ jobs:
             echo "::warning::Telegram secrets not configured, skipping channel announcement"
             exit 0
           fi
-          BODY="$(head -c 1200 ./release.md)"
+          if [ -s ./.github/release_highlights.txt ]; then
+            HIGHLIGHTS="$(cat ./.github/release_highlights.txt)"
+          else
+            HIGHLIGHTS="Fixes and improvements · 建议更新到此版本"
+          fi
           MSG="🎉 Angela Mihomo ${{ github.ref_name }} 发布
 
-          ${BODY}
+          ${HIGHLIGHTS}
 
           下载：https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
           curl -sS -X POST "https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage" \
