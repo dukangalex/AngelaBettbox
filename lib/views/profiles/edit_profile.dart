@@ -87,10 +87,9 @@ class EditProfileViewState extends State<EditProfileView> {
         ? null
         : scriptProps.scriptById(scriptId!);
     if (chosen != null) return chosen.label;
+    // Legacy follow-global state: show the script it resolves to.
     final current = scriptProps.currentScript;
-    return current == null
-        ? appLocalizations.followGlobalScript
-        : '${appLocalizations.followGlobalScript} · ${current.label}';
+    return current?.label ?? appLocalizations.scriptNotUsed;
   }
 
   Future<void> _handlePickScript() async {

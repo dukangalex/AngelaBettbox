@@ -63,7 +63,7 @@ void main() {
             ..remove('scriptId');
       final legacy = Profile.fromJson(legacyJson);
       expect(legacy.scriptId, isNull);
-      expect(legacy.useScriptOverride, isTrue);
+      expect(legacy.useScriptOverride, isFalse);
     });
   });
 }

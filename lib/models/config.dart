@@ -482,11 +482,13 @@ extension ScriptPropsExt on ScriptProps {
     return null;
   }
 
-  /// Resolves the script that applies to one profile:
-  /// - [useScriptOverride] off -> no script;
-  /// - on with a [scriptId] that still exists -> that script;
-  /// - on without one (or the chosen script was deleted) -> the
-  ///   global [currentScript].
+  /// Resolves the script that applies to one profile. Each profile
+  /// decides for itself: override off, or no script picked, means the
+  /// profile runs without a script; a picked script that still exists
+  /// applies. The last case only exists for profiles stored before
+  /// per-profile selection (on, with no surviving pick): they keep
+  /// resolving to the legacy global [currentScript], which no part of
+  /// the app can change anymore.
   Script? resolveScript({required bool useScriptOverride, String? scriptId}) {
     if (!useScriptOverride) return null;
     if (scriptId != null) {

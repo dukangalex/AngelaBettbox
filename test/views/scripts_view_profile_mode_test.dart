@@ -19,7 +19,10 @@ void main() {
 
   const props = ScriptProps(
     currentId: 's1',
-    scripts: [Script(id: 's1', label: 'HiClash')],
+    scripts: [
+      Script(id: 's1', label: 'HiClash'),
+      Script(id: 's2', label: 'SubScript'),
+    ],
   );
 
   setUp(() {
@@ -76,9 +79,7 @@ void main() {
         .toList();
   }
 
-  testWidgets('profile mode renders management list with mode options', (
-    tester,
-  ) async {
+  testWidgets('profile mode: picking and unpicking scripts', (tester) async {
     ProfileScriptSelection? captured;
     await openPage(
       tester,
@@ -87,37 +88,102 @@ void main() {
         onProfileSelectionChanged: (selection) => captured = selection,
       ),
     );
-    expect(find.text('Do Not Use a Script'), findsOneWidget);
-    expect(find.text('Follow Global Script'), findsOneWidget);
-    expect(find.text('HiClash'), findsWidgets);
-    // Switch order: no-script card, follow-global card, HiClash card.
-    expect(switchValues(tester), [false, false, true]);
-
-    // Choosing the follow-global card reports the follow selection.
-    await tester.tap(find.byType(Switch).at(1));
-    await tester.pumpAndSettle();
-    expect(captured, (useScriptOverride: true, scriptId: null));
-    expect(switchValues(tester), [false, true, false]);
-
-    // Choosing the no-script card reports override off.
-    await tester.tap(find.byType(Switch).at(0));
-    await tester.pumpAndSettle();
-    expect(captured, (useScriptOverride: false, scriptId: null));
-    expect(switchValues(tester), [true, false, false]);
-
-    // Choosing the script card reports that specific script.
-    await tester.tap(find.byType(Switch).at(2));
-    await tester.pumpAndSettle();
-    expect(captured, (useScriptOverride: true, scriptId: 's1'));
-    expect(switchValues(tester), [false, false, true]);
-  });
-
-  testWidgets('global mode keeps the plain management list', (tester) async {
-    await openPage(tester, page: const ScriptsView());
+    // No separate mode options: the list itself is the choice.
     expect(find.text('Do Not Use a Script'), findsNothing);
     expect(find.text('Follow Global Script'), findsNothing);
     expect(find.text('HiClash'), findsOneWidget);
-    // The single switch reflects the global current script.
-    expect(switchValues(tester), [true]);
+    expect(find.text('SubScript'), findsOneWidget);
+    expect(switchValues(tester), [true, false]);
+
+    // Picking the other script moves the choice.
+    await tester.tap(find.byType(Switch).at(1));
+    await tester.pumpAndSettle();
+    expect(captured, (useScriptOverride: true, scriptId: 's2'));
+    expect(switchValues(tester), [false, true]);
+
+    // Unpicking it leaves the profile with no script.
+    await tester.tap(find.byType(Switch).at(1));
+    await tester.pumpAndSettle();
+    expect(captured, (useScriptOverride: false, scriptId: null));
+    expect(switchValues(tester), [false, false]);
+  });
+
+  testWidgets('profile mode: legacy follow-global shows its script', (
+    tester,
+  ) async {
+    ProfileScriptSelection? captured;
+    await openPage(
+      tester,
+      page: ScriptsView(
+        profileSelection: (useScriptOverride: true, scriptId: null),
+        onProfileSelectionChanged: (selection) => captured = selection,
+      ),
+    );
+    // The stored follow-global state resolves to the old global
+    // current script (s1), so its switch shows on.
+    expect(switchValues(tester), [true, false]);
+    await tester.tap(find.byType(Switch).at(0));
+    await tester.pumpAndSettle();
+    expect(captured, (useScriptOverride: false, scriptId: null));
+  });
+
+  testWidgets('global mode: management list without switches', (
+    tester,
+  ) async {
+    await openPage(tester, page: const ScriptsView());
+    expect(find.text('HiClash'), findsOneWidget);
+    expect(find.text('SubScript'), findsOneWidget);
+    // No switches in the list itself: enabling a script is a
+    // per-profile act, reached through the settings entry.
+    expect(find.byType(Switch), findsNothing);
+    expect(find.byIcon(Icons.settings), findsOneWidget);
+  });
+
+  testWidgets('settings sheet switches a profile script and enters its page', (
+    tester,
+  ) async {
+    globalState.config = Config(
+      themeProps: defaultThemeProps,
+      profiles: [
+        Profile(
+          id: 'p1',
+          label: 'ProfA',
+          url: '',
+          autoUpdateDuration: Duration.zero,
+          useScriptOverride: true,
+          scriptId: 's2',
+        ),
+      ],
+      scriptProps: const ScriptProps(
+        currentId: 's1',
+        scripts: [
+          Script(id: 's1', label: 'HiClash'),
+          Script(id: 's2', label: 'SubScript'),
+        ],
+      ),
+    );
+    await openPage(tester, page: const ScriptsView());
+
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+    expect(find.text('ProfA'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(ListTile),
+        matching: find.text('SubScript'),
+      ),
+      findsOneWidget,
+    );
+
+    // The row switch turns the profile's own script off.
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    expect(globalState.config.profiles.single.useScriptOverride, isFalse);
+
+    // The row itself is the entry into that profile's script page.
+    await tester.tap(find.byType(ListTile));
+    await tester.pumpAndSettle();
+    expect(find.text('ProfA'), findsNothing);
+    expect(find.byType(Switch), findsWidgets);
   });
 }

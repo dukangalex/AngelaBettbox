@@ -50,7 +50,7 @@ _Profile _$ProfileFromJson(Map<String, dynamic> json) => _Profile(
   overrideData: json['overrideData'] == null
       ? const OverrideData()
       : OverrideData.fromJson(json['overrideData'] as Map<String, dynamic>),
-  useScriptOverride: json['useScriptOverride'] as bool? ?? true,
+  useScriptOverride: json['useScriptOverride'] as bool? ?? false,
   scriptId: json['scriptId'] as String?,
   ageSecretKey: json['ageSecretKey'] as String?,
   groupSwitches:
