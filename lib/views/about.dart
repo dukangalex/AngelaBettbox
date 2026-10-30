@@ -56,7 +56,7 @@ class AboutView extends StatelessWidget {
       _LinkTile(
         title: 'AngelaMihomoGroup',
         icon: Icons.groups_outlined,
-        onTap: () => globalState.openUrl('https://t.me/AngelaNexusGroup'),
+        onTap: () => globalState.openUrl('https://t.me/AngelaMihomoGroup'),
       ),
       _LinkTile(
         prefix: 'Forked from',
