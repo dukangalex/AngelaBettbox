@@ -1384,6 +1384,7 @@ func patchLegacyChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) err
 	}
 	chainGroup := uniqueName(explicitChainGroup)
 	raw.ProxyGroup = append(raw.ProxyGroup, providerGroup(chainGroup, landing, false))
+	selectors := 0
 	for _, group := range originalGroups {
 		if groupType, _ := group["type"].(string); groupType != "select" {
 			continue
@@ -1398,7 +1399,17 @@ func patchLegacyChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) err
 				members = append(members, value)
 			}
 		}
-		group["proxies"] = append(members, chainGroup)
+		selectors++
+		if selectors == 1 {
+			// The main selector lists the chain first so it is the
+			// default choice once a chain is configured; other
+			// selectors keep the chain as an extra option at the end
+			// without hijacking their own defaults. Mirrors the
+			// cross-profile chain path.
+			group["proxies"] = append([]any{chainGroup}, members...)
+		} else {
+			group["proxies"] = append(members, chainGroup)
+		}
 	}
 	return nil
 }
