@@ -9,7 +9,7 @@ import 'package:bett_box/models/models.dart';
 import 'package:bett_box/pages/editor.dart';
 import 'package:bett_box/providers/providers.dart';
 import 'package:bett_box/state.dart';
-import 'package:bett_box/views/profiles/profile_script_picker.dart';
+import 'package:bett_box/views/profiles/scripts.dart';
 import 'package:bett_box/widgets/widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
@@ -94,19 +94,22 @@ class EditProfileViewState extends State<EditProfileView> {
   }
 
   Future<void> _handlePickScript() async {
-    final selection = await BaseNavigator.push<ProfileScriptSelection>(
+    await BaseNavigator.push(
       context,
-      ProfileScriptPickerPage(
-        useScriptOverride: useScriptOverride,
-        scriptId: scriptId,
-        scriptProps: globalState.config.scriptProps,
+      ScriptsView(
+        profileSelection: (
+          useScriptOverride: useScriptOverride,
+          scriptId: scriptId,
+        ),
+        onProfileSelectionChanged: (selection) {
+          if (!mounted) return;
+          setState(() {
+            useScriptOverride = selection.useScriptOverride;
+            scriptId = selection.scriptId;
+          });
+        },
       ),
     );
-    if (selection == null || !mounted) return;
-    setState(() {
-      useScriptOverride = selection.useScriptOverride;
-      scriptId = selection.scriptId;
-    });
   }
 
   Future<void> _handleConfirm() async {

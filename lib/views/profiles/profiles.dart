@@ -9,7 +9,6 @@ import 'package:bett_box/state.dart';
 import 'package:bett_box/views/profile_chain.dart';
 import 'package:bett_box/views/profiles/edit_profile.dart';
 import 'package:bett_box/views/profiles/override_profile.dart';
-import 'package:bett_box/views/profiles/profile_script_picker.dart';
 import 'package:bett_box/views/profiles/scripts.dart';
 import 'package:bett_box/widgets/widgets.dart';
 import 'package:material_ui/material_ui.dart';
@@ -476,23 +475,27 @@ class ProfileItem extends StatelessWidget {
 
   Future<void> _handlePickScript(BuildContext context) async {
     final container = ProviderScope.containerOf(context);
-    final selection = await BaseNavigator.push<ProfileScriptSelection>(
+    var changed = false;
+    await BaseNavigator.push(
       context,
-      ProfileScriptPickerPage(
-        useScriptOverride: profile.useScriptOverride,
-        scriptId: profile.scriptId,
-        scriptProps: globalState.config.scriptProps,
+      ScriptsView(
+        profileSelection: (
+          useScriptOverride: profile.useScriptOverride,
+          scriptId: profile.scriptId,
+        ),
+        onProfileSelectionChanged: (selection) {
+          changed = true;
+          container.read(profilesProvider.notifier).updateProfile(
+            profile.id,
+            (p) => p.copyWith(
+              useScriptOverride: selection.useScriptOverride,
+              scriptId: selection.scriptId,
+            ),
+          );
+        },
       ),
     );
-    if (selection == null) return;
-    container.read(profilesProvider.notifier).updateProfile(
-      profile.id,
-      (p) => p.copyWith(
-        useScriptOverride: selection.useScriptOverride,
-        scriptId: selection.scriptId,
-      ),
-    );
-    if (profile.id == container.read(currentProfileIdProvider)) {
+    if (changed && profile.id == container.read(currentProfileIdProvider)) {
       await globalState.appController.applyProfile(silence: true);
     }
   }

@@ -94,14 +94,65 @@ Future<void> showScriptCustomOptions(
   );
 }
 
+/// The script choice for one profile: whether script override is on for
+/// the profile, and if so which script applies. A null scriptId means
+/// the profile follows the global current script.
+typedef ProfileScriptSelection = ({bool useScriptOverride, String? scriptId});
+
+/// The app's script management page. Opened plainly it manages the
+/// global current script; opened with a [profileSelection] it doubles
+/// as the per-profile script picker: the same list then edits that
+/// profile's choice (no script / follow the global script / a specific
+/// script), reported through [onProfileSelectionChanged] on every
+/// change. There is deliberately no separate picker page.
 class ScriptsView extends ConsumerStatefulWidget {
-  const ScriptsView({super.key});
+  final ProfileScriptSelection? profileSelection;
+  final ValueChanged<ProfileScriptSelection>? onProfileSelectionChanged;
+
+  const ScriptsView({
+    super.key,
+    this.profileSelection,
+    this.onProfileSelectionChanged,
+  });
 
   @override
   ConsumerState<ScriptsView> createState() => _ScriptsViewState();
 }
 
 class _ScriptsViewState extends ConsumerState<ScriptsView> {
+  ProfileScriptSelection? _selection;
+
+  bool get _isProfileMode => _selection != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.profileSelection;
+    if (initial != null) {
+      _selection = _normalizeSelection(initial);
+    }
+  }
+
+  /// A stored scriptId whose script was deleted resolves to
+  /// follow-global, matching how the choice is applied at runtime.
+  ProfileScriptSelection _normalizeSelection(ProfileScriptSelection value) {
+    if (!value.useScriptOverride) {
+      return (useScriptOverride: false, scriptId: null);
+    }
+    if (value.scriptId == null ||
+        globalState.config.scriptProps.scriptById(value.scriptId!) == null) {
+      return (useScriptOverride: true, scriptId: null);
+    }
+    return value;
+  }
+
+  void _setSelection(ProfileScriptSelection next) {
+    if (next == _selection) return;
+    setState(() {
+      _selection = next;
+    });
+    widget.onProfileSelectionChanged?.call(next);
+  }
   Future<void> _handleDelScript(String label) async {
     final res = await globalState.showMessage(
       message: TextSpan(
@@ -179,6 +230,93 @@ class _ScriptsViewState extends ConsumerState<ScriptsView> {
     );
   }
 
+  /// The two non-specific choices shown at the top of the list in
+  /// profile mode, styled like the script cards below them: use no
+  /// script at all, or follow the global current script.
+  Widget _buildProfileModeOptions() {
+    final selection = _selection!;
+    final scriptProps = globalState.config.scriptProps;
+    final currentScript = scriptProps.currentScript;
+    final followSelected =
+        selection.useScriptOverride &&
+        (selection.scriptId == null ||
+            scriptProps.scriptById(selection.scriptId!) == null);
+    return Column(
+      children: [
+        _buildProfileModeCard(
+          label: appLocalizations.scriptNotUsed,
+          isSelected: !selection.useScriptOverride,
+          onSelected: () =>
+              _setSelection((useScriptOverride: false, scriptId: null)),
+        ),
+        const SizedBox(height: 10),
+        _buildProfileModeCard(
+          label: appLocalizations.followGlobalScript,
+          subtitle: currentScript?.label ?? appLocalizations.none,
+          isSelected: followSelected,
+          onSelected: () =>
+              _setSelection((useScriptOverride: true, scriptId: null)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileModeCard({
+    required String label,
+    String? subtitle,
+    required bool isSelected,
+    required VoidCallback onSelected,
+  }) {
+    return CommonCard(
+      elevated: false,
+      isSelected: isSelected,
+      radius: 16,
+      type: CommonCardType.filled,
+      child: Container(
+        constraints: BoxConstraints(minHeight: subtitle != null ? 68 : 60),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Row(
+          children: [
+            Switch(
+              value: isSelected,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              onChanged: (_) => onSelected(),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  EmojiText(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.textTheme.titleMedium?.copyWith(
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
+                  ),
+                  if (subtitle != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: EmojiText(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.textTheme.bodySmall,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildContent() {
     return Consumer(
       builder: (_, ref, _) {
@@ -190,6 +328,18 @@ class _ScriptsViewState extends ConsumerState<ScriptsView> {
         final currentId = vm2.a;
         final scripts = vm2.b;
         if (scripts.isEmpty) {
+          if (_isProfileMode) {
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _buildProfileModeOptions(),
+                const SizedBox(height: 24),
+                NullStatus(
+                  label: appLocalizations.nullTip(appLocalizations.script),
+                ),
+              ],
+            );
+          }
           return NullStatus(
             label: appLocalizations.nullTip(appLocalizations.script),
           );
@@ -201,11 +351,17 @@ class _ScriptsViewState extends ConsumerState<ScriptsView> {
               padding: const EdgeInsets.all(
                 16,
               ).copyWith(top: 16 + rise, bottom: 16 + 64),
-              itemCount: scripts.length,
+              itemCount: scripts.length + (_isProfileMode ? 1 : 0),
               separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
-                final script = scripts[index];
-                final isSelected = script.id == currentId;
+                if (_isProfileMode && index == 0) {
+                  return _buildProfileModeOptions();
+                }
+                final script = scripts[_isProfileMode ? index - 1 : index];
+                final isSelected = _isProfileMode
+                    ? _selection!.useScriptOverride &&
+                          _selection!.scriptId == script.id
+                    : script.id == currentId;
                 final hasRemote = script.url?.isNotEmpty ?? false;
                 final hasCustom = script.compatible;
                 final hasTags = hasRemote || hasCustom;
@@ -228,9 +384,16 @@ class _ScriptsViewState extends ConsumerState<ScriptsView> {
                           materialTapTargetSize:
                               MaterialTapTargetSize.shrinkWrap,
                           onChanged: (_) {
-                            ref
-                                .read(scriptStateProvider.notifier)
-                                .setId(script.id);
+                            if (_isProfileMode) {
+                              _setSelection((
+                                useScriptOverride: true,
+                                scriptId: script.id,
+                              ));
+                            } else {
+                              ref
+                                  .read(scriptStateProvider.notifier)
+                                  .setId(script.id);
+                            }
                           },
                         ),
                         const SizedBox(width: 12),
