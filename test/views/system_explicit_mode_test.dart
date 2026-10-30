@@ -45,14 +45,14 @@ void main() {
     (tester) async {
       await tester.runAsync(() async {
         await tester.pumpWidget(
-          const ProviderScope(
-            child: MaterialApp(home: Scaffold(body: SystemExplicitView())),
+          ProviderScope(
+            child: MaterialApp(home: Scaffold(body: generateListView([const SystemExplicitSection()]))),
           ),
         );
         await Future<void>.delayed(const Duration(milliseconds: 100));
       });
       await tester.pump(const Duration(milliseconds: 100));
-      final toggle = tester.widget<Switch>(
+      final toggle = tester.widget<mui.Switch>(
         find.descendant(
           of: find.byWidgetPredicate(
             (w) =>
@@ -60,7 +60,7 @@ void main() {
                 w.title is Text &&
                 (w.title as Text).data == 'China IPs and domains direct',
           ),
-          matching: find.byType(Switch),
+          matching: find.byType(mui.Switch),
         ),
       );
       toggle.onChanged!(true);
@@ -140,7 +140,7 @@ void main() {
     await tester.pump();
     expect(find.text('global'), findsOneWidget);
   });
-  testWidgets('option descriptions stay collapsed until the row is tapped', (
+  testWidgets('option descriptions stay collapsed until the chevron is tapped', (
     tester,
   ) async {
     globalState.config = globalState.config.copyWith(
@@ -148,8 +148,8 @@ void main() {
     );
     await tester.runAsync(() async {
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(home: Scaffold(body: SystemExplicitView())),
+        ProviderScope(
+          child: MaterialApp(home: Scaffold(body: generateListView([const SystemExplicitSection()]))),
         ),
       );
       await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -159,10 +159,19 @@ void main() {
         'Uses Mihomo GEOIP/GEOSITE China rules. Replaces only same-category '
         'China IP/domain rules; unrelated rules remain.';
     expect(find.text(desc), findsNothing);
-    await tester.tap(find.text('China IPs and domains direct'));
+    final chevron = find.descendant(
+      of: find.byWidgetPredicate(
+        (w) =>
+            w is ListItem &&
+            w.title is Text &&
+            (w.title as Text).data == 'China IPs and domains direct',
+      ),
+      matching: find.byIcon(Icons.expand_more),
+    );
+    await tester.tap(chevron);
     await tester.pump();
     expect(find.text(desc), findsOneWidget);
-    await tester.tap(find.text('China IPs and domains direct'));
+    await tester.tap(find.byIcon(Icons.expand_less));
     await tester.pump();
     expect(find.text(desc), findsNothing);
   });
@@ -170,14 +179,12 @@ void main() {
     final opts = SystemExplicitOptions(
       chinaDirect: true,
       blockCommonWebRtc: true,
-      blockTunUdp: true,
     );
     final rule = opts.buildRuntimeRulesForMode(Mode.rule);
     expect(rule, isNotEmpty);
     expect(opts.buildRuntimeRulesForMode(Mode.global), isEmpty);
     expect(opts.buildRuntimeRulesForMode(Mode.direct), isEmpty);
     expect(opts.buildRuntimeRulesForMode(Mode.rule), rule);
-    expect(opts.blockTunUdp, isTrue);
     final roundtrip = SystemExplicitOptions.fromJson(opts.toJson());
     expect(roundtrip.toJson(), opts.toJson());
   });

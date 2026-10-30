@@ -1122,10 +1122,6 @@ class GlobalState {
       // rules; unrelated rules are preserved in their original order.
       'system-explicit-rules': SystemExplicitStore.instance.value
           .buildRuntimeRulesForMode(patchConfig.mode),
-      // The guard runs at TUN packet ingress, before DNS hijacking. Only the
-      // Android build exposes the switch; desktop behaviour stays unchanged.
-      'block-tun-udp':
-          system.isAndroid && SystemExplicitStore.instance.value.blockTunUdp,
       'chain-policy': await buildChainPolicyParams(
         profile,
         chainOverride ??

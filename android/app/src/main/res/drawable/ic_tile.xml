@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Light mode icon -->
-<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
-    android:src="@drawable/ic_shortcut_black" />
-
+<!-- Quick-settings tile glyph: the four-quadrant mark as a silhouette.
+     The cross between the quadrants is knocked out (transparent), so the
+     shape survives the monochrome tint every QS implementation applies;
+     a full-bleed picture would collapse into a solid square. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M3.5,1.8 h5.3 a1.7,1.7 0 0 1 1.7,1.7 v5.3 a1.7,1.7 0 0 1 -1.7,1.7 h-5.3 a1.7,1.7 0 0 1 -1.7,-1.7 v-5.3 a1.7,1.7 0 0 1 1.7,-1.7 z
+M15.2,1.8 h5.3 a1.7,1.7 0 0 1 1.7,1.7 v5.3 a1.7,1.7 0 0 1 -1.7,1.7 h-5.3 a1.7,1.7 0 0 1 -1.7,-1.7 v-5.3 a1.7,1.7 0 0 1 1.7,-1.7 z
+M3.5,13.5 h5.3 a1.7,1.7 0 0 1 1.7,1.7 v5.3 a1.7,1.7 0 0 1 -1.7,1.7 h-5.3 a1.7,1.7 0 0 1 -1.7,-1.7 v-5.3 a1.7,1.7 0 0 1 1.7,-1.7 z
+M15.2,13.5 h5.3 a1.7,1.7 0 0 1 1.7,1.7 v5.3 a1.7,1.7 0 0 1 -1.7,1.7 h-5.3 a1.7,1.7 0 0 1 -1.7,-1.7 v-5.3 a1.7,1.7 0 0 1 1.7,-1.7 z" />
+</vector>

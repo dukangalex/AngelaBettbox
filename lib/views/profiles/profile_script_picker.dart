@@ -10,6 +10,11 @@ typedef ProfileScriptSelection = ({bool useScriptOverride, String? scriptId});
 
 /// Lets the user pick which script a single profile uses: no script,
 /// the global current script, or any specific script.
+///
+/// Rows are built with the app's ListItem radio variant: the stock
+/// Material ListTile cannot find a Material ancestor inside this app's
+/// component-library tree and fails to build, which is why this page
+/// must not use it.
 class ProfileScriptPickerPage extends StatelessWidget {
   final bool useScriptOverride;
   final String? scriptId;
@@ -22,24 +27,32 @@ class ProfileScriptPickerPage extends StatelessWidget {
     required this.scriptProps,
   });
 
-  bool get _followGlobalSelected =>
-      useScriptOverride &&
-      (scriptId == null || scriptProps.scriptById(scriptId!) == null);
+  /// The selection the radio group shows as current. A stored [scriptId]
+  /// whose script was deleted resolves to follow-global.
+  ProfileScriptSelection get _currentSelection {
+    if (!useScriptOverride) {
+      return (useScriptOverride: false, scriptId: null);
+    }
+    if (scriptId == null || scriptProps.scriptById(scriptId!) == null) {
+      return (useScriptOverride: true, scriptId: null);
+    }
+    return (useScriptOverride: true, scriptId: scriptId);
+  }
 
   Widget _option({
     required BuildContext context,
     required String title,
     String? subtitle,
-    required bool selected,
     required ProfileScriptSelection value,
   }) {
-    return ListTile(
+    return ListItem<ProfileScriptSelection>.radio(
       title: Text(title),
       subtitle: subtitle == null ? null : Text(subtitle),
-      trailing: selected ? const Icon(Icons.check) : null,
-      onTap: () {
-        Navigator.of(context).pop(value);
-      },
+      delegate: RadioDelegate<ProfileScriptSelection>(
+        value: value,
+        groupValue: _currentSelection,
+        onChanged: (_) => Navigator.of(context).pop(value),
+      ),
     );
   }
 
@@ -53,22 +66,18 @@ class ProfileScriptPickerPage extends StatelessWidget {
           _option(
             context: context,
             title: appLocalizations.scriptNotUsed,
-            selected: !useScriptOverride,
             value: (useScriptOverride: false, scriptId: null),
           ),
           _option(
             context: context,
             title: appLocalizations.followGlobalScript,
             subtitle: currentScript?.label ?? appLocalizations.none,
-            selected: _followGlobalSelected,
             value: (useScriptOverride: true, scriptId: null),
           ),
-          if (scriptProps.scripts.isNotEmpty) const Divider(),
           for (final script in scriptProps.scripts)
             _option(
               context: context,
               title: script.label,
-              selected: useScriptOverride && scriptId == script.id,
               value: (useScriptOverride: true, scriptId: script.id),
             ),
         ],

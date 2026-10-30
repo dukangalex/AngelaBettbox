@@ -24,17 +24,10 @@ void main() {
       }
     },
   );
-  test('disabled options and TUN UDP block preserve the selected mode', () {
+  test('disabled options preserve the selected mode', () {
     for (final mode in Mode.values) {
       expect(
         systemExplicitModeCompatible(SystemExplicitOptions(), mode),
-        isTrue,
-      );
-      expect(
-        systemExplicitModeCompatible(
-          SystemExplicitOptions(blockTunUdp: true),
-          mode,
-        ),
         isTrue,
       );
       requireSystemExplicitMode(SystemExplicitOptions(), mode);
@@ -89,17 +82,13 @@ void main() {
   });
 
   test(
-    'UDP block is opt-in and persists without changing unrelated choices',
+    'options persist without changing unrelated choices',
     () {
-      final defaults = SystemExplicitOptions.fromJson({});
-      expect(defaults.blockTunUdp, isFalse);
       final opt = SystemExplicitOptions(
-        blockTunUdp: true,
         chinaPublicDnsDirect: true,
         privacy: true,
       );
       final restored = SystemExplicitOptions.fromJson(opt.toJson());
-      expect(restored.blockTunUdp, isTrue);
       expect(restored.chinaPublicDnsDirect, isTrue);
       expect(restored.privacy, isTrue);
       expect(restored.buildRuntimeRulesForMode(Mode.global), isEmpty);

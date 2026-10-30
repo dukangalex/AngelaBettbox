@@ -10,6 +10,8 @@ import 'package:bett_box/widgets/widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'system_explicit.dart';
+
 class SmartAutoStopSection extends ConsumerWidget {
   const SmartAutoStopSection({super.key});
 
@@ -925,6 +927,9 @@ class _OtherSettingViewState extends State<OtherSettingView>
       return const Center(child: Text('No settings available'));
     }
 
-    return generateListView(generateSection(items: items));
+    return generateListView([
+      ...generateSection(items: items),
+      const SystemExplicitSection(),
+    ]);
   }
 }

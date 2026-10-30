@@ -8,6 +8,7 @@ import 'package:bett_box/state.dart';
 import 'package:bett_box/views/system_explicit.dart';
 import 'package:bett_box/widgets/list.dart';
 import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart' as mui;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,7 +51,7 @@ void main() {
             home: Consumer(
               builder: (context, ref, child) {
                 globalState.appController = TimeoutController(context, ref);
-                return const Scaffold(body: SystemExplicitView());
+                return Scaffold(body: generateListView([const SystemExplicitSection()]));
               },
             ),
           ),
@@ -59,7 +60,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 100));
     });
     await tester.pump(const Duration(milliseconds: 100));
-    final toggle = tester.widget<Switch>(
+    final toggle = tester.widget<mui.Switch>(
       find.descendant(
         of: find.byWidgetPredicate(
           (w) =>
@@ -67,7 +68,7 @@ void main() {
               w.title is Text &&
               (w.title as Text).data == 'China IPs and domains direct',
         ),
-        matching: find.byType(Switch),
+        matching: find.byType(mui.Switch),
       ),
     );
     await tester.runAsync(() async {

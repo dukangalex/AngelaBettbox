@@ -26,6 +26,8 @@
 
 版本发布与更新通知见 Telegram 频道：https://t.me/AngelaNexus
 
+使用交流与问题反馈见 Telegram 群组：https://t.me/AngelaNexusGroup
+
 ---
 ## 🚀 核心特性
 

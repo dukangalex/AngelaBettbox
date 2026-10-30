@@ -6,14 +6,18 @@ import 'package:bett_box/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SystemExplicitView extends ConsumerStatefulWidget {
-  const SystemExplicitView({super.key});
+/// The system-explicit options as a section of the tools page
+/// (OtherSettingView), where they live alongside the app's other
+/// network-protection switches.
+class SystemExplicitSection extends ConsumerStatefulWidget {
+  const SystemExplicitSection({super.key});
 
   @override
-  ConsumerState<SystemExplicitView> createState() => _SystemExplicitViewState();
+  ConsumerState<SystemExplicitSection> createState() =>
+      _SystemExplicitSectionState();
 }
 
-class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
+class _SystemExplicitSectionState extends ConsumerState<SystemExplicitSection> {
   var _ready = false;
   var _applyError = '';
 
@@ -101,26 +105,29 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
     required ValueChanged<bool> onChanged,
   }) {
     final expanded = _expanded.contains(id);
-    return ListItem(
+    // Built with ListItem.switchItem like every other settings page, so the
+    // switch is the component library's own and follows the app theme.
+    // The chevron stays separately tappable: tapping the row toggles the
+    // switch (the switchItem convention), tapping the chevron expands the
+    // description. A plain GestureDetector is used on purpose: stock
+    // Material buttons need a Material ancestor this tree does not have.
+    return ListItem.switchItem(
       padding: const EdgeInsets.only(left: 16, right: 8),
       title: Text(title),
       subtitle: expanded ? Text(desc) : null,
-      onTap: () => _toggleExpanded(id),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
+      trailing: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _toggleExpanded(id),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(
             expanded ? Icons.expand_less : Icons.expand_more,
             size: 20,
             color: context.colorScheme.onSurfaceVariant,
           ),
-          Transform.scale(
-            scale: 0.86,
-            alignment: Alignment.centerRight,
-            child: Switch(value: value, onChanged: onChanged),
-          ),
-        ],
+        ),
       ),
+      delegate: SwitchDelegate(value: value, onChanged: onChanged),
     );
   }
 
@@ -146,17 +153,16 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
   @override
   Widget build(BuildContext context) {
     if (!_ready) {
-      return const Center(child: CircularProgressIndicator());
+      return const SizedBox.shrink();
     }
     final value = SystemExplicitStore.instance.value;
     final mode = ref.watch(
       patchClashConfigProvider.select((state) => state.mode),
     );
     final incompatible = !systemExplicitModeCompatible(value, mode);
-    return generateListView(
-      generateSection(
-        title: appLocalizations.systemExplicitIntro,
-        items: [
+    return generateSection(
+      title: appLocalizations.systemExplicitTitle,
+      items: [
           if (incompatible)
             ListItem(
               title: Text(appLocalizations.systemExplicitInactive),
@@ -219,24 +225,12 @@ class _SystemExplicitViewState extends ConsumerState<SystemExplicitView> {
             onChanged: (on) =>
                 _setRuleOption(on, (valueOn) => value.blockAds = valueOn),
           ),
-          if (system.isAndroid)
-            _optionItem(
-              id: 'blockTunUdp',
-              title: appLocalizations.systemExplicitBlockTunUdp,
-              desc: appLocalizations.systemExplicitBlockTunUdpDesc,
-              value: value.blockTunUdp,
-              onChanged: (on) {
-                setState(() => value.blockTunUdp = on);
-                _commit();
-              },
-            ),
           _infoItem(
             id: 'limits',
             title: appLocalizations.systemExplicitLimits,
             desc: appLocalizations.systemExplicitLimitsDesc,
           ),
-        ],
-      ),
-    );
+      ],
+    ).first;
   }
 }
