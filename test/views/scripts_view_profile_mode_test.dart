@@ -180,6 +180,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(globalState.config.profiles.single.useScriptOverride, isFalse);
 
+    // Switching off only disables the pick, it is not dropped: the same
+    // switch stays tappable and turns the same script back on.
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    expect(globalState.config.profiles.single.useScriptOverride, isTrue);
+    expect(globalState.config.profiles.single.scriptId, 's2');
+
     // The row itself is the entry into that profile's script page.
     await tester.tap(find.byType(ListTile));
     await tester.pumpAndSettle();

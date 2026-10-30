@@ -673,6 +673,16 @@ class _ScriptSettingsSheet extends ConsumerWidget {
                     useScriptOverride: profile.useScriptOverride,
                     scriptId: profile.scriptId,
                   );
+                  // A profile that picked a script and later switched
+                  // it off keeps the pick: the row switch must stay
+                  // tappable so it can be switched back on here, even
+                  // though the resolved (effective) script is null
+                  // while off. Only a profile that never picked one
+                  // gets a disabled switch.
+                  final pickedScriptId = profile.scriptId;
+                  final retainedScript = pickedScriptId != null
+                      ? scriptProps.scriptById(pickedScriptId)
+                      : null;
                   return Container(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: CommonCard(
@@ -693,7 +703,8 @@ class _ScriptSettingsSheet extends ConsumerWidget {
                             Switch(
                               value: profile.useScriptOverride,
                               onChanged:
-                                  (script != null || profile.useScriptOverride)
+                                  (profile.useScriptOverride ||
+                                      retainedScript != null)
                                   ? (value) async {
                                       ref
                                           .read(profilesProvider.notifier)
