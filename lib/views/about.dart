@@ -38,8 +38,9 @@ class AboutView extends StatelessWidget {
       _LinkTile(
         title: 'Github Releases',
         icon: Icons.star,
-        onTap: () =>
-            globalState.openUrl('https://github.com/dukangalex/AngelaMihomo/releases'),
+        onTap: () => globalState.openUrl(
+          'https://github.com/dukangalex/AngelaMihomo/releases',
+        ),
       ),
       _LinkTile(
         title: appLocalizations.checkUpdate,
@@ -53,6 +54,11 @@ class AboutView extends StatelessWidget {
         onTap: () => globalState.openUrl('https://t.me/AngelaNexus'),
       ),
       _LinkTile(
+        title: 'AngelaMihomoGroup',
+        icon: Icons.groups_outlined,
+        onTap: () => globalState.openUrl('https://t.me/AngelaNexusGroup'),
+      ),
+      _LinkTile(
         prefix: 'Forked from',
         title: 'Bettbox',
         icon: Icons.code,
@@ -64,11 +70,6 @@ class AboutView extends StatelessWidget {
         title: 'Mihomo',
         icon: Icons.memory,
         onTap: () => globalState.openUrl('https://github.com/MetaCubeX/mihomo'),
-      ),
-      _LinkTile(
-        title: 'Group',
-        icon: Icons.groups_outlined,
-        onTap: () => globalState.openUrl('https://t.me/AngelaNexusGroup'),
       ),
     ];
     return generateSection(
@@ -214,8 +215,8 @@ class AboutView extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 12),
-      ..._buildContributorsSection(),
       ..._buildMoreSection(context),
+      ..._buildContributorsSection(),
     ];
     return generateListView(items);
   }
@@ -437,23 +438,27 @@ class _LinkTile extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text.rich(
-              TextSpan(
-                children: [
-                  if (prefix != null)
-                    TextSpan(
-                      text: '$prefix ',
-                      style: context.textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant.opacity80,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    if (prefix != null)
+                      TextSpan(
+                        text: '$prefix ',
+                        style: context.textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant.opacity80,
+                        ),
                       ),
-                    ),
-                  TextSpan(text: title),
-                ],
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: context.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
+                    TextSpan(text: title),
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
