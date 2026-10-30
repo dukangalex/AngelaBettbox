@@ -317,10 +317,6 @@ class ScriptState extends _$ScriptState with AutoDisposeNotifierMixin {
     state = state.copyWith(scripts: list);
   }
 
-  void setId(String id) {
-    state = state.copyWith(currentId: state.currentId != id ? id : null);
-  }
-
   void del(String id) {
     final list = List<Script>.from(state.scripts);
     final index = list.indexWhere((item) => item.label == id);

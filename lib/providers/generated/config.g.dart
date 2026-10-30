@@ -872,7 +872,7 @@ final class ScriptStateProvider
   }
 }
 
-String _$scriptStateHash() => r'83560787d30773ddd76a4b279b149f190f94c756';
+String _$scriptStateHash() => r'f15c7c35b98db1cd51914b7776adfb45ef4944be';
 
 abstract class _$ScriptState extends $Notifier<ScriptProps> {
   ScriptProps build();

@@ -921,6 +921,27 @@ const explicitChainGroup = "链式落地"
 // wake-ups down; checks resume with traffic. More generous source
 // values are left untouched.
 func floorChainHealthCheck(group map[string]any) {
+	floorHealthCheckParams(group, 60, 100, 5000)
+}
+
+// floorChainHopHealthCheck gives a group that carries a chain hop — the
+// entry group of the active profile, or the exit group imported from
+// another profile — much stickier health-check floors than an ordinary
+// group. A url-test hop re-selects purely on delay, and every re-selection
+// severs all live connections through the chain; with two auto groups
+// stacked (auto entry + auto exit, the user's daily setup) ordinary
+// uplink jitter bunches candidate delays inside a 100 ms tolerance and
+// the chain flaps repeatedly (user report 2026-10-29: several drops in a
+// few minutes while the core logged no dial error at all). A hop group
+// may therefore only move when its current node is clearly worse — 200 ms
+// tolerance — and probes at most every 180 seconds. A dead node still
+// fails over on the next failed check; only preference switching among
+// live nodes is damped. More generous source values are left untouched.
+func floorChainHopHealthCheck(group map[string]any) {
+	floorHealthCheckParams(group, 180, 200, 5000)
+}
+
+func floorHealthCheckParams(group map[string]any, interval, tolerance, timeout float64) {
 	floor := func(key string, minimum float64) {
 		var value float64
 		switch v := group[key].(type) {
@@ -937,9 +958,9 @@ func floorChainHealthCheck(group map[string]any) {
 			group[key] = int(minimum)
 		}
 	}
-	floor("interval", 60)
-	floor("tolerance", 100)
-	floor("timeout", 5000)
+	floor("interval", interval)
+	floor("tolerance", tolerance)
+	floor("timeout", timeout)
 }
 
 // patchChainPolicy uses dialer-proxy, including for subscription nodes. Mihomo
@@ -1099,6 +1120,13 @@ func patchChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) error {
 		}
 		return nil
 	}
+	// The entry group carries the chain's first hop: keep it from
+	// re-selecting on plain delay jitter (see floorChainHopHealthCheck).
+	if entryKind == "group" {
+		if hop := findGroup(entry); hop != nil {
+			floorChainHopHealthCheck(hop)
+		}
+	}
 	appendDialer := func(provider map[string]any) error {
 		override := map[string]any{}
 		if value := provider["override"]; value != nil {
@@ -1162,6 +1190,13 @@ func patchChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) error {
 		}
 		if landingKind == "group" && len(policy.ExternalProxies) == 0 && len(policy.ExternalProviders) == 0 {
 			return fmt.Errorf("external exit group %q has no usable proxy members", landing)
+		}
+		if landingKind == "group" {
+			// The exit group carries the chain's second hop: same
+			// stickiness rule as the entry group. This floors the
+			// imported runtime copy only; the source profile's saved
+			// YAML keeps its own parameters.
+			floorChainHopHealthCheck(findGroup(landing))
 		}
 		for _, proxy := range policy.ExternalProxies {
 			// Explicit app chain wins for the imported exit graph only. These
@@ -1384,6 +1419,7 @@ func patchLegacyChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) err
 	}
 	chainGroup := uniqueName(explicitChainGroup)
 	raw.ProxyGroup = append(raw.ProxyGroup, providerGroup(chainGroup, landing, false))
+	selectors := 0
 	for _, group := range originalGroups {
 		if groupType, _ := group["type"].(string); groupType != "select" {
 			continue
@@ -1398,7 +1434,17 @@ func patchLegacyChainPolicy(raw *config.RawConfig, policy *PatchChainPolicy) err
 				members = append(members, value)
 			}
 		}
-		group["proxies"] = append(members, chainGroup)
+		selectors++
+		if selectors == 1 {
+			// The main selector lists the chain first so it is the
+			// default choice once a chain is configured; other
+			// selectors keep the chain as an extra option at the end
+			// without hijacking their own defaults. Mirrors the
+			// cross-profile chain path.
+			group["proxies"] = append([]any{chainGroup}, members...)
+		} else {
+			group["proxies"] = append(members, chainGroup)
+		}
 	}
 	return nil
 }

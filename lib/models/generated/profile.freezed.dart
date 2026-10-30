@@ -530,7 +530,7 @@ return $default(_that.id,_that.label,_that.currentGroupName,_that.url,_that.last
 @JsonSerializable()
 
 class _Profile implements Profile {
-  const _Profile({required this.id, this.label, this.currentGroupName, this.url = '', this.lastUpdateDate, required this.autoUpdateDuration, this.subscriptionInfo, this.autoUpdate = true,  SelectedMap selectedMap = const {},  Set<String> unfoldSet = const {}, this.overrideData = const OverrideData(), @JsonKey(includeToJson: false, includeFromJson: false) this.isUpdating = false, this.useScriptOverride = true, this.scriptId, this.ageSecretKey, @JsonKey(name: 'group-switches')  Map<String, bool> groupSwitches = const {}}): _selectedMap = selectedMap,_unfoldSet = unfoldSet,_groupSwitches = groupSwitches;
+  const _Profile({required this.id, this.label, this.currentGroupName, this.url = '', this.lastUpdateDate, required this.autoUpdateDuration, this.subscriptionInfo, this.autoUpdate = true,  SelectedMap selectedMap = const {},  Set<String> unfoldSet = const {}, this.overrideData = const OverrideData(), @JsonKey(includeToJson: false, includeFromJson: false) this.isUpdating = false, this.useScriptOverride = false, this.scriptId, this.ageSecretKey, @JsonKey(name: 'group-switches')  Map<String, bool> groupSwitches = const {}}): _selectedMap = selectedMap,_unfoldSet = unfoldSet,_groupSwitches = groupSwitches;
   factory _Profile.fromJson(Map<String, dynamic> json) => _$ProfileFromJson(json);
 
 @override final  String id;

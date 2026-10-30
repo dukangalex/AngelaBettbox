@@ -94,14 +94,110 @@ Future<void> showScriptCustomOptions(
   );
 }
 
+/// The script choice for one profile: whether script override is on
+/// for the profile, and if so which script it picked. Override off
+/// means the profile runs without a script. (Override on with a null
+/// scriptId is a legacy stored state from before per-profile picks;
+/// it resolves to the old global current script.)
+typedef ProfileScriptSelection = ({bool useScriptOverride, String? scriptId});
+
+/// The app's script management page. Opened plainly it manages the
+/// global current script; opened with a [profileSelection] the same
+/// list edits that profile's script choice instead: the user freely
+/// picks one of their scripts, and picking none means the profile
+/// runs without a script. Changes are reported through
+/// [onProfileSelectionChanged]. There is deliberately no separate
+/// picker page and no extra mode options.
 class ScriptsView extends ConsumerStatefulWidget {
-  const ScriptsView({super.key});
+  final ProfileScriptSelection? profileSelection;
+  final ValueChanged<ProfileScriptSelection>? onProfileSelectionChanged;
+
+  const ScriptsView({
+    super.key,
+    this.profileSelection,
+    this.onProfileSelectionChanged,
+  });
 
   @override
   ConsumerState<ScriptsView> createState() => _ScriptsViewState();
 }
 
 class _ScriptsViewState extends ConsumerState<ScriptsView> {
+  ProfileScriptSelection? _selection;
+
+  bool get _isProfileMode => _selection != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _selection = widget.profileSelection;
+  }
+
+  /// The script a profile-mode page shows as picked. A stored choice
+  /// of "on, no specific script" (follow-global) or one pointing at a
+  /// deleted script resolves to the global current script, matching
+  /// how the choice is applied at runtime.
+  String? _effectiveScriptId(String? globalCurrentId) {
+    final selection = _selection!;
+    if (!selection.useScriptOverride) return null;
+    final scriptId = selection.scriptId;
+    if (scriptId != null &&
+        globalState.config.scriptProps.scriptById(scriptId) != null) {
+      return scriptId;
+    }
+    return globalCurrentId;
+  }
+
+  void _setSelection(ProfileScriptSelection next) {
+    if (next == _selection) return;
+    setState(() {
+      _selection = next;
+    });
+    widget.onProfileSelectionChanged?.call(next);
+  }
+  void _handleShowScriptSettings() {
+    showSheet(
+      context: context,
+      builder: (_, type) {
+        return _ScriptSettingsSheet(
+          type: type,
+          onPickProfile: _openProfileScriptPage,
+        );
+      },
+    );
+  }
+
+  /// Opens the script choice page for [profile] from the settings
+  /// sheet, applying edits to that profile right away.
+  Future<void> _openProfileScriptPage(Profile profile) async {
+    final container = ProviderScope.containerOf(context);
+    var changed = false;
+    await BaseNavigator.push(
+      context,
+      ScriptsView(
+        profileSelection: (
+          useScriptOverride: profile.useScriptOverride,
+          scriptId: profile.scriptId,
+        ),
+        onProfileSelectionChanged: (selection) {
+          changed = true;
+          container
+              .read(profilesProvider.notifier)
+              .updateProfile(
+                profile.id,
+                (p) => p.copyWith(
+                  useScriptOverride: selection.useScriptOverride,
+                  scriptId: selection.scriptId,
+                ),
+              );
+        },
+      ),
+    );
+    if (changed && profile.id == container.read(currentProfileIdProvider)) {
+      await globalState.appController.applyProfile(silence: true);
+    }
+  }
+
   Future<void> _handleDelScript(String label) async {
     final res = await globalState.showMessage(
       message: TextSpan(
@@ -144,15 +240,6 @@ class _ScriptsViewState extends ConsumerState<ScriptsView> {
     if (res == true && mounted) {
       context.showNotifier(appLocalizations.exportSuccess);
     }
-  }
-
-  void _handleShowScriptSettings() {
-    showSheet(
-      context: context,
-      builder: (_, type) {
-        return _ScriptSettingsSheet(type: type);
-      },
-    );
   }
 
   Widget _buildScriptTag({required IconData icon, required String label}) {
@@ -205,7 +292,12 @@ class _ScriptsViewState extends ConsumerState<ScriptsView> {
               separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final script = scripts[index];
-                final isSelected = script.id == currentId;
+                // In profile mode the switch is the profile's own
+                // choice; plain management mode has no switch at all,
+                // because enabling a script is no longer a global act.
+                final isSelected =
+                    _isProfileMode &&
+                    _effectiveScriptId(currentId) == script.id;
                 final hasRemote = script.url?.isNotEmpty ?? false;
                 final hasCustom = script.compatible;
                 final hasTags = hasRemote || hasCustom;
@@ -223,17 +315,24 @@ class _ScriptsViewState extends ConsumerState<ScriptsView> {
                     ),
                     child: Row(
                       children: [
-                        Switch(
-                          value: isSelected,
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                          onChanged: (_) {
-                            ref
-                                .read(scriptStateProvider.notifier)
-                                .setId(script.id);
-                          },
-                        ),
-                        const SizedBox(width: 12),
+                        if (_isProfileMode) ...[
+                          Switch(
+                            value: isSelected,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            onChanged: (_) {
+                              _setSelection(
+                                isSelected
+                                    ? (useScriptOverride: false, scriptId: null)
+                                    : (
+                                        useScriptOverride: true,
+                                        scriptId: script.id,
+                                      ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 12),
+                        ],
                         Expanded(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -529,8 +628,7 @@ class _ScriptsViewState extends ConsumerState<ScriptsView> {
       actions: [
         IconButton(
           onPressed: _handleShowScriptSettings,
-          tooltip: appLocalizations.settings,
-          icon: Icon(Icons.settings),
+          icon: const Icon(Icons.settings),
         ),
       ],
       body: _buildContent(),
@@ -539,15 +637,22 @@ class _ScriptsViewState extends ConsumerState<ScriptsView> {
   }
 }
 
+/// Per-profile script hub opened from the scripts page's settings
+/// action. Each row is an entry into that profile's own script
+/// choice, and its switch turns the profile's chosen script on or
+/// off. There is no global script enable anymore: a profile either
+/// picked a script or has none.
 class _ScriptSettingsSheet extends ConsumerWidget {
   final SheetType type;
+  final void Function(Profile profile) onPickProfile;
 
-  const _ScriptSettingsSheet({required this.type});
+  const _ScriptSettingsSheet({required this.type, required this.onPickProfile});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profiles = ref.watch(profilesProvider);
     final currentProfileId = ref.watch(currentProfileIdProvider);
+    final scriptProps = ref.watch(scriptStateProvider);
     return AdaptiveSheetScaffold(
       type: type,
       body: profiles.isEmpty
@@ -564,6 +669,20 @@ class _ScriptSettingsSheet extends ConsumerWidget {
                 itemBuilder: (_, index) {
                   final profile = profiles[index];
                   final isCurrentProfile = profile.id == currentProfileId;
+                  final script = scriptProps.resolveScript(
+                    useScriptOverride: profile.useScriptOverride,
+                    scriptId: profile.scriptId,
+                  );
+                  // A profile that picked a script and later switched
+                  // it off keeps the pick: the row switch must stay
+                  // tappable so it can be switched back on here, even
+                  // though the resolved (effective) script is null
+                  // while off. Only a profile that never picked one
+                  // gets a disabled switch.
+                  final pickedScriptId = profile.scriptId;
+                  final retainedScript = pickedScriptId != null
+                      ? scriptProps.scriptById(pickedScriptId)
+                      : null;
                   return Container(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: CommonCard(
@@ -575,29 +694,47 @@ class _ScriptSettingsSheet extends ConsumerWidget {
                           right: 16,
                         ),
                         title: EmojiText(profile.label ?? profile.id),
-                        trailing: Switch(
-                          value: profile.useScriptOverride,
-                          onChanged: (value) async {
-                            ref
-                                .read(profilesProvider.notifier)
-                                .updateProfile(
-                                  profile.id,
-                                  (p) => p.copyWith(useScriptOverride: value),
-                                );
-                            if (isCurrentProfile) {
-                              await globalState.appController.applyProfile(
-                                silence: true,
-                              );
-                            }
-                          },
+                        subtitle: Text(
+                          script?.label ?? appLocalizations.scriptNotUsed,
                         ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Switch(
+                              value: profile.useScriptOverride,
+                              onChanged:
+                                  (profile.useScriptOverride ||
+                                      retainedScript != null)
+                                  ? (value) async {
+                                      ref
+                                          .read(profilesProvider.notifier)
+                                          .updateProfile(
+                                            profile.id,
+                                            (p) => p.copyWith(
+                                              useScriptOverride: value,
+                                            ),
+                                          );
+                                      if (isCurrentProfile) {
+                                        await globalState.appController
+                                            .applyProfile(silence: true);
+                                      }
+                                    }
+                                  : null,
+                            ),
+                            const Icon(Icons.chevron_right),
+                          ],
+                        ),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          onPickProfile(profile);
+                        },
                       ),
                     ),
                   );
                 },
               ),
             ),
-      title: appLocalizations.useGlobalScriptOverride,
+      title: appLocalizations.script,
     );
   }
 }

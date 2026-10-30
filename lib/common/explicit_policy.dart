@@ -40,12 +40,21 @@ bool applyChainPolicy(
       'proxies': [entryName, landingName],
     });
   }
+  var selectors = 0;
   for (final group in list) {
     if (group is! Map || group['type']?.toString() != 'select') continue;
     if (group['name']?.toString() == explicitChainGroup) continue;
     final members = group['proxies'];
     if (members is! List || members.contains(explicitChainGroup)) continue;
-    members.add(explicitChainGroup);
+    selectors++;
+    if (selectors == 1) {
+      // The main selector lists the chain first so it is the default
+      // choice once a chain is configured; other selectors keep the
+      // chain as an extra option at the end.
+      members.insert(0, explicitChainGroup);
+    } else {
+      members.add(explicitChainGroup);
+    }
   }
   raw['proxy-groups'] = list;
   return true;

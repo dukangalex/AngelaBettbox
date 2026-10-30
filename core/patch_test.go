@@ -682,8 +682,18 @@ rules:
 	if len(exit) != 1 || exit[0].Name() != "REJECT" {
 		t.Fatalf("missing exit must fail closed: %v", exit)
 	}
-	if got := findGroup(raw.ProxyGroup, "链式入口")["proxies"].([]any)[0]; got != "DIRECT" {
-		t.Fatalf("existing group overwritten: %v", got)
+	// The pre-existing group must survive intact: the generated chain
+	// may join it (first selector, so the chain leads), but its own
+	// members are never dropped or replaced.
+	existing := findGroup(raw.ProxyGroup, "链式入口")["proxies"].([]any)
+	foundDirect := false
+	for _, member := range existing {
+		if member == "DIRECT" {
+			foundDirect = true
+		}
+	}
+	if !foundDirect {
+		t.Fatalf("existing group overwritten: %v", existing)
 	}
 }
 
@@ -857,6 +867,50 @@ rules:
 	}
 }
 
+func TestChainHopGroupsGetStickyHealthCheckFloors(t *testing.T) {
+	raw := parsePatchProfile(t, `
+proxies:
+  - {name: N1, type: http, server: n1.example, port: 80}
+  - {name: N2, type: http, server: n2.example, port: 80}
+proxy-groups:
+  - {name: Manual, type: select, proxies: [N1]}
+  - {name: EntryAuto, type: url-test, proxies: [N1, N2], url: "https://example.invalid", interval: 30, tolerance: 50, timeout: 3000}
+  - {name: Bystander, type: url-test, proxies: [N1, N2], url: "https://example.invalid", interval: 30, tolerance: 50, timeout: 3000}
+rules:
+  - MATCH,Manual
+`)
+	params := &PatchParams{ChainPolicy: &PatchChainPolicy{
+		Enabled: true, Entry: "EntryAuto", EntryKind: "group",
+		Landing: "[ext] ExitAuto", LandingKind: "group",
+		ExternalProfile: "other", ExternalTarget: "[ext] ExitAuto", ExternalKind: "group",
+		ExternalProxies: []map[string]any{{"name": "[ext] Exit", "type": "http", "server": "exit.example", "port": 80}},
+		ExternalGroups: []map[string]any{{"name": "[ext] ExitAuto", "type": "url-test", "proxies": []any{"[ext] Exit"}, "url": "https://example.invalid", "interval": 45, "tolerance": 60, "timeout": 2000}},
+	}}
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	assertHopFloors := func(name string, want bool) {
+		group := findGroup(raw.ProxyGroup, name)
+		if group == nil {
+			t.Fatalf("group %q missing", name)
+		}
+		interval, tolerance, timeout := group["interval"], group["tolerance"], group["timeout"]
+		if want {
+			if interval != 180 || tolerance != 200 || timeout != 5000 {
+				t.Fatalf("chain hop %q must be floored to 180/200/5000, got %v/%v/%v", name, interval, tolerance, timeout)
+			}
+		} else if interval != 30 || tolerance != 50 || timeout != 3000 {
+			t.Fatalf("group %q does not carry the chain and must keep its parameters, got %v/%v/%v", name, interval, tolerance, timeout)
+		}
+	}
+	assertHopFloors("EntryAuto", true)
+	assertHopFloors("[ext] ExitAuto", true)
+	assertHopFloors("Bystander", false)
+	if _, err := config.ParseRawConfig(raw); err != nil {
+		t.Fatalf("patched chain with sticky hop floors invalid: %v", err)
+	}
+}
+
 func TestExternalChainIsDefaultOnlyInMainSelector(t *testing.T) {
 	raw := parsePatchProfile(t, `
 proxies:
@@ -889,6 +943,41 @@ rules:
 	if _, err := config.ParseRawConfig(raw); err != nil {
 		t.Fatalf("patched external chain invalid: %v", err)
 	}
+}
+
+// The same-profile (legacy) chain must behave like the cross-profile
+// one: the generated chain group is the main selector's default and
+// only a trailing option in every other selector.
+func TestLegacyChainIsDefaultOnlyInMainSelector(t *testing.T) {
+	raw := parsePatchProfile(t, `
+proxies:
+  - {name: NodeA, type: http, server: a.example, port: 80}
+  - {name: NodeB, type: http, server: b.example, port: 80}
+proxy-providers:
+  subscription:
+    type: inline
+    payload:
+      - {name: Entry, type: ss, server: e.example.com, port: 8388, cipher: aes-128-gcm, password: p}
+      - {name: Landing, type: ss, server: l.example.com, port: 8388, cipher: aes-128-gcm, password: p}
+proxy-groups:
+  - {name: Main, type: select, proxies: [NodeA, NodeB]}
+  - {name: Secondary, type: select, proxies: [NodeA]}
+rules:
+  - MATCH,Main
+`)
+	params := patchParams(t, `{"chain-policy": {"enabled": true, "entry": "Entry", "landing": "Landing"}}`)
+	if _, err := applyPatch(raw, params); err != nil {
+		t.Fatal(err)
+	}
+	main := findGroup(raw.ProxyGroup, "Main")["proxies"]
+	if !reflect.DeepEqual(main, []any{explicitChainGroup, "NodeA", "NodeB"}) {
+		t.Fatalf("main selector must default to the chain: %#v", main)
+	}
+	secondary := findGroup(raw.ProxyGroup, "Secondary")["proxies"]
+	if !reflect.DeepEqual(secondary, []any{"NodeA", explicitChainGroup}) {
+		t.Fatalf("secondary selector must keep the chain as a trailing option: %#v", secondary)
+	}
+	parseChainConfig(t, raw)
 }
 
 // An entry selector cannot contain the generated exit, directly or through a nested group.
