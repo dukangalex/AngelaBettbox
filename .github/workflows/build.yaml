@@ -2,14 +2,21 @@ name: build
 
 on:
   push:
+    branches:
+      - main
+      - 'release/**'
     tags:
       - 'v*'
+  pull_request:
+    branches:
+      - main
+      - 'release/**'
 
 env:
   # AngelaMihomo fork: '-chain.' tags are stable fork releases
-  IS_STABLE: ${{ !contains(github.ref, '-') || contains(github.ref_name, '-chain.') }}
+  IS_STABLE: ${{ startsWith(github.ref, 'refs/tags/v') && (!contains(github.ref, '-') || contains(github.ref_name, '-chain.')) }}
   IS_PRERELEASE: ${{ contains(github.ref_name, 'pre') }}
-  SHOULD_RELEASE: ${{ !contains(github.ref, '-') || contains(github.ref_name, 'pre') || contains(github.ref_name, '-chain.') }}
+  SHOULD_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') && (!contains(github.ref, '-') || contains(github.ref_name, 'pre') || contains(github.ref_name, '-chain.')) }}
   GRADLE_OPTS: -Dorg.gradle.vfs.watch=false
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   SENTRY_BACKEND: none
@@ -26,6 +33,10 @@ jobs:
         uses: actions/checkout@v6
       - name: Verify tag matches pubspec version
         run: |
+          if [[ "${GITHUB_REF}" != refs/tags/v* ]]; then
+            echo "Not a version tag push (${GITHUB_REF}); skipping version check."
+            exit 0
+          fi
           tag="${GITHUB_REF_NAME#v}"
           tag="${tag%-pre[0-9]*}"
           ver="$(grep -E '^version:' pubspec.yaml | head -1 | sed 's/^version:[[:space:]]*//' | sed 's/+.*//')"
@@ -35,54 +46,34 @@ jobs:
           fi
           echo "Tag ${GITHUB_REF_NAME} matches pubspec version ${ver}."
 
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Select build matrix
+        id: set-matrix
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            cat > /tmp/matrix.json <<'JSON'
+          {"include":[{"platform":"android","os":"ubuntu-24.04","arch":"arm64"},{"platform":"android","os":"ubuntu-24.04","arch":"amd64"},{"platform":"android","os":"ubuntu-24.04","arch":"arm"},{"platform":"android","os":"ubuntu-24.04","arch":"universal"},{"platform":"windows","os":"windows-2022","arch":"amd64"},{"platform":"windows","os":"windows-11-arm","arch":"arm64"},{"platform":"windows","os":"windows-2022","arch":"amd64","compatible":true},{"platform":"macos","os":"macos-26","arch":"arm64"},{"platform":"macos","os":"macos-26","arch":"amd64"},{"platform":"linux","os":"ubuntu-22.04","arch":"amd64"},{"platform":"linux","os":"ubuntu-24.04-arm","arch":"arm64"},{"platform":"linux","os":"ubuntu-22.04","arch":"amd64","compatible":true}]}
+          JSON
+          else
+            cat > /tmp/matrix.json <<'JSON'
+          {"include":[{"platform":"android","os":"ubuntu-24.04","arch":"arm64"},{"platform":"android","os":"ubuntu-24.04","arch":"amd64"},{"platform":"android","os":"ubuntu-24.04","arch":"arm"},{"platform":"android","os":"ubuntu-24.04","arch":"universal"}]}
+          JSON
+          fi
+          echo "matrix=$(cat /tmp/matrix.json)" >> "$GITHUB_OUTPUT"
+
   build:
-    needs: version-guard
+    needs: [version-guard, prepare]
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
       actions: write
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - platform: android
-            os: ubuntu-24.04
-            arch: arm64
-          - platform: android
-            os: ubuntu-24.04
-            arch: amd64
-          - platform: android
-            os: ubuntu-24.04
-            arch: arm
-          - platform: android
-            os: ubuntu-24.04
-            arch: universal
-          - platform: windows
-            os: windows-2022
-            arch: amd64
-          - platform: windows
-            os: windows-11-arm
-            arch: arm64
-          - platform: windows
-            os: windows-2022
-            arch: amd64
-            compatible: true
-          - platform: macos
-            os: macos-26
-            arch: arm64
-          - platform: macos
-            os: macos-26
-            arch: amd64
-          - platform: linux
-            os: ubuntu-22.04
-            arch: amd64
-          - platform: linux
-            os: ubuntu-24.04-arm
-            arch: arm64
-          - platform: linux
-            os: ubuntu-22.04
-            arch: amd64
-            compatible: true
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
 
     steps:
       - name: Checkout
@@ -532,6 +523,7 @@ jobs:
           overwrite: true
 
   upload:
+    if: startsWith(github.ref, 'refs/tags/v')
     permissions: write-all
     needs: [ build ]
     runs-on: ubuntu-latest
