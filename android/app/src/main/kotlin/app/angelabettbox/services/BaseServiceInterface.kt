@@ -106,17 +106,18 @@ fun Service.ensureNotificationChannel(
         isHighPriority -> GlobalState.NOTIFICATION_CHANNEL_HIGH
         else -> GlobalState.NOTIFICATION_CHANNEL
     }
+    deleteLegacyBettboxChannels(manager)
+    val name = when {
+        isSuspended -> "Angela Mihomo Suspended Service"
+        isHighPriority -> "Angela Mihomo High Priority Service"
+        else -> "Angela Mihomo Service"
+    }
     val channel = manager.getNotificationChannel(channelId)
     if (channel == null) {
         val importance = when {
             isSuspended -> NotificationManager.IMPORTANCE_DEFAULT
             isHighPriority -> NotificationManager.IMPORTANCE_HIGH
             else -> NotificationManager.IMPORTANCE_LOW
-        }
-        val name = when {
-            isSuspended -> "Angela Mihomo Suspended Service"
-            isHighPriority -> "Angela Mihomo High Priority Service"
-            else -> "Angela Mihomo Service"
         }
         val newChannel = NotificationChannel(channelId, name, importance).apply {
             setShowBadge(false)
@@ -126,6 +127,33 @@ fun Service.ensureNotificationChannel(
             }
         }
         manager.createNotificationChannel(newChannel)
+    } else if (channel.name.toString() != name) {
+        // Rename in place: re-creating an existing channel updates only its
+        // name and description; the user's channel settings are preserved.
+        // Channels created by pre-rebrand builds still carry "Bettbox" names.
+        manager.createNotificationChannel(
+            NotificationChannel(channelId, name, channel.importance)
+        )
+    }
+}
+
+private val currentNotificationChannelIds = setOf(
+    GlobalState.NOTIFICATION_CHANNEL,
+    GlobalState.NOTIFICATION_CHANNEL_HIGH,
+    GlobalState.NOTIFICATION_CHANNEL_SUSPENDED,
+)
+
+private fun deleteLegacyBettboxChannels(manager: NotificationManager) {
+    // Channels under retired ids linger in system settings forever because
+    // nothing posts to them anymore. Current builds never create channels
+    // with upstream branding, so any that remain are pre-rebrand leftovers.
+    manager.notificationChannels.forEach { channel ->
+        if (channel.id in currentNotificationChannelIds) return@forEach
+        val legacy = channel.id.contains("bettbox", ignoreCase = true) ||
+            channel.name?.contains("Bettbox", ignoreCase = true) == true
+        if (legacy) {
+            manager.deleteNotificationChannel(channel.id)
+        }
     }
 }
 
